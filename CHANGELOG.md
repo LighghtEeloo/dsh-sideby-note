@@ -6,6 +6,8 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 
 ## next-released
 
+## 1.1.3
+
 <!-- app-update-notes:en:start -->
 ### Added
 - **New-session entry:** a blank new session now shows the notes button at the top right, beside the right-sidebar control. Until the first message it reads the workspace list and hides the session option; once the session starts, the entry moves into the conversation header and the switch becomes available.
