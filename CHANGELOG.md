@@ -6,6 +6,18 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 
 ## next-released
 
+<!-- app-update-notes:en:start -->
+### Added
+- **New-session entry:** a blank new session now shows the notes button at the top right, beside the right-sidebar control. Until the first message it reads the workspace list and hides the session option; once the session starts, the entry moves into the conversation header and the switch becomes available.
+- **Scope tooltips:** hovering or focusing the Workspace / Session switch explains what each list is for; a blank new session says the workspace list is the only one until the session starts.
+<!-- app-update-notes:en:end -->
+
+<!-- app-update-notes:zh:start -->
+### 新增
+- **新会话入口：** 空白新会话右上角也会出现旁边记按钮，位于右侧栏按钮左侧。发出第一条消息前只读取工作区清单，不显示「会话」选项；会话开始后入口回到对话头部，切换随之可用。
+- **范围提示：** 悬停或聚焦「工作区 / 会话」切换时，会说明两种清单各自的用途；空白新会话则提示当前只能记到工作区，会话开始后才可切换。
+<!-- app-update-notes:zh:end -->
+
 ## 1.1.2
 
 <!-- app-update-notes:en:start -->

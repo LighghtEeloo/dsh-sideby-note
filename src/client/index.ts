@@ -73,6 +73,8 @@ const h = React.createElement
 
 /** Hosts without ui-workspace (and the bundle test) keep the session list. */
 const useNoWorkspace = () => null
+/** Hosts without a session list cannot tell a new session from an old one. */
+const useNoSessions = () => undefined
 
 /** Panel dwell time as a stable RUM dimension. */
 function dwellBucket(ms: number) {
@@ -194,31 +196,42 @@ function apply(ctx: DshClientCtx) {
 
   function BoundSessionCapture(props) {
     const sessionId = props.sessionId || ''
-    // `useWorkspaces` is a global standard prop from ui-workspace; a host
-    // without it (or a test harness) leaves the panel on the session list.
+    // `useWorkspaces` and `useSessions` are global standard props; a host
+    // without them (or a test harness) keeps the previous, session-only
+    // behaviour and never mistakes a conversation for a new session.
     const useWorkspaces = typeof props.useWorkspaces === 'function' ? props.useWorkspaces : useNoWorkspace
+    const useSessions = typeof props.useSessions === 'function' ? props.useSessions : useNoSessions
     const snapshot = useWorkspaces(state => state)
+    const summary = useSessions(state => (state && state.byId ? state.byId[sessionId] : undefined))
+    const sessionReady = !(summary && summary.blank === true)
     const workspace = React.useMemo(() => {
       const items = snapshot && Array.isArray(snapshot.items) ? snapshot.items : []
       return items.find(candidate => (
         candidate && Array.isArray(candidate.sessionIds) && candidate.sessionIds.includes(sessionId)
       )) || null
     }, [snapshot, sessionId])
+    // Readiness changes without changing the workspace; the open panel gains
+    // the session scope in place instead of being closed on the first turn.
+    const workspaceRef = React.useRef({ sessionId: '', workspaceId: '' })
 
     React.useEffect(() => {
-      const changed = bindWorkspace(sessionId, workspace)
+      const workspaceId = workspace ? String(workspace.workspaceId) : ''
+      const previous = workspaceRef.current
+      const workspaceChanged = previous.sessionId === sessionId && previous.workspaceId !== workspaceId
+      workspaceRef.current = { sessionId, workspaceId }
+      bindWorkspace(sessionId, workspace, sessionReady)
       if (activeSessionId !== sessionId) {
         activeSessionId = sessionId
         setForwardTarget(sessionId)
         closeMemoPopover()
-      } else if (changed) {
+      } else if (workspaceChanged) {
         // The same conversation gained (or lost) a workspace: the open panel
         // was reading the other list, so reopen it against the right one.
         closeMemoPopover()
       }
       if (workspace) ensureWorkspaceRecord(workspace.workspaceId, workspace.sessionIds)
       refreshHeaderEntry()
-    }, [sessionId, workspace])
+    }, [sessionId, workspace, sessionReady])
     return null
   }
 
@@ -227,6 +240,21 @@ function apply(ctx: DshClientCtx) {
       {
         name: 'conversation.composer.dock',
         id: PANEL_ID,
+        order: 30,
+        locale: NS,
+      },
+      BoundSessionCapture,
+    ),
+  )
+
+  // The blank new-session page renders hero options but not the composer dock,
+  // so this second seat captures the same session/workspace context there. It
+  // paints nothing; the entry itself stays the host-owned header button.
+  ctx.slots.inject('conversation.hero.options', () =>
+    ctx.slots.register(
+      {
+        name: 'conversation.hero.options',
+        id: `${PANEL_ID}.new-session`,
         order: 30,
         locale: NS,
       },

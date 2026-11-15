@@ -245,13 +245,20 @@ test('host and browser entries use the package identity', () => {
   assert.match(bundle, /id: "dsh-aside-note"/)
   assert.match(bundle, /return module\.exports; \} \}\);/)
   assert.doesNotMatch(client, /__ModuleLoader__/, 'the source must not carry a hand-written shell')
-  assert.doesNotMatch(client, /ctx\.slots\.inject\('conversation\.hero\.options'/)
+  // The blank new-session page renders hero options but not the composer
+  // dock, so a second seat captures the session/workspace context there. It
+  // paints nothing; the visible entry stays the one header button.
+  assert.match(client, /ctx\.slots\.inject\('conversation\.hero\.options'/)
+  assert.match(client, /id: `\$\{PANEL_ID\}\.new-session`/)
   assert.match(client, /ctx\.slots\.inject\('conversation\.composer\.dock'/)
   assert.doesNotMatch(client, /conversation\.chat\.assistant-actions/)
   assert.match(client, /function MemoPopover/)
   assert.match(client, /refreshHeaderEntry/)
   assert.match(client, /dsh-an-headerBtn/)
   assert.match(client, /header\.tooltip/)
+  assert.match(client, /scope\.workspaceHint/)
+  assert.match(client, /scope\.sessionHint/)
+  assert.match(client, /scope\.newSessionHint/)
   assert.match(client, /add\.shortcut/)
   assert.match(client, /data-sidebar-right-panel\]\[data-sidebar-right-open\]/)
   assert.match(client, /DRAFT_STORAGE_KEY/)

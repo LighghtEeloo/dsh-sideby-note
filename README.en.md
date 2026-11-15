@@ -26,7 +26,7 @@ The same button in the dark theme:
 
 <img src="./docs/assets/preview-badge-dark.png" width="460" alt="AsideNote button at the top right, dark">
 
-Clicking the entry opens a fixed panel on the right.
+Clicking the entry opens a fixed panel on the right. A blank new session has no conversation header yet, so the button sits in the top-right corner beside the right-sidebar control and shows the workspace list only until the first message.
 
 ## Quick install
 
@@ -99,7 +99,7 @@ Click a note's forward button to append it to the current chat input as a list i
 ## Features
 
 - **Workspace-level notes**: one list is shared by every session in a workspace by default, so switching conversations keeps it in view; the panel header switches between **Workspace** and **Session**, and sessions outside a workspace only have the session scope. Tabs in the same browser stay in sync.
-- **Entry and panel**: an icon button at the top right badges the open count; clicking it opens a fixed panel aligned to the entry, which shifts left of the DSH right sidebar and closes when you switch sessions.
+- **Entry and panel**: an icon button at the top right badges the open count; a blank new session shows it in the corner with the workspace list only until the first message, without the session option; clicking it opens a fixed panel aligned to the entry, which shifts left of the DSH right sidebar and closes when you switch sessions.
 - **Note actions**: add, complete, copy, edit by double-click or pencil, and delete; clearing completed notes asks for confirmation, and completed notes expand for review.
 - **One-click forward**: each note is appended to the **currently open conversation's** composer as a `-` item, with the customizable prefix written only when the composer is empty — nothing is sent automatically. The forward button gains a check per list, and clicking it again removes the mark.
 - **Remembered state**: add and edit drafts are saved per workspace (per session outside a workspace), so switching conversations or the Workspace/Session switch never loses them; submitting still writes the list selected at that moment. Drafts are restored when the panel reopens, and the open/completed expand state plus the scope choice are remembered too.

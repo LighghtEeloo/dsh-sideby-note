@@ -187,8 +187,8 @@ test('the built bundle boots, applies, and seats its slots', async t => {
 
   await act(async () => { exported.apply(ctx) })
 
-  assert.deepEqual(injected.sort(), ['conversation.composer.dock', 'shell.overlay'])
-  assert.equal(registered.length, 2, 'both slots must be registered')
+  assert.deepEqual(injected.sort(), ['conversation.composer.dock', 'conversation.hero.options', 'shell.overlay'])
+  assert.equal(registered.length, 3, 'the capture, the new-session seat and the toast host must be registered')
   assert.deepEqual(registered.map(entry => entry.meta.name).sort(), injected)
 
   const seeded = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
@@ -696,6 +696,185 @@ test('one workspace shares its notes and forwards into the visible session', asy
     'the shared draft is consumed by the save')
 
   await act(async () => { secondRoot.unmount() })
+  for (const dispose of disposers) dispose()
+  dom.window.close()
+})
+
+test('a blank new session opens the workspace list from the header corner', async t => {
+  const dom = new JSDOM(
+    '<!doctype html><html><body>' +
+      '<div class="_headerCorner"><button type="button" id="host-rightbar">rightbar</button></div>' +
+      '<div data-conversation-session="session-new"><textarea data-composer-input></textarea></div>' +
+    '</body></html>',
+    { url: 'https://example.test/', pretendToBeVisual: true, runScripts: 'outside-only' },
+  )
+  const { window } = dom
+  t.after(() => window.close())
+  globalThis.window = window
+  globalThis.document = window.document
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
+
+  window.HTMLElement.prototype.getBoundingClientRect = () => ({
+    width: 320, height: 24, top: 0, left: 0, right: 320, bottom: 24, x: 0, y: 0,
+    toJSON: () => ({}),
+  })
+  // A note written before the workspace list existed is folded in when the
+  // new session first captures the workspace.
+  window.localStorage.setItem('dsh.aside-note', JSON.stringify({
+    version: 1,
+    sessions: {
+      'session-new': { items: [{ id: 'seed-new', text: '新会话前的事项', done: false, createdAt: 1, updatedAt: 1 }] },
+    },
+  }))
+  window.fetch = async () => ({ ok: false, status: 404, json: async () => ({}) })
+
+  const React = await import('react')
+  const ReactDOMClient = await import('react-dom/client')
+  const { act } = React
+
+  let loaded = null
+  window.__ModuleLoader__ = { load: spec => { loaded = spec } }
+  window.eval(bundle)
+  // The real host seeds the shared Tooltip; this clone keeps its label
+  // inspectable without building the portal and hover machinery in jsdom.
+  const Tooltip = ({ label, children }) => React.cloneElement(children, { 'data-tooltip': label })
+  const moduleTable = {
+    react: React,
+    'react-dom': await import('react-dom'),
+    'react-dom/client': ReactDOMClient,
+    '@deepseek-ai/dsh-client-ui-primitives': { Tooltip },
+  }
+  const exported = loaded.factory(id => {
+    if (!(id in moduleTable)) throw new Error(`module table cannot answer ${id}`)
+    return moduleTable[id]
+  })
+
+  const disposers = []
+  const registered = []
+  const locale = {
+    bind: () => key => key,
+    register: () => {},
+    getLocale: () => ({ id: 'zh' }),
+  }
+  const ctx = {
+    get: name => (name === 'locale' ? locale : undefined),
+    effect: fn => {
+      const dispose = fn()
+      if (typeof dispose === 'function') disposers.push(dispose)
+    },
+    slots: {
+      inject: (name, factory) => factory(),
+      register: (meta, component) => {
+        registered.push({ meta, component })
+        return () => {}
+      },
+    },
+  }
+  await act(async () => { exported.apply(ctx) })
+
+  const hero = registered.find(entry => entry.meta.name === 'conversation.hero.options').component
+  const workspace = {
+    workspaceId: 'ws-new',
+    path: '/repo/new',
+    title: '新会话工作区',
+    sessionIds: ['session-new'],
+    createdAt: '',
+    updatedAt: '',
+  }
+  const useWorkspaces = selector => selector({
+    items: [workspace], archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null,
+  })
+  let sessionsSnapshot = { byId: { 'session-new': { id: 'session-new', blank: true } } }
+  const sessionListeners = new Set()
+  const useSessions = selector => React.useSyncExternalStore(
+    callback => {
+      sessionListeners.add(callback)
+      return () => { sessionListeners.delete(callback) }
+    },
+    () => selector(sessionsSnapshot),
+    () => selector(sessionsSnapshot),
+  )
+
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = ReactDOMClient.createRoot(host)
+  await act(async () => {
+    root.render(React.createElement(hero, { sessionId: 'session-new', useWorkspaces, useSessions }))
+  })
+
+  assert.equal(host.innerHTML, '',
+    'the hero seat only captures context; the visible entry stays the single header button')
+
+  const button = document.querySelector('.dsh-an-headerBtn')
+  assert.ok(button, 'the blank new session must show the notes entry')
+  const corner = document.querySelector('[class*="_headerCorner"]')
+  assert.equal(button.parentElement, corner, 'the entry uses the header corner when there are no utilities')
+  assert.equal(corner.firstElementChild, button, 'the host right-sidebar button stays rightmost')
+  assert.equal(button.dataset.anchor, 'corner')
+  assert.equal(button.dataset.scope, 'workspace')
+  assert.equal(button.querySelector('.dsh-an-headerCount').textContent, '1',
+    'the corner entry counts the workspace notes')
+
+  await act(async () => { button.click() })
+  const popover = document.querySelector('.dsh-an-popover')
+  assert.ok(popover, 'the corner entry opens the panel')
+  const scopeButtons = () => [...popover.querySelectorAll('.dsh-an-scopeBtn')]
+  assert.deepEqual(scopeButtons().map(node => node.textContent), ['工作区'],
+    'a blank session shows the workspace option alone')
+  assert.equal(scopeButtons()[0].getAttribute('aria-pressed'), 'true',
+    'a blank session opens on the workspace list')
+  assert.equal(scopeButtons()[0].getAttribute('data-tooltip'),
+    '当前只能记到工作区，会话开始后可切换',
+    'the lone workspace option explains why the session option is absent')
+
+  const input = popover.querySelector('.dsh-an-input')
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+  await act(async () => {
+    setter.call(input, '新会话里记一条')
+    input.dispatchEvent(new window.Event('input', { bubbles: true }))
+  })
+  await act(async () => { popover.querySelector('.dsh-an-addBtn').click() })
+  const workspaceStore = JSON.parse(window.localStorage.getItem('dsh.aside-note.workspaces'))
+  assert.ok(
+    workspaceStore.workspaces['ws-new'].items.some(item => item.text === '新会话里记一条'),
+    'a note written before the first turn lands in the workspace list',
+  )
+
+  // The first turn makes the session list meaningful. The panel stays open,
+  // the header entry moves to the real utilities row and the switch wakes up.
+  const utilities = document.createElement('div')
+  utilities.className = '_headerUtilities'
+  document.body.appendChild(utilities)
+  await act(async () => {
+    sessionsSnapshot = { byId: { 'session-new': { id: 'session-new', blank: false } } }
+    for (const listener of [...sessionListeners]) listener()
+    await new Promise(resolve => window.setTimeout(resolve, 80))
+  })
+
+  assert.ok(document.querySelector('.dsh-an-popover'), 'the open panel survives the first turn')
+  assert.equal(document.querySelector('._headerUtilities > .dsh-an-headerBtn'), button,
+    'the entry moves into the conversation utilities row once the session starts')
+  assert.equal(button.dataset.anchor, 'utilities')
+  assert.deepEqual(scopeButtons().map(node => node.textContent), ['工作区', '会话'],
+    'the session option appears once the session starts')
+  assert.equal(scopeButtons()[0].getAttribute('data-tooltip'), '切换到工作区清单，所有会话共享')
+  assert.equal(scopeButtons()[1].getAttribute('data-tooltip'), '切换到会话清单，只属于当前会话')
+
+  await act(async () => { popover.querySelector('[data-scope-mode="session"]').click() })
+  assert.equal(scopeButtons()[1].getAttribute('aria-pressed'), 'true')
+  await act(async () => {
+    setter.call(input, '会话开始后的事项')
+    input.dispatchEvent(new window.Event('input', { bubbles: true }))
+  })
+  await act(async () => { popover.querySelector('.dsh-an-addBtn').click() })
+  const sessionStore = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
+  assert.ok(
+    sessionStore.sessions['session-new'].items.some(item => item.text === '会话开始后的事项'),
+    'the session list is writable after the first turn',
+  )
+
+  await act(async () => { popover.querySelector('.dsh-an-popClose').click() })
+  await act(async () => { root.unmount() })
   for (const dispose of disposers) dispose()
   dom.window.close()
 })

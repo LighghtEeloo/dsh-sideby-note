@@ -8,7 +8,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { PANEL_DEFAULT_WIDTH, SCOPE_MODE_KEY } from '../constants'
-import { draftKeyForSession, scopeForSession, scopeKey, workspaceScopeForSession } from '../scope'
+import { canUseSessionScope, draftKeyForSession, scopeForSession, scopeKey, scopeVersion, subscribeScope, workspaceScopeForSession } from '../scope'
 import { notifyTodoChange } from '../storage/events'
 import { readScopeMode, writeScopeMode } from '../storage/prefs'
 import { ensureWorkspaceRecord } from '../storage/workspace'
@@ -49,8 +49,15 @@ export function MemoPopover(props) {
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
   }, [])
+  // Readiness lives in the module binding, not in React state: the header
+  // entry and the panel must agree without a parent component between them.
+  React.useSyncExternalStore(subscribeScope, scopeVersion, scopeVersion)
   const canUseWorkspace = Boolean(workspaceScopeForSession(sessionId))
-  const scope = scopeForSession(sessionId, mode)
+  const canUseSession = canUseSessionScope(sessionId)
+  // A blank new session keeps the workspace list even when the stored mode is
+  // `session`; once its first turn lands, the stored mode applies again.
+  const effectiveMode = canUseSession ? mode : 'workspace'
+  const scope = scopeForSession(sessionId, effectiveMode)
   // Drafts follow the workspace, not the tab; the writer below still follows `scope`.
   const draftKey = draftKeyForSession(sessionId)
   /** Settled outcomes go to the frame-wide toast host, not to inline marks. */
@@ -114,6 +121,7 @@ export function MemoPopover(props) {
 
   const chooseScope = next => {
     if (next === mode) return
+    if (next === 'session' && !canUseSession) return
     if (next === 'workspace' && !canUseWorkspace) return
     // The workspace may not have been seeded yet if the panel opened while the
     // session list was selected; fold member notes in before reading it.
@@ -218,8 +226,9 @@ export function MemoPopover(props) {
       },
       onClose: props.onClose,
       newerVersion,
-      scopeMode: mode,
+      scopeMode: effectiveMode,
       canUseWorkspace,
+      canUseSession,
       onScopeChange: chooseScope,
     }),
     showSettings

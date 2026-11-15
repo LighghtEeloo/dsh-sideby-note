@@ -6,7 +6,7 @@
  */
 import { SCOPE_MODE_KEY, SESSION_STORAGE_KEY, WORKSPACE_STORAGE_KEY } from '../constants'
 import { normalizeItems } from '../domain/items'
-import { scopeForSession, scopeKey } from '../scope'
+import { scopeForSession, scopeKey, sessionReadyFor, workspaceScopeForSession } from '../scope'
 import { readSessionStore } from '../storage/session'
 import { readScopeMode } from '../storage/prefs'
 import { readWorkspaceRecord } from '../storage/workspace'
@@ -17,9 +17,25 @@ const HEADER_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"
 export function createHeaderEntry({ getSessionId, getActiveAnchor, getLocaleId, tr, onOpen }) {
   const refresh = () => {
     const sessionId = getSessionId()
-    const host = document.querySelector('[class*="_headerUtilities"]')
-    let button = (host ? host.querySelector(':scope > .dsh-an-headerBtn') : null) as HTMLButtonElement | null
-    if (!host || !sessionId) {
+    let button = document.querySelector('.dsh-an-headerBtn') as HTMLButtonElement | null
+    if (!sessionId) {
+      if (button) button.remove()
+      return
+    }
+    const ready = sessionReadyFor(sessionId)
+    const workspace = workspaceScopeForSession(sessionId)
+    // A blank new session has no conversation header utilities yet. Its notes
+    // are workspace notes, so the entry moves to the header corner — the only
+    // top-right seat the host renders while the new-session page is blank. A
+    // blank session outside a workspace has no list to offer and stays hidden.
+    if (!ready && !workspace) {
+      if (button) button.remove()
+      return
+    }
+    const utilities = document.querySelector('[class*="_headerUtilities"]')
+    const corner = ready ? null : document.querySelector('[class*="_headerCorner"]')
+    const host = utilities || corner
+    if (!host) {
       if (button) button.remove()
       return
     }
@@ -41,8 +57,15 @@ export function createHeaderEntry({ getSessionId, getActiveAnchor, getLocaleId, 
         // resolve the open session at click time instead of capturing the first.
         onOpen(getSessionId(), button)
       })
+    }
+    // In the corner, the host's own right-sidebar button remains rightmost;
+    // the notes entry sits before it like the utilities-row order.
+    if (host === corner) {
+      if (host.firstElementChild !== button) host.insertBefore(button, host.firstElementChild)
+    } else if (button.parentElement !== host) {
       host.appendChild(button)
     }
+    button.dataset.anchor = host === utilities ? 'utilities' : 'corner'
     button.dataset.active = getActiveAnchor() === button ? 'true' : 'false'
     button.dataset.scope = scope.kind
     const signature = `${getLocaleId()}:${scopeKey(scope)}:${open}`

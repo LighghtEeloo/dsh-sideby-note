@@ -4587,6 +4587,9 @@ const en = {
 	"scope.label": "Note scope",
 	"scope.workspace": "Workspace",
 	"scope.session": "Session",
+	"scope.workspaceHint": "Switch to the workspace list, shared by all sessions",
+	"scope.sessionHint": "Switch to the session list, visible only in this session",
+	"scope.newSessionHint": "Only the workspace list is available for now; the session list appears once the session starts",
 	"popover.empty.title": "No notes yet",
 	"popover.empty.body": "Keep your ideas beside the conversation",
 	"settings.open": "Settings",
@@ -4705,6 +4708,9 @@ const zh = {
 	"scope.label": "便笺范围",
 	"scope.workspace": "工作区",
 	"scope.session": "会话",
+	"scope.workspaceHint": "切换到工作区清单，所有会话共享",
+	"scope.sessionHint": "切换到会话清单，只属于当前会话",
+	"scope.newSessionHint": "当前只能记到工作区，会话开始后可切换",
 	"popover.empty.title": "旁边还没有记录",
 	"popover.empty.body": "让想法留在对话旁边",
 	"settings.open": "设置",
@@ -4842,23 +4848,47 @@ const EMPTY = {
 	sessionId: "",
 	workspaceId: "",
 	title: "",
-	sessionIds: []
+	sessionIds: [],
+	ready: true
 };
 let binding = EMPTY;
+let version = 0;
+const listeners = /* @__PURE__ */ new Set();
 const text$2 = (value) => value ? String(value) : "";
-/** Resolve the workspace of the captured session; null clears the binding. */
-function bindWorkspace(sessionId, workspace) {
+const notify = () => {
+	version += 1;
+	for (const listener of listeners) listener();
+};
+/** Subscribe to binding changes; used by the open panel to gain session scope. */
+function subscribeScope(listener) {
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
+}
+/** Monotonic version of the binding, read by useSyncExternalStore. */
+function scopeVersion() {
+	return version;
+}
+/**
+* Resolve the workspace of the captured session; null clears the binding.
+* `ready` is false only when the session is still the blank new-session page.
+*/
+function bindWorkspace(sessionId, workspace, ready = true) {
 	const next = workspace ? {
 		sessionId: text$2(sessionId),
 		workspaceId: text$2(workspace.workspaceId),
 		title: text$2(workspace.title),
-		sessionIds: Array.isArray(workspace.sessionIds) ? workspace.sessionIds.map(text$2).filter(Boolean) : []
+		sessionIds: Array.isArray(workspace.sessionIds) ? workspace.sessionIds.map(text$2).filter(Boolean) : [],
+		ready: ready !== false
 	} : {
 		...EMPTY,
-		sessionId: text$2(sessionId)
+		sessionId: text$2(sessionId),
+		ready: ready !== false
 	};
-	if (next.sessionId === binding.sessionId && next.workspaceId === binding.workspaceId && next.title === binding.title && next.sessionIds.join("\0") === binding.sessionIds.join("\0")) return false;
+	if (next.sessionId === binding.sessionId && next.workspaceId === binding.workspaceId && next.title === binding.title && next.sessionIds.join("\0") === binding.sessionIds.join("\0") && next.ready === binding.ready) return false;
 	binding = next;
+	notify();
 	return true;
 }
 /** The workspace list available to this session, or null outside a workspace. */
@@ -4872,10 +4902,20 @@ function workspaceScopeForSession(sessionId) {
 	};
 	return null;
 }
+/** Whether the captured session has moved past the blank new-session page. */
+function sessionReadyFor(sessionId) {
+	const id = text$2(sessionId);
+	if (!id || binding.sessionId !== id) return true;
+	return binding.ready;
+}
+/** Whether the panel may offer the session list at all. */
+function canUseSessionScope(sessionId) {
+	return Boolean(text$2(sessionId)) && sessionReadyFor(sessionId);
+}
 /** The list this session reads and writes under the chosen scope mode. */
 function scopeForSession(sessionId, mode = "workspace") {
 	const workspace = workspaceScopeForSession(sessionId);
-	if (workspace && mode !== "session") return workspace;
+	if (workspace && (mode !== "session" || !sessionReadyFor(sessionId))) return workspace;
 	const id = text$2(sessionId);
 	return {
 		kind: "session",
@@ -5608,9 +5648,21 @@ const HEADER_ICON = "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=
 function createHeaderEntry({ getSessionId, getActiveAnchor, getLocaleId, tr, onOpen }) {
 	const refresh = () => {
 		const sessionId = getSessionId();
-		const host = document.querySelector("[class*=\"_headerUtilities\"]");
-		let button = host ? host.querySelector(":scope > .dsh-an-headerBtn") : null;
-		if (!host || !sessionId) {
+		let button = document.querySelector(".dsh-an-headerBtn");
+		if (!sessionId) {
+			if (button) button.remove();
+			return;
+		}
+		const ready = sessionReadyFor(sessionId);
+		const workspace = workspaceScopeForSession(sessionId);
+		if (!ready && !workspace) {
+			if (button) button.remove();
+			return;
+		}
+		const utilities = document.querySelector("[class*=\"_headerUtilities\"]");
+		const corner = ready ? null : document.querySelector("[class*=\"_headerCorner\"]");
+		const host = utilities || corner;
+		if (!host) {
 			if (button) button.remove();
 			return;
 		}
@@ -5627,8 +5679,11 @@ function createHeaderEntry({ getSessionId, getActiveAnchor, getLocaleId, tr, onO
 				event.stopPropagation();
 				onOpen(getSessionId(), button);
 			});
-			host.appendChild(button);
 		}
+		if (host === corner) {
+			if (host.firstElementChild !== button) host.insertBefore(button, host.firstElementChild);
+		} else if (button.parentElement !== host) host.appendChild(button);
+		button.dataset.anchor = host === utilities ? "utilities" : "corner";
 		button.dataset.active = getActiveAnchor() === button ? "true" : "false";
 		button.dataset.scope = scope.kind;
 		const signature = `${getLocaleId()}:${scopeKey(scope)}:${open}`;
@@ -7492,40 +7547,40 @@ function TodoRow(props) {
 /** Segmented switch between the workspace list and the session list. */
 const h$9 = react.default.createElement;
 function ScopeSwitch(props) {
-	const { say, mode, onChange } = props;
+	const { say, mode, canUseSession, onChange } = props;
 	const options = [{
 		value: "workspace",
 		label: say("scope.workspace")
-	}, {
+	}, ...canUseSession ? [{
 		value: "session",
 		label: say("scope.session")
-	}];
+	}] : []];
 	return h$9("div", {
 		className: "dsh-an-scope",
 		role: "group",
 		"aria-label": say("scope.label")
-	}, options.map((option) => h$9("button", {
-		key: option.value,
+	}, options.map((option) => h$9(react.default.Fragment, { key: option.value }, withTooltip(option.value === "session" ? say("scope.sessionHint") : canUseSession ? say("scope.workspaceHint") : say("scope.newSessionHint"), h$9("button", {
 		type: "button",
 		className: "dsh-an-scopeBtn",
 		"data-scope-mode": option.value,
 		"data-active": mode === option.value ? "true" : void 0,
 		"aria-pressed": mode === option.value,
 		onClick: () => onChange(option.value)
-	}, option.label)));
+	}, option.label)))));
 }
 
 // src/client/ui/PanelHead.ts
 /** Panel title, counts, the list-scope switch and the settings/close actions. */
 const h$8 = react.default.createElement;
 function PanelHead(props) {
-	const { say, openCount, total, showSettings, onToggleSettings, onClose, newerVersion, scopeMode, canUseWorkspace, onScopeChange } = props;
+	const { say, openCount, total, showSettings, onToggleSettings, onClose, newerVersion, scopeMode, canUseWorkspace, canUseSession, onScopeChange } = props;
 	return h$8("div", { className: "dsh-an-popHead" }, h$8("div", { className: "dsh-an-popTitleLine" }, h$8("div", { className: "dsh-an-popTitle" }, say("popover.title")), h$8("p", { className: "dsh-an-popMeta" }, say("popover.count", {
 		open: openCount,
 		total
 	})), canUseWorkspace ? h$8(ScopeSwitch, {
 		say,
 		mode: scopeMode,
+		canUseSession,
 		onChange: onScopeChange
 	}) : null), h$8("div", { className: "dsh-an-popActions" }, withTooltip(say("settings.open"), h$8("button", {
 		type: "button",
@@ -7944,8 +7999,11 @@ function MemoPopover(props) {
 		window.addEventListener("storage", onStorage);
 		return () => window.removeEventListener("storage", onStorage);
 	}, []);
+	react.default.useSyncExternalStore(subscribeScope, scopeVersion, scopeVersion);
 	const canUseWorkspace = Boolean(workspaceScopeForSession(sessionId));
-	const scope = scopeForSession(sessionId, mode);
+	const canUseSession = canUseSessionScope(sessionId);
+	const effectiveMode = canUseSession ? mode : "workspace";
+	const scope = scopeForSession(sessionId, effectiveMode);
 	const draftKey = draftKeyForSession(sessionId);
 	/** Settled outcomes go to the frame-wide toast host, not to inline marks. */
 	const report = typeof props.onToast === "function" ? props.onToast : () => {};
@@ -7990,6 +8048,7 @@ function MemoPopover(props) {
 	useOutsideDismiss(panelRef, props.anchorRef, props.onClose);
 	const chooseScope = (next) => {
 		if (next === mode) return;
+		if (next === "session" && !canUseSession) return;
 		if (next === "workspace" && !canUseWorkspace) return;
 		if (next === "workspace") {
 			const workspace = scopeForSession(sessionId, "workspace");
@@ -8081,8 +8140,9 @@ function MemoPopover(props) {
 		},
 		onClose: props.onClose,
 		newerVersion,
-		scopeMode: mode,
+		scopeMode: effectiveMode,
 		canUseWorkspace,
+		canUseSession,
 		onScopeChange: chooseScope
 	}), showSettings ? h$1("div", { className: "dsh-an-settingsViewport" }, h$1(SettingsPanel, {
 		say,
@@ -8150,6 +8210,8 @@ function MemoPopover(props) {
 const h = react.default.createElement;
 /** Hosts without ui-workspace (and the bundle test) keep the session list. */
 const useNoWorkspace = () => null;
+/** Hosts without a session list cannot tell a new session from an old one. */
+const useNoSessions = () => void 0;
 /** Panel dwell time as a stable RUM dimension. */
 function dwellBucket(ms) {
 	if (ms < 5e3) return "<5s";
@@ -8254,25 +8316,50 @@ function apply(ctx) {
 	ctx.effect(() => headerEntry.attach(() => closeMemoPopover()), "dsh-aside-note: right-side entry");
 	function BoundSessionCapture(props) {
 		const sessionId = props.sessionId || "";
-		const snapshot = (typeof props.useWorkspaces === "function" ? props.useWorkspaces : useNoWorkspace)((state) => state);
+		const useWorkspaces = typeof props.useWorkspaces === "function" ? props.useWorkspaces : useNoWorkspace;
+		const useSessions = typeof props.useSessions === "function" ? props.useSessions : useNoSessions;
+		const snapshot = useWorkspaces((state) => state);
+		const summary = useSessions((state) => state && state.byId ? state.byId[sessionId] : void 0);
+		const sessionReady = !(summary && summary.blank === true);
 		const workspace = react.default.useMemo(() => {
 			return (snapshot && Array.isArray(snapshot.items) ? snapshot.items : []).find((candidate) => candidate && Array.isArray(candidate.sessionIds) && candidate.sessionIds.includes(sessionId)) || null;
 		}, [snapshot, sessionId]);
+		const workspaceRef = react.default.useRef({
+			sessionId: "",
+			workspaceId: ""
+		});
 		react.default.useEffect(() => {
-			const changed = bindWorkspace(sessionId, workspace);
+			const workspaceId = workspace ? String(workspace.workspaceId) : "";
+			const previous = workspaceRef.current;
+			const workspaceChanged = previous.sessionId === sessionId && previous.workspaceId !== workspaceId;
+			workspaceRef.current = {
+				sessionId,
+				workspaceId
+			};
+			bindWorkspace(sessionId, workspace, sessionReady);
 			if (activeSessionId !== sessionId) {
 				activeSessionId = sessionId;
 				setForwardTarget(sessionId);
 				closeMemoPopover();
-			} else if (changed) closeMemoPopover();
+			} else if (workspaceChanged) closeMemoPopover();
 			if (workspace) ensureWorkspaceRecord(workspace.workspaceId, workspace.sessionIds);
 			refreshHeaderEntry();
-		}, [sessionId, workspace]);
+		}, [
+			sessionId,
+			workspace,
+			sessionReady
+		]);
 		return null;
 	}
 	ctx.slots.inject("conversation.composer.dock", () => ctx.slots.register({
 		name: "conversation.composer.dock",
 		id: PANEL_ID,
+		order: 30,
+		locale: NS
+	}, BoundSessionCapture));
+	ctx.slots.inject("conversation.hero.options", () => ctx.slots.register({
+		name: "conversation.hero.options",
+		id: `${PANEL_ID}.new-session`,
 		order: 30,
 		locale: NS
 	}, BoundSessionCapture));

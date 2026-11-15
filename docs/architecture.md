@@ -9,7 +9,7 @@
 - `package.json` 的 `dsh.bundle.patch` 指向 `cordis.patch.yml`，`dsh.client` 声明 `./client` 与需要预注入的宿主模块。
 - 壳把 `./client`（即 `client/client.js`）当 classic script 加载：`window.__ModuleLoader__.load({ id, factory })`。`factory(require)` 里的 `require` 绑定到冻结的模块表，只认 `react`、`react/jsx-runtime`、`react-dom`、`react-dom/client`、`@deepseek-ai/dsh-client-ui-primitives`；其余依赖全部内联。
 - 样式是 `import css from './styles/panel.css?inline'`，由入口在 `apply()` 里插入**一张** `<style data-dsh-plugin="dsh-aside-note">`，dispose 时移除。面板与输入框 dock 不在同一棵 React 树里，所以不能做面板级 `<style>`。
-- 只依赖两个服务：`slots`（`conversation.composer.dock` 捕获当前会话、`shell.overlay` 承载全局 Toast）与 `locale`（注册字典、绑定 `t`）。
+- 只依赖两个服务：`slots`（`conversation.composer.dock` 捕获当前会话、`conversation.hero.options` 捕获空白新会话、`shell.overlay` 承载全局 Toast）与 `locale`（注册字典、绑定 `t`）。
 - 顶部入口是注入宿主 header 的原生 DOM 按钮，不是 React portal——宿主重渲染会回收 portal。
 
 ## 2. 目录
@@ -60,13 +60,13 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | UI 组件 | `ui/MemoPopover.ts` | 面板编排：组合 hook 与展示组件，portal 到 body |
 | UI 组件 | `PanelHead` / `ScopeSwitch` / `SettingsPanel` / `ComposerForm` / `NoteList` / `ClearConfirm` / `TodoRow` / `EmptyState` | 纯展示，数据与回调由面板传入 |
 | UI hooks | `useSessionMemoStore` / `usePanelGeometry` / `useSections` / `useForwardMarks` / `usePanelSettings` / `useComposerDraft` / `useNoteActions` / `useClearConfirm` / `useListEdge` / `useOutsideDismiss` | 把状态与副作用从 JSX 里分离；每个 hook 只做一件事 |
-| UI 基础设施 | `primitives` / `position` / `toastSeat` / `headerEntry` | 共享图标与 Tooltip、浮层定位与吸顶、跨面板 Toast、宿主 header 入口 |
+| UI 基础设施 | `primitives` / `position` / `toastSeat` / `headerEntry` | 共享图标与 Tooltip、浮层定位与吸顶、跨面板 Toast、宿主 header 入口（空白新会话回落到 header corner） |
 
 约定：`domain/` 与 `storage/` 不 import React；需要 React 的状态放 `ui/use*.ts`。浏览器半侧不碰 Node 内置模块与 `process`（契约测试会拦）。
 
 ## 4. 数据模型
 
-所有数据在**当前浏览器**的 `localStorage`。同一个工作区默认共享一份清单与一份未提交草稿，面板头部可在工作区清单与当前会话清单之间切换；没有工作区的会话只有会话清单。
+所有数据在**当前浏览器**的 `localStorage`。同一个工作区默认共享一份清单与一份未提交草稿，面板头部可在工作区清单与当前会话清单之间切换；没有工作区的会话只有会话清单。空白新会话只有工作区清单：入口在右上角出现，面板不显示「会话」选项；首轮对话后才出现并解锁会话清单。
 
 | 键 | 内容 |
 | --- | --- |
@@ -97,7 +97,7 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | 文件 | 覆盖 |
 | --- | --- |
 | `tests/contract.test.mjs` | 清单与 patch 形状、工具链约定、样式令牌、无障碍与交互规则、字典完整性 |
-| `tests/bundle.test.mjs` | 在 jsdom 里执行**构建产物**：模块表、slot 注册、样式注入、入口注入，并驱动完整面板流程（添加、设置、完成、清除确认、编辑、缩放、删除、分区记忆）；另有一条工作区测试，验证两个会话共享清单、旧便笺只合入一次、工作区/会话切换与持久化、转发只写入当前会话输入框 |
+| `tests/bundle.test.mjs` | 在 jsdom 里执行**构建产物**：模块表、slot 注册、样式注入、入口注入，并驱动完整面板流程（添加、设置、完成、清除确认、编辑、缩放、删除、分区记忆）；另有工作区测试，验证两个会话共享清单、旧便笺只合入一次、工作区/会话切换与持久化、转发只写入当前会话输入框；还有空白新会话测试，验证入口落在 header corner、只有工作区清单，以及首轮对话后入口移到 utilities 并解锁会话清单 |
 
 契约测试按模块读取源码（需要时读 bundle 或 CSS），断言的是约束而不是实现细节；集成测试提供行为兜底。
 
