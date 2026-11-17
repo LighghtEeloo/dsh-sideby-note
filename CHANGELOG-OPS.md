@@ -15,6 +15,8 @@
 
 ## next-released
 
+- **构建：** 移除匿名功能统计后，`aegis-web-sdk` 依赖、`src/client/rum.ts` 与 `__PLUGIN_VERSION__` 构建期注入一并删除；客户端产物只剩面板自身的代码与共享模块。
+
 ## 1.1.4
 
 - **图标：** 插件标识换成渐变便签卡叠对话气泡的母版 `docs/assets/storefront-icon.svg`，渲染出的市场上架图 `icon.png` 与插件列表的 `icon.svg` 共用同一套图形；`icon.svg` 按宿主 36 画布重绘、不再带白底，16px 下明暗两套均已核对。（[@LighghtEeloo](https://github.com/LighghtEeloo)，[#3](https://github.com/Rayle8/dsh-aside-note/pull/3)）

@@ -7,7 +7,9 @@ Asynchronously draft your ideas while the agent is working
 > **Personal fork notice:** This is a personal adaptation of [dsh-aside-note](https://github.com/Rayle8/dsh-aside-note) (旁边记 / AsideNote), based and inspired by the original project; most of the text below is preserved from the original README. Main differences from the original:
 >
 > - Display name and copy are **Sideby Note** (边记部); the package name, plugin id and update channel are the fork's `dsh-sideby-note`, installed with `npx dsh-sideby-note install`.
+> - **Anonymous feature statistics removed:** the Tencent Cloud RUM SDK, reporting code, Settings › Privacy switch and related local storage keys are gone, so no usage events are sent.
 > - Local storage keys keep the upstream `dsh.aside-note.*` names, so existing notes and settings carry over after the rename.
+> - The README screenshots come from this fork, not upstream.
 
 Jot it down · Open as needed · Tuck it away
 
@@ -220,12 +222,6 @@ Therefore:
 - Clearing site data clears the notes.
 - Reading old data never rewrites the shape of `dsh.aside-note`; workspace lists are read from `dsh.aside-note.workspaces`, and the first visit to a workspace folds its member-session notes in once. Keys like `dsh.aside-notes.*` from earlier builds are not read. If your data still sits under the old `dsh.aside-notes.*.v2` keys, rename them to the matching `dsh.aside-note.*` keys and reload.
 
-### Anonymous feature statistics
-
-The panel uses RUM on the Tencent Cloud Observability Platform to understand anonymous feature usage — which features are used and where people get stuck. The events are: panel opened (first / repeat), panel closed with a dwell-time bucket, settings opened, update checked (auto / manual + result), update started (in-app market / copy-update-prompt + result), note created, completed/uncompleted, edited, deleted, forwarded, the scope switched, and how many completed notes a clear removed. An event carries the scope kind (`workspace` / `session`), a `done` / `open` status, the plugin version, an anonymous visitor ID and basic environment details such as network, region and device type — never note text, a session id, or conversation content.
-
-Only custom events are reported: page performance, web vitals, global JS errors, API and asset speed are all off, and the reported page name is the constant `dsh-aside-note` instead of the shell's URL. Statistics are on by default and dropped through the SDK's `beforeReport` hook when the browser sends Do Not Track. The SDK keeps two anonymous ids in `localStorage`: `AEGIS_ID` (device) and `dsh.aside-note.uin` (visitor, reported as `uin` so the console can count UV and stitch a session across reloads). Neither carries an account, device model or note content, and clearing site data rotates them; no cookie is set.
-
 ## Update notice
 
 When the panel opens, the plugin quietly checks the latest published version (npm, falling back to npmmirror and then the latest GitHub Release) and caches the answer for an hour. When a newer version exists, the settings button gains a dot and Settings › About shows the update card:
@@ -302,4 +298,4 @@ Loaded in an isolated DSH profile and driven through headless Chrome:
 - records survive a refresh, and the panel header switches between the workspace list and the current session's list;
 - the npmjs → npmmirror → GitHub Release fallback, the one-hour cache, and the version comparison are covered by the contract tests, and the jsdom test drives the visible update notice; the live notice needs a published npm package or a GitHub Release.
 
-`npm run check` passes: lint, typecheck, build, and 125 tests, including jsdom integration tests that drive the whole panel, expand the release notes, run an update through the host route, and check the busy and no-route fallbacks.
+`npm run check` passes: lint, typecheck, build, and 126 tests, including jsdom integration tests that drive the whole panel, expand the release notes, run an update through the host route, and check the busy and no-route fallbacks.

@@ -7,7 +7,9 @@
 > **个人改版说明**：本项目基于并受 [dsh-aside-note](https://github.com/Rayle8/dsh-aside-note)（旁边记 / AsideNote）启发，仅作个人使用，正文大部分保留自原 README。与上游的主要区别：
 >
 > - 界面名称与文案改为「边记部 / Sideby Note」；包名、插件 id 与更新通道改为本仓库的 `dsh-sideby-note`，安装命令为 `npx dsh-sideby-note install`。
+> - **移除匿名功能统计**：不再内置腾讯云 RUM SDK，不发送任何使用事件；设置 › 隐私中的统计开关与相关本地存储键一并移除。
 > - 本地存储键沿用上游的 `dsh.aside-note.*`，升级后已有便笺与设置无需迁移。
+> - README 截图来自本改版，而非上游版本。
 
 轻量记录 · 按需打开 · 用完收起
 
@@ -220,12 +222,6 @@ npx dsh-sideby-note install --version 1.0.0   # 固定版本，而不是 ^1.0.0
 - 清理浏览器站点数据会清除便笺。
 - 读取旧数据时不会改写 `dsh.aside-note` 的结构；工作区清单从 `dsh.aside-note.workspaces` 读取，首次进入工作区时把成员会话的旧便笺合入一次。不会读取 `dsh.aside-notes.*` 这类更早的键。如果本地数据仍在旧的 `dsh.aside-notes.*.v2` 键下，把键名改为对应的 `dsh.aside-note.*` 后刷新页面即可继续使用。
 
-### 匿名功能统计
-
-面板会通过腾讯云可观测平台（RUM）统计匿名功能使用情况，帮助我们判断哪些功能常用、哪里容易卡住。上报的事件包括：打开面板（首次 / 再次）、关闭面板（带停留时长分档）、打开设置、检查更新（自动 / 手动 + 结果）、开始更新（应用内市场 / 复制更新提示词 + 结果）、新建、完成/取消完成、编辑、删除、转发便笺，切换清单范围，以及一次清空删掉了多少条已完成。事件会带上清单范围（`workspace` / `session`）、完成状态（`done` / `open`）、插件版本，以及匿名访客 ID、网络、地域、设备类型等基础环境信息；不含便笺正文、会话 ID 或对话内容。
-
-只上报自定义事件：页面性能、web vitals、全局 JS 报错、接口与静态资源测速全部关闭；上报的页面名固定为 `dsh-aside-note`，不会把宿主地址带出去。统计默认开启，浏览器开启「请勿追踪」（DNT）时通过 SDK 的 `beforeReport` 钩子丢弃上报。SDK 在浏览器本地留两个匿名标识：`AEGIS_ID`（设备）和 `dsh.aside-note.uin`（访客，填进上报的 `uin`，让 RUM 能算 UV 并在刷新后接上同一次会话）。两个都不含账号、设备型号或便笺内容，清掉站点数据会重新生成；不写 cookie。
-
 ## 更新提示
 
 打开面板时，插件会静默检查一次 npm 上的最新版本（npmjs 不可用时回退到 npmmirror，再回退到 GitHub 的最新 Release）；结果缓存一小时。若最新版本更高，设置按钮右上角出现提示点，设置 › 关于 中出现更新卡片：
@@ -302,4 +298,4 @@ window.__ModuleLoader__.load({ id: 'dsh-sideby-note', factory: (require) => { �
 - 刷新页面后记录仍在；面板头部可在工作区级与当前会话级清单之间切换；
 - 版本检查的 npmjs → npmmirror → GitHub Release 回退、1 小时缓存与版本比较由契约测试覆盖；发布说明的标记提取、中英文回退、上限与 Markdown 压平有独立测试；jsdom 集成测试会驱动面板显示更新卡片、展开说明并通过宿主更新端点完成一次更新。真实更新提示需先发布到 npm 或创建 GitHub Release。
 
-`npm run check` 通过：lint、类型检查、构建与 125 个测试（含 jsdom 里驱动完整面板流程的集成测试）。
+`npm run check` 通过：lint、类型检查、构建与 126 个测试（含 jsdom 里驱动完整面板流程的集成测试）。

@@ -2,9 +2,8 @@
 import React from 'react'
 import { MAX_TEXT } from '../constants'
 import { clearEditDraft, readEditDraft } from '../storage/drafts'
-import { reportEvent } from '../rum'
 
-export function useNoteActions({ draftKey, commit, report, forgetForwardedItems, scopeKind }) {
+export function useNoteActions({ draftKey, commit, report, forgetForwardedItems }) {
   const key = draftKey ? String(draftKey) : ''
   const [editingId, setEditingId] = React.useState(null)
   const [editDraft, setEditDraft] = React.useState('')
@@ -38,7 +37,6 @@ export function useNoteActions({ draftKey, commit, report, forgetForwardedItems,
       report('saveFailed')
       return
     }
-    reportEvent('note_status_changed', { ext1: scopeKind, ext2: item.done ? 'open' : 'done' })
     if (item.id === editingId) {
       setEditingId(null)
       setEditDraft('')
@@ -55,7 +53,6 @@ export function useNoteActions({ draftKey, commit, report, forgetForwardedItems,
       return
     }
     report('deleted')
-    reportEvent('note_deleted', { ext1: scopeKind })
     clearEditDraft(key, item.id)
     forgetForwardedItems(item.id)
     resetEditing(item.id)
@@ -85,7 +82,6 @@ export function useNoteActions({ draftKey, commit, report, forgetForwardedItems,
         report('saveFailed')
         return
       }
-      reportEvent('note_edited', { ext1: scopeKind })
     }
     setEditingId(null)
     setEditDraft('')

@@ -2,20 +2,16 @@
 import React from 'react'
 import {
   clearForwardPrefix,
-  readAnalyticsEnabled,
   readForwardPrefix,
   readSendShortcut,
-  writeAnalyticsEnabled,
   writeForwardPrefix,
   writeSendShortcut,
 } from '../storage/prefs'
-import { setAnalyticsEnabled as setAnalyticsReporting } from '../rum'
 
 export function usePanelSettings() {
   const [showSettings, setShowSettings] = React.useState(false)
   const [sendShortcut, setSendShortcut] = React.useState(readSendShortcut)
   const [forwardPrefix, setForwardPrefix] = React.useState(readForwardPrefix)
-  const [analyticsEnabled, setAnalyticsEnabled] = React.useState(readAnalyticsEnabled)
   const prefixRef = React.useRef(null)
 
   // The prefix field starts one line tall and grows with wrapped content up to
@@ -31,14 +27,6 @@ export function usePanelSettings() {
   const chooseShortcut = value => {
     setSendShortcut(value)
     writeSendShortcut(value)
-  }
-
-  // The opt-out switch: persist the choice, then let the RUM gate send the
-  // final event (or start the SDK again) in the same click.
-  const toggleAnalytics = (next: boolean) => {
-    setAnalyticsEnabled(next)
-    writeAnalyticsEnabled(next)
-    setAnalyticsReporting(next)
   }
 
   const changeForwardPrefix = value => {
@@ -63,7 +51,5 @@ export function usePanelSettings() {
     changeForwardPrefix,
     resetForwardPrefix,
     prefixRef,
-    analyticsEnabled,
-    toggleAnalytics,
   }
 }

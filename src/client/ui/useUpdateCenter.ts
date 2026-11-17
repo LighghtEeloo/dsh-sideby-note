@@ -24,7 +24,6 @@ import type { ReleaseNoteGroup } from '../update/releaseNotes'
 import { applyHostUpdate } from '../update/host'
 import { isPublishedChannel } from '../update/latest'
 import { copyText } from '../domain/clipboard'
-import { reportEvent } from '../rum'
 
 export type CheckStatus = 'idle' | 'checking' | 'current' | 'available' | 'error'
 export type NotesStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -126,12 +125,8 @@ export function useUpdateCenter(localeId: string) {
     let active = true
     fetchLatestVersion().then(version => {
       if (!active) return
-      if (version === null) {
-        reportEvent('update_checked', { ext1: 'auto', ext2: 'error' })
-        return
-      }
+      if (version === null) return
       const newer = isNewerVersion(version, PLUGIN_VERSION)
-      reportEvent('update_checked', { ext1: 'auto', ext2: newer ? 'available' : 'current' })
       if (newer) {
         setCheck({ status: 'available', latestVersion: version, checkedAt: Date.now() })
       } else {
@@ -162,11 +157,9 @@ export function useUpdateCenter(localeId: string) {
     if (version === null) {
       // Keep the version already on offer; when the build was up to date, the
       // failure stays in the button and no card is conjured up.
-      reportEvent('update_checked', { ext1: 'manual', ext2: 'error' })
       setCheck({ status: 'error', latestVersion: previousOffer, checkedAt: Date.now() })
       return
     }
-    reportEvent('update_checked', { ext1: 'manual', ext2: isNewerVersion(version, PLUGIN_VERSION) ? 'available' : 'current' })
     if (isNewerVersion(version, PLUGIN_VERSION)) {
       const sameRelease = previousOffer !== null && version === previousOffer
       setCheck({ status: 'available', latestVersion: version, checkedAt: Date.now() })
@@ -242,7 +235,6 @@ export function useUpdateCenter(localeId: string) {
       const host = await applyHostUpdate(target)
       if (disposed.current) return
       if (host.kind === 'ok') {
-        reportEvent('update_started', { ext1: 'host', ext2: 'done' })
         setRun(terminalRun('done', {
           installedVersion: host.installedVersion,
           refreshRequired: !host.restartRequired,
@@ -251,7 +243,6 @@ export function useUpdateCenter(localeId: string) {
         return
       }
       if (host.kind === 'error') {
-        reportEvent('update_started', { ext1: 'host', ext2: 'failed' })
         setRun(terminalRun('error', {
           failureCode: host.code,
           message: host.hint ?? host.message,
@@ -261,7 +252,6 @@ export function useUpdateCenter(localeId: string) {
       }
       // No update route on this host: the card's command path is the only
       // automatic option left, and it has to render.
-      reportEvent('update_started', { ext1: 'host', ext2: 'failed' })
       setRun(terminalRun('error', { failureCode: 'AUTO_UPDATE_UNAVAILABLE', retryable: false }))
     } finally {
       starting.current = false

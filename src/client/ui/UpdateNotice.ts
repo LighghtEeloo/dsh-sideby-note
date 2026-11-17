@@ -21,7 +21,6 @@ import React from 'react'
 import type { NotesEntry, NotesState, RunPhase, UpdateRunState } from './useUpdateCenter'
 import type { ReleaseNoteGroup } from '../update/releaseNotes'
 import { isPrereleaseVersion } from '../update/latest'
-import { reportEvent } from '../rum'
 
 const h = React.createElement
 
@@ -142,16 +141,13 @@ export function UpdateNotice(props: {
   const manual = run.failureCode !== null && MANUAL_FALLBACK.has(run.failureCode)
 
   /**
-   * Hand the user a prompt they can paste into an agent; report the outcome.
-   * The command pins the version this card offered, so a release published
-   * between render and click cannot silently change the target.
+   * Hand the user a prompt they can paste into an agent. The command pins the
+   * version this card offered, so a release published between render and click
+   * cannot silently change the target.
    */
   const copyPrompt = () => {
     const text = say('update.prompt', { version: latestVersion, command: manualCommand })
     Promise.resolve(props.onCopyPrompt(text)).then(ok => {
-      // The command channel of the update flow: the card hands the terminal
-      // prompt over instead of driving an installer.
-      reportEvent('update_started', { ext1: 'command', ext2: ok ? 'copied' : 'copy_failed' })
       if (typeof props.onToast === 'function') props.onToast(ok ? 'copied' : 'copyFailed')
     })
   }

@@ -12,6 +12,9 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 ### Fixed
 - **Panel language follows DSH:** the panel now reads DSH's live locale (`active`) instead of a field the locale service no longer exposes, and re-binds its dictionary when a client-plugin reload replaces the locale service. Previously it could fall back to English while DSH was set to Chinese.
 
+### Removed
+- **Anonymous feature statistics:** the panel no longer reports usage events. The Settings › Privacy switch, the bundled analytics SDK and the anonymous visitor id are gone, so no analytics data leaves the browser.
+
 ### Contributors
 - [@LighghtEeloo](https://github.com/LighghtEeloo) — [#4](https://github.com/Rayle8/dsh-aside-note/pull/4) follow the live locale snapshot and rebind after a reload
 <!-- app-update-notes:en:end -->
@@ -19,6 +22,9 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 <!-- app-update-notes:zh:start -->
 ### 修复
 - **面板语言跟随 DSH：** 面板改为读取 DSH 当前语言的 `active` 字段（不再读语言服务已不提供的旧字段），并在客户端插件热重载替换语言服务后重新绑定字典；此前可能在 DSH 为中文时回退成英文。
+
+### 移除
+- **匿名功能统计：** 面板不再上报使用事件。设置 › 隐私开关、内置统计 SDK 与匿名访客 ID 均已移除，不会有统计数据的请求离开浏览器。
 
 ### 贡献者
 - [@LighghtEeloo](https://github.com/LighghtEeloo) — [#4](https://github.com/Rayle8/dsh-aside-note/pull/4) 跟随语言快照并在重载后重新绑定

@@ -57,6 +57,10 @@ write_theme() {
   name: "@deepseek-ai/dsh-client-ui-settings-general"
   config:
     welcomeNoticeVersion: 2026-09-28.01
+- id: locale
+  name: "@deepseek-ai/dsh-client-locale"
+  config:
+    preference: zh
 - id: ui-theme
   name: "@deepseek-ai/dsh-client-ui-theme"
   config:

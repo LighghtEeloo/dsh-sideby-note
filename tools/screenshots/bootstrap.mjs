@@ -7,7 +7,7 @@ import { NOTES, NOTES_KEY, anchorExpression } from './lib/notes.mjs'
 
 const port = process.env.PORT || 61399
 const token = process.env.TOKEN
-const prompt = process.env.PROMPT || '给「旁边记」插件写三条中文发布文案，每条不超过 20 字；只输出编号和文案，不要提问，不要调用任何工具。'
+const prompt = process.env.PROMPT || '给「边记部」插件写三条中文发布文案，每条不超过 20 字；只输出编号和文案，不要提问，不要调用任何工具。'
 
 if (!token) throw new Error('TOKEN is required')
 
