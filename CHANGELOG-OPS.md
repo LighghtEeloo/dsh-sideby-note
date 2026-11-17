@@ -15,6 +15,8 @@
 
 ## next-released
 
+## 1.1.4
+
 - **图标：** 插件标识换成渐变便签卡叠对话气泡的母版 `docs/assets/storefront-icon.svg`，渲染出的市场上架图 `icon.png` 与插件列表的 `icon.svg` 共用同一套图形；`icon.svg` 按宿主 36 画布重绘、不再带白底，16px 下明暗两套均已核对。
 
 ## 1.1.2-beta.4
