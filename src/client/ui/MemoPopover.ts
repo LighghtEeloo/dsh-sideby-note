@@ -88,8 +88,6 @@ export function MemoPopover(props) {
   const {
     showSettings,
     setShowSettings,
-    sendShortcut,
-    chooseShortcut,
     forwardPrefix,
     changeForwardPrefix,
     resetForwardPrefix,
@@ -103,7 +101,6 @@ export function MemoPopover(props) {
     draftKey,
     commit,
     report,
-    sendShortcut,
   })
   const { toggle, takeBack } = useNoteActions({ commit, report, forgetForwardedItems })
   const { confirmClear, askClearConfirm, dismissClearConfirm, confirmClearDone } = useClearConfirm({
@@ -252,8 +249,6 @@ export function MemoPopover(props) {
           { className: 'dsh-an-settingsViewport' },
           h(SettingsPanel, {
             say,
-            sendShortcut,
-            chooseShortcut,
             forwardPrefix,
             changeForwardPrefix,
             resetForwardPrefix,
@@ -267,7 +262,6 @@ export function MemoPopover(props) {
       say,
       draft,
       inputRef: addRef,
-      sendShortcut,
       onDraftChange,
       onCompositionStart: () => { composingRef.current = true },
       onCompositionEnd: () => { composingRef.current = false },

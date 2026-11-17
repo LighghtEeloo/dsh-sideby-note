@@ -1,10 +1,10 @@
-/** The add box: draft persistence, auto-grow, send chords and newline insertion. */
+/** The add box: draft persistence, auto-grow and the composer key gestures. */
 import React from 'react'
-import { MAX_TEXT, isSendModifier } from '../constants'
+import { MAX_TEXT } from '../constants'
 import { clearAddDraft, readScopeDrafts, saveAddDraft } from '../storage/drafts'
 import { uid } from '../domain/id'
 
-export function useComposerDraft({ draftKey, commit, report, sendShortcut }) {
+export function useComposerDraft({ draftKey, commit, report }) {
   const key = draftKey ? String(draftKey) : ''
   const [draft, setDraft] = React.useState(() => readScopeDrafts(key).add)
   const addRef = React.useRef(null)
@@ -80,20 +80,6 @@ export function useComposerDraft({ draftKey, commit, report, sendShortcut }) {
     })
   }
 
-  const insertDraftNewline = node => {
-    if (!node) return
-    const start = node.selectionStart === null ? node.value.length : node.selectionStart
-    const end = node.selectionEnd === null ? start : node.selectionEnd
-    const next = `${node.value.slice(0, start)}\n${node.value.slice(end)}`
-    setDraft(next)
-    saveAddDraft(key, next)
-    window.requestAnimationFrame(() => {
-      node.selectionStart = start + 1
-      node.selectionEnd = start + 1
-      resizeAdd(node)
-    })
-  }
-
   const onDraftChange = event => {
     const value = event.target.value
     setDraft(value)
@@ -101,6 +87,11 @@ export function useComposerDraft({ draftKey, commit, report, sendShortcut }) {
     resizeAdd(event.target)
   }
 
+  /**
+   * Match the main composer: Enter adds the note, Shift+Enter keeps the
+   * textarea's native line break, and Enter that belongs to an IME candidate
+   * pick is left to the browser. A held Enter must not add note after note.
+   */
   const onDraftKeyDown = event => {
     const composing = event.isComposing || (event.nativeEvent && event.nativeEvent.isComposing)
     if (event.key === 'Escape') {
@@ -108,24 +99,15 @@ export function useComposerDraft({ draftKey, commit, report, sendShortcut }) {
       return
     }
     if (event.key !== 'Enter') return
-    if (composing) {
+    if (composing) return
+    if (event.shiftKey) return
+    if (event.altKey || (typeof event.getModifierState === 'function' && event.getModifierState('AltGraph'))) {
       event.preventDefault()
       return
     }
-    const chord = event.ctrlKey || event.metaKey
-    const platformModifier = isSendModifier(event)
-    const shouldSend = sendShortcut === 'enter'
-      ? !chord && !event.shiftKey
-      : platformModifier
-    if (shouldSend) {
-      event.preventDefault()
-      add()
-      return
-    }
-    if (sendShortcut === 'enter' && (chord || event.shiftKey)) {
-      event.preventDefault()
-      insertDraftNewline(event.currentTarget)
-    }
+    event.preventDefault()
+    if (event.repeat) return
+    add()
   }
 
   return { draft, addRef, composingRef, add, recall, onDraftChange, onDraftKeyDown }

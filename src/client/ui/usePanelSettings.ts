@@ -1,16 +1,9 @@
-/** Inline settings: send shortcut and the forward lead-in, both persisted. */
+/** Inline settings: the forward lead-in, persisted as it changes. */
 import React from 'react'
-import {
-  clearForwardPrefix,
-  readForwardPrefix,
-  readSendShortcut,
-  writeForwardPrefix,
-  writeSendShortcut,
-} from '../storage/prefs'
+import { clearForwardPrefix, readForwardPrefix, writeForwardPrefix } from '../storage/prefs'
 
 export function usePanelSettings() {
   const [showSettings, setShowSettings] = React.useState(false)
-  const [sendShortcut, setSendShortcut] = React.useState(readSendShortcut)
   const [forwardPrefix, setForwardPrefix] = React.useState(readForwardPrefix)
   const prefixRef = React.useRef(null)
 
@@ -23,11 +16,6 @@ export function usePanelSettings() {
     node.style.height = 'auto'
     node.style.height = `${Math.min(138, node.scrollHeight + 2)}px`
   }, [forwardPrefix, showSettings])
-
-  const chooseShortcut = value => {
-    setSendShortcut(value)
-    writeSendShortcut(value)
-  }
 
   const changeForwardPrefix = value => {
     const next = String(value || '').slice(0, 80)
@@ -45,8 +33,6 @@ export function usePanelSettings() {
   return {
     showSettings,
     setShowSettings,
-    sendShortcut,
-    chooseShortcut,
     forwardPrefix,
     changeForwardPrefix,
     resetForwardPrefix,

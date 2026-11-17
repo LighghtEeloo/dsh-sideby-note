@@ -110,7 +110,7 @@ Click a note's forward button to append it to the current chat input as a list i
 - **Remembered state**: add drafts are saved per workspace (per session outside a workspace), so switching conversations or the Workspace/Session switch never loses them; submitting still writes the list selected at that moment. Drafts are restored when the panel reopens, and the open/completed expand state plus the scope choice are remembered too.
 - **Panel size**: drag the left edge for width and the bottom handle for height, double-click either to reset; both persist in the browser.
 - **List regions**: **Open** and **Completed** each keep a sticky header and its own scroll, and expanding completed never compresses open; completed notes show creation and completion times, newest completion first.
-- **Settings**: send shortcut (Enter or ⌘/Ctrl+Enter), forward prefix, and About (version, check, author, improver, source), saved automatically.
+- **Settings**: forward prefix and About (version, check, author, improver, source), saved automatically.
 - **Update notice**: a newer release puts a dot on the settings button, and Settings › About shows the notes and the update action; see [Update notice](#update-notice).
 - **Native look**: colours, radii, elevation and scrollbars all reuse DSH design tokens, following light/dark and the DSH locale; see [Design tokens](#design-tokens).
 
@@ -130,7 +130,7 @@ Five states shot from the same demo session and the same set of notes, in both t
     <td><img src="./docs/assets/features/panel-dark.png" width="300" alt="Panel overview, dark"></td>
   </tr>
   <tr>
-    <td>Settings<br>send shortcut, forward prefix, about</td>
+    <td>Settings<br>forward prefix, about</td>
     <td><img src="./docs/assets/features/settings.png" width="300" alt="Settings"></td>
     <td><img src="./docs/assets/features/settings-dark.png" width="300" alt="Settings, dark"></td>
   </tr>
@@ -172,7 +172,7 @@ Feedback reuses product surfaces too: copy, forward, rewind, clear-completed, an
 ## Usage
 
 1. Click the **Sideby Note** button at the top right of the conversation to open the right-side panel. Its badge shows the unfinished count when there are open notes; the **Workspace / Session** switch in the panel header moves between the whole workspace and the current conversation.
-2. Write one concrete follow-up in the panel and use your configured add shortcut or click **Add**.
+2. Write one concrete follow-up in the panel and press Enter to add it (Shift+Enter for a new line, matching the main composer), or click **Add**.
 3. To change a note, click its **Rewind** button (↺): the text goes back into the top composer, ready to edit and submit again. Clearing that composer removes the note.
 4. When you are ready to continue, click the note's forward button to append it to the chat input, then review and send it yourself.
 5. Click the circle to mark it complete; expand **Completed** to look back.

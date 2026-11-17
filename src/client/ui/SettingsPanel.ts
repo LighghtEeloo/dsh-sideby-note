@@ -1,7 +1,6 @@
-/** Settings card: send shortcut, forward prefix and about. */
+/** Settings card: forward prefix and about. */
 import React from 'react'
 import {
-  MOD_LABEL,
   PLUGIN_AUTHOR,
   PLUGIN_REPO_LABEL,
   PLUGIN_REPO_URL,
@@ -14,8 +13,6 @@ const h = React.createElement
 export function SettingsPanel(props) {
   const {
     say,
-    sendShortcut,
-    chooseShortcut,
     forwardPrefix,
     changeForwardPrefix,
     resetForwardPrefix,
@@ -26,41 +23,6 @@ export function SettingsPanel(props) {
             'div',
             { className: 'dsh-an-settings' },
             h('div', { className: 'dsh-an-settingsHead' }, say('settings.title')),
-            h(
-              'div',
-              { className: 'dsh-an-settingGroup' },
-              h('div', { className: 'dsh-an-settingLabel' }, say('settings.shortcut')),
-              h(
-                'div',
-                { className: 'dsh-an-settingBody' },
-                h(
-                  'div',
-                  { className: 'dsh-an-settingChoices' },
-                  h(
-                    'label',
-                    { className: 'dsh-an-settingChoice' },
-                    h('input', {
-                      type: 'radio',
-                      name: 'dsh-an-send-shortcut',
-                      checked: sendShortcut === 'enter',
-                      onChange: () => chooseShortcut('enter'),
-                    }),
-                    h('span', null, say('settings.shortcutEnter', { mod: MOD_LABEL })),
-                  ),
-                  h(
-                    'label',
-                    { className: 'dsh-an-settingChoice' },
-                    h('input', {
-                      type: 'radio',
-                      name: 'dsh-an-send-shortcut',
-                      checked: sendShortcut === 'ctrl-enter',
-                      onChange: () => chooseShortcut('ctrl-enter'),
-                    }),
-                    h('span', null, say('settings.shortcutCtrlEnter', { mod: MOD_LABEL })),
-                  ),
-                ),
-              ),
-            ),
             h(
               'div',
               { className: 'dsh-an-settingGroup' },

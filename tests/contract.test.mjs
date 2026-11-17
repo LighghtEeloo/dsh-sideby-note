@@ -291,7 +291,7 @@ test('host and browser entries use the package identity', () => {
   assert.match(client, /item\.forward/)
   assert.match(client, /PLUGIN_VERSION/)
   assert.match(client, /settings\.open/)
-  assert.match(client, /SEND_SHORTCUT_KEY/)
+  assert.doesNotMatch(client, /SEND_SHORTCUT|sendShortcut|settings\.shortcut/, 'the send shortcut setting is gone')
   assert.match(client, /readForwardPrefix/)
   assert.match(client, /conversation\.session\.header\.utilities|_headerUtilities/)
   assert.match(client, /placement === 'right'|placement === "right"/)
@@ -912,18 +912,26 @@ test('completed notes sort by newest completion', () => {
   assert.equal(factory.completedStamp({}), 0)
 })
 
-test('send shortcuts default to Enter and name the platform modifier', () => {
-  const client = read('src/client/constants.ts')
-  assert.match(client, /const SEND_SHORTCUT_DEFAULT = 'enter'/)
-  assert.match(client, /const IS_MAC = \(/)
-  assert.match(client, /const MOD_LABEL = IS_MAC \? '⌘' : 'Ctrl'/)
-  assert.match(client, /function isSendModifier\(event\)/)
-  assert.match(client, /IS_MAC \? event\.metaKey === true : event\.ctrlKey === true/)
+test('the composer sends on Enter and breaks on Shift+Enter, like the main composer', () => {
+  const composer = read('src/client/ui/useComposerDraft.ts')
+  // Plain Enter adds; Shift+Enter keeps the textarea's native line break.
+  assert.match(composer, /if \(event\.shiftKey\) return/)
+  assert.match(composer, /event\.preventDefault\(\)\n    if \(event\.repeat\) return\n    add\(\)/)
+  // An IME candidate Enter is left to the browser, never adding a note.
+  assert.match(composer, /if \(composing\) return/)
+  // The old configurable chord path is gone.
+  assert.doesNotMatch(composer, /sendShortcut|insertDraftNewline|isSendModifier/)
+  // Settings no longer carry a shortcut choice; only the forward prefix and About remain.
+  assert.doesNotMatch(read('src/client/ui/SettingsPanel.ts'), /shortcut/i)
+  assert.doesNotMatch(read('src/client/constants.ts'), /SEND_SHORTCUT|MOD_LABEL|isSendModifier/)
   const dict = readDict()
-  for (const key of ['settings.shortcutCtrlEnter', 'settings.shortcutEnter', 'add.shortcut', 'add.shortcutEnter']) {
-    assert.match(dict.zh[key], /\{mod\}\+Enter/, `zh ${key} names the platform modifier`)
-    assert.match(dict.en[key], /\{mod\}\+Enter/, `en ${key} names the platform modifier`)
+  for (const id of LOCALE_IDS) {
+    assert.equal(dict[id]['settings.shortcut'], undefined, `${id} must drop the shortcut setting`)
+    assert.equal(dict[id]['add.shortcutEnter'], undefined, `${id} must drop the alternate hint`)
+    assert.match(dict[id]['add.shortcut'], /Shift\+Enter|Maj\+|Umschalt\+|Mayús\+/, `${id} hint names Shift+Enter`)
   }
+  assert.equal(dict.zh['add.shortcut'], 'Enter 发送 · Shift+Enter 换行')
+  assert.equal(dict.en['add.shortcut'], 'Enter sends · Shift+Enter for a new line')
 })
 
 test('forwarding marks the forward button, never the checkbox', () => {

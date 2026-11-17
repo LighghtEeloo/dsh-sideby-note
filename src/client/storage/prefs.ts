@@ -1,4 +1,4 @@
-/** Panel geometry, list scope, send shortcut, forward prefix and section state. */
+/** Panel geometry, list scope, forward prefix and section state. */
 import {
   PANEL_DEFAULT_WIDTH,
   PANEL_HEIGHT_KEY,
@@ -9,8 +9,6 @@ import {
   SCOPE_MODE_KEY,
   SECTION_STATE_DEFAULT,
   SECTION_STATE_KEY,
-  SEND_SHORTCUT_DEFAULT,
-  SEND_SHORTCUT_KEY,
   FORWARD_PREFIX_STORAGE_KEY,
 } from '../constants'
 import { storage } from './codec'
@@ -77,25 +75,6 @@ export function writeScopeMode(mode) {
   try {
     const ls = storage()
     if (ls) ls.setItem(SCOPE_MODE_KEY, mode === 'session' ? 'session' : 'workspace')
-  } catch {
-    /* storage is best effort */
-  }
-}
-
-/** Read the Enter-to-send preference. */
-export function readSendShortcut() {
-  try {
-    const saved = storage() && storage().getItem(SEND_SHORTCUT_KEY)
-    return saved === 'enter' || saved === 'ctrl-enter' ? saved : SEND_SHORTCUT_DEFAULT
-  } catch {
-    return SEND_SHORTCUT_DEFAULT
-  }
-}
-
-export function writeSendShortcut(value) {
-  try {
-    const ls = storage()
-    if (ls) ls.setItem(SEND_SHORTCUT_KEY, value === 'enter' ? 'enter' : 'ctrl-enter')
   } catch {
     /* storage is best effort */
   }

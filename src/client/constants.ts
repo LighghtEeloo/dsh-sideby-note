@@ -21,26 +21,8 @@ export const PLUGIN_VERSION = '0.1.0'
 export const PLUGIN_AUTHOR = '阿三石'
 export const PLUGIN_REPO_URL = 'https://github.com/LighghtEeloo/dsh-sideby-note'
 export const PLUGIN_REPO_LABEL = 'github.com/LighghtEeloo/dsh-sideby-note'
-/** Send preference; persisted across panel openings. Enter sends by default. */
-export const SEND_SHORTCUT_KEY = 'dsh.aside-note.send-shortcut'
 /** Lead-in written before a forwarded note; absent means the localized default, empty means no prefix. */
 export const FORWARD_PREFIX_STORAGE_KEY = 'dsh.aside-note.forward-prefix'
-export const SEND_SHORTCUT_DEFAULT = 'enter'
-/** macOS names the command modifier with a symbol; other platforms say Ctrl. */
-export const IS_MAC = (() => {
-  try {
-    const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || ''
-    return /mac/i.test(String(platform))
-  } catch {
-    return false
-  }
-})()
-export const MOD_LABEL = IS_MAC ? '⌘' : 'Ctrl'
-
-/** Whether the key event carries this platform's command modifier. */
-export function isSendModifier(event) {
-  return IS_MAC ? event.metaKey === true : event.ctrlKey === true
-}
 /** Last chosen list scope: the workspace list or the session list. */
 export const SCOPE_MODE_KEY = 'dsh.aside-note.scope-mode'
 export const SCOPE_MODE_DEFAULT = 'workspace'

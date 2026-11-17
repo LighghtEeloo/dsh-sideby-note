@@ -56,7 +56,7 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | 更新 | `update/releaseHistory.ts` | 从 releases feed 选出「本地 < 版本 ≤ 最新」的区间，剔除草稿/预发布，倒序与上限 |
 | 更新 | `ui/useUpdateCenter.ts` | 自动/手动检查、懒加载说明、更新状态机（starting/running/done/error）；只走宿主更新端点，没有市场分支 |
 | 更新 | `ui/UpdateNotice.ts` | 关于区里的更新卡片：说明展开、完整说明链接、立即更新/刷新，宿主没有路由或拒绝时改为带版本号的命令 + 拷贝更新提示词 |
-| 存储 | `storage/prefs.ts` | 面板宽高、工作区/会话范围、发送快捷键、前缀、分区状态 |
+| 存储 | `storage/prefs.ts` | 面板宽高、工作区/会话范围、转发前缀、分区状态 |
 | UI 组件 | `ui/MemoPopover.ts` | 面板编排：组合 hook 与展示组件，portal 到 body |
 | UI 组件 | `PanelHead` / `ScopeSwitch` / `SettingsPanel` / `ComposerForm` / `NoteList` / `ClearConfirm` / `TodoRow` / `EmptyState` | 纯展示，数据与回调由面板传入 |
 | UI hooks | `useSessionMemoStore` / `usePanelGeometry` / `useSections` / `useForwardMarks` / `usePanelSettings` / `useComposerDraft` / `useNoteActions` / `useClearConfirm` / `useListEdge` / `useOutsideDismiss` | 把状态与副作用从 JSX 里分离；每个 hook 只做一件事 |
@@ -77,12 +77,11 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | `dsh.aside-note.forwarded` | `{ version: 1, sessions: { [listKey]: { [itemId]: true } } }`；`listKey` 为 `ws:<workspaceId>` 或会话 ID |
 | `dsh.aside-note.sections` | `{ open, done }` |
 | `dsh.aside-note.panel-width` / `panel-height` | 数字；高度 `0` 表示内容自适应 |
-| `dsh.aside-note.send-shortcut` | `enter` 或 `ctrl-enter` |
 | `dsh.aside-note.forward-prefix` | 最长 80 字符的转发前缀；键不存在时使用当前语言的默认提示词，空字符串表示不加前缀 |
 
 草稿按 `draftKey` 存放：会话属于工作区时，整个工作区共用一份新增草稿，切换会话或在「工作区 / 会话」之间切换都不丢字；没有工作区的会话按会话保存。提交草稿时仍按当前选中的范围写入 `dsh.aside-note.workspaces` 或 `dsh.aside-note`，草稿本身不区分范围。升级后首次打开工作区，会把当前会话的旧草稿并入共享键并清理成员会话的旧副本。
 
-面板里只有顶部一个文字编辑区。点某行的「退回」会先把便笺从清单移除，再把正文放进顶部输入框（桌面端自动聚焦）；提交后作为一条新便笺重新加入。输入框已有未提交内容时不覆盖，改为提示先发送或清空。
+面板里只有顶部一个文字编辑区。点某行的「退回」会先把便笺从清单移除，再把正文放进顶部输入框（桌面端自动聚焦）；提交后作为一条新便笺重新加入。输入框已有未提交内容时不覆盖，改为提示先发送或清空。录入框的键位固定与主会话一致：Enter 发送，Shift+Enter 换行，输入法选词时的 Enter 交给浏览器。
 
 `Note` 形如 `{ id, text, done, createdAt, updatedAt, completedAt? }`；`text` 上限 280，单份清单上限 300 条。会话数据继续使用 `dsh.aside-note` 的 v1 结构，工作区数据单独放在 `dsh.aside-note.workspaces`，因此新增范围不会改写旧键；首次进入工作区会把成员会话里已有的便笺合入一次，`seededSessionIds` 记住已合入的会话，之后删除不会因再次合并而复活。键名不带版本后缀；前缀沿用上游的 `dsh.aside-note`，因此包名与插件 id 改为 `dsh-sideby-note` 后，已有便笺和设置仍可直接读取。
 

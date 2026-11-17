@@ -8,6 +8,22 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 
 ## next-released
 
+<!-- app-update-notes:en:start -->
+### Changed
+- **Enter matches the main composer:** the add box now sends on Enter and inserts a line break on Shift+Enter, exactly like the conversation composer; an Enter that belongs to an IME candidate pick is left to the browser.
+
+### Removed
+- **Send shortcut setting:** the Settings card no longer offers an Enter / ⌘+Enter choice. Enter always sends, and a previously stored `dsh.aside-note.send-shortcut` value is ignored.
+<!-- app-update-notes:en:end -->
+
+<!-- app-update-notes:zh:start -->
+### 变更
+- **Enter 与主会话一致：** 录入框改为 Enter 发送、Shift+Enter 换行，与对话输入框完全一致；输入法选词时的 Enter 交给浏览器处理。
+
+### 移除
+- **发送快捷键设置：** 设置卡不再提供 Enter / ⌘+Enter 的选择，Enter 固定发送；之前保存的 `dsh.aside-note.send-shortcut` 会被忽略。
+<!-- app-update-notes:zh:end -->
+
 ## 0.1.0
 
 <!-- app-update-notes:en:start -->

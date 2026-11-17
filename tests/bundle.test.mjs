@@ -48,8 +48,9 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   globalThis.document = window.document
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
-  // Seed the current keys before the plugin boots: one open note and a
-  // non-default send preference. No legacy key is read or copied.
+  // Seed the current keys before the plugin boots: one open note plus a stale
+  // send preference from the removed setting. No legacy key is read or copied,
+  // and the stale preference must no longer change what Enter does.
   window.localStorage.setItem('dsh.aside-note', JSON.stringify({
     version: 1,
     sessions: { 'session-1': { items: [{ id: 'seed', text: '旧便笺', done: false, createdAt: 1, updatedAt: 1 }] } },
@@ -211,6 +212,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
 
   const seeded = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
   assert.equal(seeded.sessions['session-1'].items[0].text, '旧便笺')
+  // The plugin neither reads nor rewrites the retired preference.
   assert.equal(window.localStorage.getItem('dsh.aside-note.send-shortcut'), 'ctrl-enter')
   assert.equal(window.localStorage.getItem('dsh.aside-note.migrated'), null, 'no migration marker is written')
 
@@ -261,7 +263,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 40)) })
   assert.equal(document.querySelector('.dsh-an-headerCount').textContent, '2')
 
-  // Settings: the shortcut radio persists, and so does the forward prefix.
+  // Settings: the forward prefix persists; the send-shortcut choice is gone.
   await act(async () => { popover.querySelector('.dsh-an-settingsBtn').click() })
   assert.ok(popover.querySelector('.dsh-an-settings'), 'the gear must open the settings card')
   const settingsViewport = popover.querySelector('.dsh-an-settingsViewport')
@@ -281,10 +283,8 @@ test('the built bundle boots, applies, and seats its slots', async t => {
     metaRows.indexOf('作者·阿三石') + 1,
     'the improver row sits right after the author',
   )
-  const radios = popover.querySelectorAll('input[type="radio"]')
-  assert.equal(radios.length, 2)
-  await act(async () => { radios[1].click() })
-  assert.equal(window.localStorage.getItem('dsh.aside-note.send-shortcut'), 'ctrl-enter')
+  assert.equal(popover.querySelectorAll('input[type="radio"]').length, 0, 'the shortcut radios are gone')
+  assert.doesNotMatch(popover.querySelector('.dsh-an-settings').textContent, /发送快捷键/, 'no shortcut setting remains')
 
   // The npmjs read fails, the mirror answers with a newer version: the gear
   // gains a dot and About shows the update card.
@@ -406,6 +406,48 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   assert.equal(afterReturn.sessions['session-1'].items[0].text, '旧便笺')
   assert.equal(afterReturn.sessions['session-1'].items[0].done, false)
   assert.equal(addField.value, '', 'the composer clears after adding the recalled note')
+
+  // Enter behaves like the main composer: plain Enter adds, Shift+Enter only
+  // breaks the line, and the stale shortcut preference does not change that.
+  await act(async () => {
+    valueSetter.call(addField, '回车提交')
+    addField.dispatchEvent(new window.Event('input', { bubbles: true }))
+  })
+  await act(async () => {
+    addField.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+  })
+  const viaEnter = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
+  assert.equal(viaEnter.sessions['session-1'].items[0].text, '回车提交', 'Enter must add the note')
+  assert.equal(addField.value, '', 'Enter clears the composer after adding')
+  // The main composer also sends on the command chord; so does this one.
+  await act(async () => {
+    valueSetter.call(addField, '组合键提交')
+    addField.dispatchEvent(new window.Event('input', { bubbles: true }))
+  })
+  await act(async () => {
+    addField.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true }))
+  })
+  const viaChord = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
+  assert.equal(viaChord.sessions['session-1'].items[0].text, '组合键提交', 'the command chord submits like the main composer')
+  await act(async () => {
+    valueSetter.call(addField, '换行草稿')
+    addField.dispatchEvent(new window.Event('input', { bubbles: true }))
+  })
+  await act(async () => {
+    addField.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }))
+  })
+  const afterShift = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
+  assert.equal(
+    afterShift.sessions['session-1'].items.length,
+    viaChord.sessions['session-1'].items.length,
+    'Shift+Enter must not add a note',
+  )
+  assert.equal(addField.value, '换行草稿', 'Shift+Enter leaves the draft in the composer')
+  // Clear the line-break draft so the original recall flow below still runs.
+  await act(async () => {
+    valueSetter.call(addField, '')
+    addField.dispatchEvent(new window.Event('input', { bubbles: true }))
+  })
   await act(async () => { popover.querySelector('.dsh-an-iconBtn[aria-label="退回"]').click() })
   await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 40)) })
 
