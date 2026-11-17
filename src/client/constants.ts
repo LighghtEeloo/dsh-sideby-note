@@ -17,7 +17,7 @@ export const DRAFT_STORAGE_KEY = 'dsh.aside-note.drafts'
 /** Notes already forwarded to the composer, per session; marks the forward button. */
 export const FORWARDED_STORAGE_KEY = 'dsh.aside-note.forwarded'
 /** Shown in the in-panel settings; keep in sync with package.json. */
-export const PLUGIN_VERSION = '1.1.5'
+export const PLUGIN_VERSION = '0.1.0'
 export const PLUGIN_AUTHOR = '阿三石'
 export const PLUGIN_REPO_URL = 'https://github.com/LighghtEeloo/dsh-sideby-note'
 export const PLUGIN_REPO_LABEL = 'github.com/LighghtEeloo/dsh-sideby-note'
