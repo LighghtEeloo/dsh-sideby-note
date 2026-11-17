@@ -371,6 +371,17 @@ test('locale files carry metadata and the dictionary stays in sync', () => {
   assert.match(dict.en['item.forwarded'], /remove the mark/)
 })
 
+test('runtime fallbacks land on English, never Chinese', () => {
+  const i18n = read('src/client/i18n/index.ts')
+  // Selected dictionary first, then the complete English bundle, then the raw key.
+  assert.match(i18n, /return dict\[key\] \|\| DICT\.en\[key as MessageKey\] \|\| key/)
+  assert.doesNotMatch(i18n, /DICT\.zh\[key/, 'a drifted dictionary must not fall back to Chinese')
+
+  const client = read('src/client/index.ts')
+  assert.match(client, /return typeof id === 'string' && id \? id : 'en'/, 'an absent locale id reads as English')
+  assert.match(client, /\} catch \{\n\s+return 'en'\n\s+\}/, 'a throwing locale service reads as English')
+})
+
 test('the analytics switch names the platform, the purpose and the limits', () => {
   const dict = readDict()
   assert.equal(dict.zh['settings.analytics'], '匿名功能统计')

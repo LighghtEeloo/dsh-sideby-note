@@ -45,7 +45,7 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | --- | --- | --- |
 | 入口 | `index.ts` | 注入样式 → 注册字典 → 座位入口/Toast/slot |
 | 身份 | `constants.ts` | 包与插件的 id、`dsh-an-*` 相关的键与上限 |
-| 文案 | `i18n/` | `zh.ts` 定义键集合与 `MessageKey`；其余 7 种 DSH 官方语言用 `Record<MessageKey, string>`，缺键编译失败 |
+| 文案 | `i18n/` | `zh.ts` 定义键集合与 `MessageKey`；其余 7 种 DSH 官方语言用 `Record<MessageKey, string>`，缺键编译失败；运行时未知语言或缺键一律回退英文 |
 | 领域 | `domain/items.ts` | `normalizeItems`（防御性清洗、去重、上限）、排序、相对时间文案 |
 | 领域 | `domain/forward.ts` | 把便笺写回**当前会话**的 Lexical contenteditable 或 textarea，保留光标与换行语义；按 `[data-conversation-session]` 限定输入框 |
 | 存储 | `storage/session.ts` | 会话便笺库（`sessions`）的读写；保持原 `dsh.aside-note` 的 v1 键与结构，写失败返回 `false`，由调用方保留 UI 原状并报 Toast |

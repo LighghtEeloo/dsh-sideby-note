@@ -108,9 +108,9 @@ function apply(ctx: DshClientCtx) {
     try {
       const current = locale && typeof locale.getLocale === 'function' ? locale.getLocale() : null
       const id = current && (current.id || current.locale)
-      return typeof id === 'string' && id ? id : 'zh'
+      return typeof id === 'string' && id ? id : 'en'
     } catch {
-      return 'zh'
+      return 'en'
     }
   }
 

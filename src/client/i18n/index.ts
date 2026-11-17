@@ -38,6 +38,8 @@ export function makeSay(ctx: DshClientCtx, getLocaleId: () => string) {
     }
     const language = String(getLocaleId()).split('-')[0].toLowerCase()
     const dict = (DICT as Record<string, Record<string, string>>)[language] || DICT.en
-    return dict[key] || DICT.zh[key as MessageKey] || key
+    // English is the complete bundle, so it is the last resort before the raw key:
+    // a drifted dictionary shows English, never Chinese, to a non-Chinese reader.
+    return dict[key] || DICT.en[key as MessageKey] || key
   }
 }

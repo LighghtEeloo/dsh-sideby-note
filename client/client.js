@@ -5571,7 +5571,7 @@ function makeSay(ctx, getLocaleId) {
 			if (typeof value === "string" && value && value !== key) return value;
 		} catch {}
 		const language = String(getLocaleId()).split("-")[0].toLowerCase();
-		return (DICT[language] || DICT.en)[key] || DICT.zh[key] || key;
+		return (DICT[language] || DICT.en)[key] || DICT.en[key] || key;
 	};
 }
 
@@ -8969,9 +8969,9 @@ function apply(ctx) {
 		try {
 			const current = locale && typeof locale.getLocale === "function" ? locale.getLocale() : null;
 			const id = current && (current.id || current.locale);
-			return typeof id === "string" && id ? id : "zh";
+			return typeof id === "string" && id ? id : "en";
 		} catch {
-			return "zh";
+			return "en";
 		}
 	};
 	const say = makeSay(ctx, localeId);
