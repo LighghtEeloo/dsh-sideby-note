@@ -1,4 +1,4 @@
-# 旁边记（AsideNote）截图与预览图 SOP
+# 边记部（Sideby Note）截图与预览图 SOP
 
 本文件固定本插件的截图产出流程：从一套**隔离的 DSH 环境**里生成演示会话，拍下面板状态，再裁切成 README 用图。目标是任何人（或 agent）照此执行都能得到同一批图，且图中不出现任何其它工程的信息。
 
@@ -55,8 +55,8 @@ PYTHON=/path/to/python      # 仅 run.ps1：默认依次试 PATH 上的 python�
 建议在**独立 worktree** 里执行，避免与主工作树里正在进行的改动互相覆盖：
 
 ```bash
-git worktree add ../dsh-aside-note-shots -b chore/shots
-cd ../dsh-aside-note-shots
+git worktree add ../dsh-sideby-note-shots -b chore/shots
+cd ../dsh-sideby-note-shots
 tools/screenshots/run.sh        # macOS
 # Windows: $env:COPY_CREDENTIALS = 1; tools/screenshots/run.ps1
 npm test

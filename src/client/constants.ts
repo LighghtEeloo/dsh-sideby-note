@@ -5,9 +5,9 @@
  * storage modules and the panel import it instead of repeating literals.
  */
 /** Locale namespace of this plugin's copy (also binds the renderer's `t` prop). */
-export const NS = 'dsh-aside-note'
+export const NS = 'dsh-sideby-note'
 /** Sidebar launcher id and the main panel key it addresses. */
-export const PANEL_ID = 'dsh-aside-note'
+export const PANEL_ID = 'dsh-sideby-note'
 /** Session-scoped memo store used by the popover and the session-header entry. */
 export const SESSION_STORAGE_KEY = 'dsh.aside-note'
 /** Notes shared by every session of one workspace; kept beside the session key. */
@@ -25,8 +25,8 @@ export const PANEL_OPENED_KEY = 'dsh.aside-note.panel-opened'
 /** Shown in the in-panel settings; keep in sync with package.json. */
 export const PLUGIN_VERSION = '1.1.5'
 export const PLUGIN_AUTHOR = '阿三石'
-export const PLUGIN_REPO_URL = 'https://github.com/Rayle8/dsh-aside-note'
-export const PLUGIN_REPO_LABEL = 'github.com/Rayle8/dsh-aside-note'
+export const PLUGIN_REPO_URL = 'https://github.com/LighghtEeloo/dsh-sideby-note'
+export const PLUGIN_REPO_LABEL = 'github.com/LighghtEeloo/dsh-sideby-note'
 /** Send preference; persisted across panel openings. Enter sends by default. */
 export const SEND_SHORTCUT_KEY = 'dsh.aside-note.send-shortcut'
 /** Lead-in written before a forwarded note; absent means the localized default, empty means no prefix. */

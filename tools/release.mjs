@@ -283,11 +283,11 @@ export function prepare(version, { dryRun = false, skipCheck = false } = {}) {
     const commit = git(['commit', '-m', `release: ${version}`], root)
     if (commit.status !== 0) fail(`git commit failed: ${(commit.stderr || '').trim()}`)
     committed = true
-    const tagResult = git(['tag', '-a', tag, '-m', `AsideNote ${version}`], root)
+    const tagResult = git(['tag', '-a', tag, '-m', `Sideby Note ${version}`], root)
     if (tagResult.status !== 0) {
       fail(
         `commit created but tag ${tag} failed: ${(tagResult.stderr || '').trim()}; ` +
-          `run git tag -a ${tag} -m "AsideNote ${version}" manually`,
+          `run git tag -a ${tag} -m "Sideby Note ${version}" manually`,
       )
     }
     const hash = gitOut(['rev-parse', '--short', 'HEAD'], root)

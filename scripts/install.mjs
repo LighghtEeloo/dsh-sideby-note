@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-command installer for the AsideNote plugin.
+ * One-command installer for the Sideby Note plugin.
  *
  * It edits the DSH profile manifest (dependency + `dsh.profile.bundles`), runs
  * the profile's package manager, then verifies what actually landed. It never
@@ -8,12 +8,12 @@
  * it is safe to re-run: an already-configured profile is left as it is.
  *
  * Usage:
- *   npx dsh-aside-note install                     # DSH_PROFILE_DIR, else "desktop"
- *   npx dsh-aside-note install --profile work      # ~/.dsh/profiles/work (or %USERPROFILE%\.dsh\profiles\work)
- *   npx dsh-aside-note install --profile-dir <dir> # explicit profile directory
- *   npx dsh-aside-note install --version 1.0.0    # exact pin instead of ^1.0.0
- *   npx dsh-aside-note install --dry-run          # print the plan, change nothing
- *   npx dsh-aside-note install --no-install       # edit the manifest only
+ *   npx dsh-sideby-note install                     # DSH_PROFILE_DIR, else "desktop"
+ *   npx dsh-sideby-note install --profile work      # ~/.dsh/profiles/work (or %USERPROFILE%\.dsh\profiles\work)
+ *   npx dsh-sideby-note install --profile-dir <dir> # explicit profile directory
+ *   npx dsh-sideby-note install --version 1.0.0    # exact pin instead of ^1.0.0
+ *   npx dsh-sideby-note install --dry-run          # print the plan, change nothing
+ *   npx dsh-sideby-note install --no-install       # edit the manifest only
  *
  * A profile edit does not need a restart: DSH re-composes the profile within
  * about a second, and the page picks the new client bundle up on its next load.
@@ -23,12 +23,12 @@ import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
-const PACKAGE = 'dsh-aside-note'
+const PACKAGE = 'dsh-sideby-note'
 const DEFAULT_RANGE = '^1.0.0'
 
-const USAGE = `Usage: dsh-aside-note install [options]
+const USAGE = `Usage: dsh-sideby-note install [options]
 
-Installs the AsideNote plugin into a DSH profile: it adds the dependency, adds
+Installs the Sideby Note plugin into a DSH profile: it adds the dependency, adds
 the bundle line, runs the profile's package manager and verifies the result.
 
 Options:
@@ -267,11 +267,11 @@ if (!existsSync(bundleFile)) fail(`Installed ${PACKAGE}@${version} has no client
 console.log(`\n✓ installed: ${PACKAGE}@${version}`)
 console.log(`  bundle    : ${bundleFile}`)
 console.log('')
-console.log('After install, 「旁边记」 (AsideNote) sits at the top right of the conversation — no DSH')
-console.log('restart is needed. If it is not there, refresh the Plugins page, then switch 旁边记 off')
+console.log('After install, 「边记部」 (Sideby Note) sits at the top right of the conversation — no DSH')
+console.log('restart is needed. If it is not there, refresh the Plugins page, then switch 边记部 off')
 console.log('and on once: the running host recomposes and the entry appears.')
 console.log('')
-console.log('安装后，会话右上角即可看到「旁边记」入口，不需要重启 DSH。若没有出现，到「插件」页刷新，')
+console.log('安装后，会话右上角即可看到「边记部」入口，不需要重启 DSH。若没有出现，到「插件」页刷新，')
 console.log('再把它手动关闭并开启一次，入口就会出现。')
 console.log('')
 console.log('Notes live in this browser (localStorage `dsh.aside-note.*`); nothing is written to')

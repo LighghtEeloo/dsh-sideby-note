@@ -1,5 +1,5 @@
 /**
- * Host half of the AsideNote panel.
+ * Host half of the Sideby Note panel.
  *
  * Notes stay in the browser: they are small, human-authored records scoped to
  * one session or workspace. What lives here is only what a page cannot do —
@@ -23,6 +23,6 @@ export function apply(ctx, config) {
       return () => {
         if (typeof dispose === 'function') dispose()
       }
-    }, 'dsh-aside-note: update routes')
+    }, 'dsh-sideby-note: update routes')
   })
 }

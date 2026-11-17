@@ -1,4 +1,4 @@
-window.__ModuleLoader__.load({ id: "dsh-aside-note", factory: (require) => {
+window.__ModuleLoader__.load({ id: "dsh-sideby-note", factory: (require) => {
 
 var module = { exports: {} }; var exports = module.exports;
 // \0rolldown/runtime.js
@@ -4227,9 +4227,9 @@ var import_aegis_min = /* @__PURE__ */ __toESM(require_aegis_min(), 1);
 * storage modules and the panel import it instead of repeating literals.
 */
 /** Locale namespace of this plugin's copy (also binds the renderer's `t` prop). */
-const NS = "dsh-aside-note";
+const NS = "dsh-sideby-note";
 /** Sidebar launcher id and the main panel key it addresses. */
-const PANEL_ID = "dsh-aside-note";
+const PANEL_ID = "dsh-sideby-note";
 /** Session-scoped memo store used by the popover and the session-header entry. */
 const SESSION_STORAGE_KEY = "dsh.aside-note";
 /** Notes shared by every session of one workspace; kept beside the session key. */
@@ -4247,8 +4247,8 @@ const PANEL_OPENED_KEY = "dsh.aside-note.panel-opened";
 /** Shown in the in-panel settings; keep in sync with package.json. */
 const PLUGIN_VERSION = "1.1.5";
 const PLUGIN_AUTHOR = "阿三石";
-const PLUGIN_REPO_URL = "https://github.com/Rayle8/dsh-aside-note";
-const PLUGIN_REPO_LABEL = "github.com/Rayle8/dsh-aside-note";
+const PLUGIN_REPO_URL = "https://github.com/LighghtEeloo/dsh-sideby-note";
+const PLUGIN_REPO_LABEL = "github.com/LighghtEeloo/dsh-sideby-note";
 /** Send preference; persisted across panel openings. Enter sends by default. */
 const SEND_SHORTCUT_KEY = "dsh.aside-note.send-shortcut";
 /** Lead-in written before a forwarded note; absent means the localized default, empty means no prefix. */
@@ -4586,10 +4586,10 @@ var panel_css_default = "/*\n * Panel, composer dock, header entry and toast sty
 // src/client/i18n/de.ts
 /** German copy; a missing key fails the typecheck rather than falling back at runtime. */
 const de = {
-	"nav.label": "AsideNote",
-	"title": "AsideNote",
-	"popover.title": "AsideNote",
-	"popover.close": "AsideNote schließen",
+	"nav.label": "Sideby Note",
+	"title": "Sideby Note",
+	"popover.title": "Sideby Note",
+	"popover.close": "Sideby Note schließen",
 	"popover.count": "{open} offen · {total} gesamt",
 	"popover.completed": "Erledigt",
 	"popover.clearCancel": "Abbrechen",
@@ -4604,11 +4604,11 @@ const de = {
 	"scope.sessionHint": "Zur Sitzungsliste wechseln, die nur in dieser Sitzung sichtbar ist",
 	"scope.newSessionHint": "Vorerst ist nur die Liste des Arbeitsbereichs verfügbar; die Sitzungsliste erscheint, sobald die Sitzung beginnt",
 	"popover.empty.title": "Noch keine Notizen",
-	"popover.empty.body": "Ideen neben dem Gespräch festhalten",
+	"popover.empty.body": "Ideen entwerfen, während der Agent arbeitet",
 	"settings.open": "Einstellungen",
 	"settings.title": "Einstellungen",
 	"settings.about": "Info",
-	"settings.tagline": "Ideen neben dem Gespräch festhalten.",
+	"settings.tagline": "Ideen entwerfen, während der Agent arbeitet.",
 	"settings.version": "Version",
 	"settings.author": "Autor",
 	"settings.project": "Quellcode",
@@ -4649,13 +4649,13 @@ const de = {
 	"time.createdDone": "Erstellt {created} · Erledigt {completed}",
 	"storage.failed": "Lokaler Speicher ist nicht verfügbar; Änderungen werden möglicherweise nicht gespeichert",
 	"forward.prefix": "Diese Aufgabe erledigen:",
-	"resize.width": "Breite von AsideNote ändern",
-	"resize.height": "Höhe von AsideNote ändern",
+	"resize.width": "Breite von Sideby Note ändern",
+	"resize.height": "Höhe von Sideby Note ändern",
 	"resize.hint": "Zum Ändern ziehen, zum Zurücksetzen doppelklicken",
-	"dock.open": "AsideNote öffnen",
+	"dock.open": "Sideby Note öffnen",
 	"dock.count": "{n} offen",
-	"header.tooltip": "AsideNote · {n} offen",
-	"header.tooltipEmpty": "AsideNote",
+	"header.tooltip": "Sideby Note · {n} offen",
+	"header.tooltipEmpty": "Sideby Note",
 	"toast.copied": "Kopiert",
 	"toast.copyFailed": "Kopieren fehlgeschlagen — erneut versuchen",
 	"toast.forwarded": "An Chat weitergeleitet",
@@ -4703,16 +4703,16 @@ const de = {
 	"update.autoUnavailable": "Dieser Host bietet keine automatische Update-Route; den Befehl unten ausführen",
 	"update.manualHint": "Oder direkt aktualisieren: {command} in einem Terminal ausführen oder auf der Plugins-Seite aktualisieren und dann neu laden",
 	"update.copyPrompt": "Update-Prompt kopieren",
-	"update.prompt": "Aktualisiere das DSH-Plugin AsideNote auf {version} mit: {command}. Lade die Seite neu, wenn es fertig ist."
+	"update.prompt": "Aktualisiere das DSH-Plugin Sideby Note auf {version} mit: {command}. Lade die Seite neu, wenn es fertig ist."
 };
 
 // src/client/i18n/en.ts
 /** English copy; a missing key fails the typecheck rather than falling back at runtime. */
 const en = {
-	"nav.label": "AsideNote",
-	"title": "AsideNote",
-	"popover.title": "AsideNote",
-	"popover.close": "Close AsideNote",
+	"nav.label": "Sideby Note",
+	"title": "Sideby Note",
+	"popover.title": "Sideby Note",
+	"popover.close": "Close Sideby Note",
 	"popover.count": "{open} open · {total} total",
 	"popover.completed": "Completed",
 	"popover.clearCancel": "Cancel",
@@ -4727,11 +4727,11 @@ const en = {
 	"scope.sessionHint": "Switch to the session list, visible only in this session",
 	"scope.newSessionHint": "Only the workspace list is available for now; the session list appears once the session starts",
 	"popover.empty.title": "No notes yet",
-	"popover.empty.body": "Keep your ideas beside the conversation",
+	"popover.empty.body": "Asynchronously draft your ideas while the agent is working",
 	"settings.open": "Settings",
 	"settings.title": "Settings",
 	"settings.about": "About",
-	"settings.tagline": "Keep your ideas beside the conversation.",
+	"settings.tagline": "Asynchronously draft your ideas while the agent is working.",
 	"settings.version": "Version",
 	"settings.author": "Author",
 	"settings.project": "Source",
@@ -4772,13 +4772,13 @@ const en = {
 	"time.createdDone": "Created {created} · Completed {completed}",
 	"storage.failed": "Local storage is unavailable; changes may not persist",
 	"forward.prefix": "Complete this task:",
-	"resize.width": "Resize AsideNote width",
-	"resize.height": "Resize AsideNote height",
+	"resize.width": "Resize Sideby Note width",
+	"resize.height": "Resize Sideby Note height",
 	"resize.hint": "Drag to resize, double-click to reset",
-	"dock.open": "Open AsideNote",
+	"dock.open": "Open Sideby Note",
 	"dock.count": "{n} open",
-	"header.tooltip": "AsideNote · {n} open",
-	"header.tooltipEmpty": "AsideNote",
+	"header.tooltip": "Sideby Note · {n} open",
+	"header.tooltipEmpty": "Sideby Note",
 	"toast.copied": "Copied",
 	"toast.copyFailed": "Copy failed — try again",
 	"toast.forwarded": "Forwarded to chat",
@@ -4826,16 +4826,16 @@ const en = {
 	"update.autoUnavailable": "This host offers no automatic update route; run the command below",
 	"update.manualHint": "Or update directly: run {command} in a terminal, or update from the Plugins page, then reload",
 	"update.copyPrompt": "Copy update prompt",
-	"update.prompt": "Update the DSH plugin AsideNote to {version} by running: {command}. Reload the page when it finishes."
+	"update.prompt": "Update the DSH plugin Sideby Note to {version} by running: {command}. Reload the page when it finishes."
 };
 
 // src/client/i18n/es.ts
 /** Spanish copy; a missing key fails the typecheck rather than falling back at runtime. */
 const es = {
-	"nav.label": "AsideNote",
-	"title": "AsideNote",
-	"popover.title": "AsideNote",
-	"popover.close": "Cerrar AsideNote",
+	"nav.label": "Sideby Note",
+	"title": "Sideby Note",
+	"popover.title": "Sideby Note",
+	"popover.close": "Cerrar Sideby Note",
 	"popover.count": "{open} abiertas · {total} en total",
 	"popover.completed": "Completadas",
 	"popover.clearCancel": "Cancelar",
@@ -4850,11 +4850,11 @@ const es = {
 	"scope.sessionHint": "Cambiar a la lista de la sesión, visible solo en esta sesión",
 	"scope.newSessionHint": "Por ahora solo está disponible la lista del espacio de trabajo; la lista de la sesión aparecerá cuando se inicie la sesión",
 	"popover.empty.title": "Aún no hay notas",
-	"popover.empty.body": "Mantén tus ideas junto a la conversación",
+	"popover.empty.body": "Esboza tus ideas de forma asíncrona mientras el agente trabaja",
 	"settings.open": "Ajustes",
 	"settings.title": "Ajustes",
 	"settings.about": "Acerca de",
-	"settings.tagline": "Mantén tus ideas junto a la conversación.",
+	"settings.tagline": "Esboza tus ideas de forma asíncrona mientras el agente trabaja.",
 	"settings.version": "Versión",
 	"settings.author": "Autor",
 	"settings.project": "Código fuente",
@@ -4895,13 +4895,13 @@ const es = {
 	"time.createdDone": "Creada {created} · Completada {completed}",
 	"storage.failed": "El almacenamiento local no está disponible; es posible que los cambios no se guarden",
 	"forward.prefix": "Completa esta tarea:",
-	"resize.width": "Cambiar el ancho de AsideNote",
-	"resize.height": "Cambiar la altura de AsideNote",
+	"resize.width": "Cambiar el ancho de Sideby Note",
+	"resize.height": "Cambiar la altura de Sideby Note",
 	"resize.hint": "Arrastra para cambiar el tamaño, doble clic para restablecer",
-	"dock.open": "Abrir AsideNote",
+	"dock.open": "Abrir Sideby Note",
 	"dock.count": "{n} abiertas",
-	"header.tooltip": "AsideNote · {n} abiertas",
-	"header.tooltipEmpty": "AsideNote",
+	"header.tooltip": "Sideby Note · {n} abiertas",
+	"header.tooltipEmpty": "Sideby Note",
 	"toast.copied": "Copiado",
 	"toast.copyFailed": "Error al copiar — inténtalo de nuevo",
 	"toast.forwarded": "Reenviada al chat",
@@ -4949,16 +4949,16 @@ const es = {
 	"update.autoUnavailable": "Este host no ofrece una ruta de actualización automática; ejecuta el comando de abajo",
 	"update.manualHint": "O actualiza directamente: ejecuta {command} en un terminal, o actualiza desde la página de Complementos y recarga",
 	"update.copyPrompt": "Copiar prompt de actualización",
-	"update.prompt": "Actualiza el complemento DSH AsideNote a {version} ejecutando: {command}. Recarga la página cuando termine."
+	"update.prompt": "Actualiza el complemento DSH Sideby Note a {version} ejecutando: {command}. Recarga la página cuando termine."
 };
 
 // src/client/i18n/fr.ts
 /** French copy; a missing key fails the typecheck rather than falling back at runtime. */
 const fr = {
-	"nav.label": "AsideNote",
-	"title": "AsideNote",
-	"popover.title": "AsideNote",
-	"popover.close": "Fermer AsideNote",
+	"nav.label": "Sideby Note",
+	"title": "Sideby Note",
+	"popover.title": "Sideby Note",
+	"popover.close": "Fermer Sideby Note",
 	"popover.count": "{open} ouvertes · {total} au total",
 	"popover.completed": "Terminées",
 	"popover.clearCancel": "Annuler",
@@ -4973,11 +4973,11 @@ const fr = {
 	"scope.sessionHint": "Passer à la liste de la session, visible uniquement dans cette session",
 	"scope.newSessionHint": "Seule la liste de l'espace de travail est disponible pour l'instant ; la liste de la session apparaîtra au démarrage de la session",
 	"popover.empty.title": "Aucune note pour l'instant",
-	"popover.empty.body": "Gardez vos idées à côté de la conversation",
+	"popover.empty.body": "Rédigez vos idées de façon asynchrone pendant que l'agent travaille",
 	"settings.open": "Paramètres",
 	"settings.title": "Paramètres",
 	"settings.about": "À propos",
-	"settings.tagline": "Gardez vos idées à côté de la conversation.",
+	"settings.tagline": "Rédigez vos idées de façon asynchrone pendant que l'agent travaille.",
 	"settings.version": "Version",
 	"settings.author": "Auteur",
 	"settings.project": "Source",
@@ -5018,13 +5018,13 @@ const fr = {
 	"time.createdDone": "Créée {created} · Terminée {completed}",
 	"storage.failed": "Le stockage local n'est pas disponible ; les modifications peuvent ne pas être conservées",
 	"forward.prefix": "Terminez cette tâche :",
-	"resize.width": "Redimensionner la largeur d'AsideNote",
-	"resize.height": "Redimensionner la hauteur d'AsideNote",
+	"resize.width": "Redimensionner la largeur d'Sideby Note",
+	"resize.height": "Redimensionner la hauteur d'Sideby Note",
 	"resize.hint": "Faites glisser pour redimensionner, double-cliquez pour réinitialiser",
-	"dock.open": "Ouvrir AsideNote",
+	"dock.open": "Ouvrir Sideby Note",
 	"dock.count": "{n} ouvertes",
-	"header.tooltip": "AsideNote · {n} ouvertes",
-	"header.tooltipEmpty": "AsideNote",
+	"header.tooltip": "Sideby Note · {n} ouvertes",
+	"header.tooltipEmpty": "Sideby Note",
 	"toast.copied": "Copié",
 	"toast.copyFailed": "Échec de la copie — réessayez",
 	"toast.forwarded": "Transférée vers le chat",
@@ -5072,16 +5072,16 @@ const fr = {
 	"update.autoUnavailable": "Cet hôte ne propose pas de route de mise à jour automatique ; exécutez la commande ci-dessous",
 	"update.manualHint": "Ou mettez à jour directement : exécutez {command} dans un terminal, ou mettez à jour depuis la page Plugins, puis rechargez",
 	"update.copyPrompt": "Copier l'invite de mise à jour",
-	"update.prompt": "Mettez à jour le plugin DSH AsideNote vers {version} en exécutant : {command}. Rechargez la page une fois terminé."
+	"update.prompt": "Mettez à jour le plugin DSH Sideby Note vers {version} en exécutant : {command}. Rechargez la page une fois terminé."
 };
 
 // src/client/i18n/ja.ts
 /** Japanese copy; a missing key fails the typecheck rather than falling back at runtime. */
 const ja = {
-	"nav.label": "AsideNote",
-	"title": "AsideNote",
-	"popover.title": "AsideNote",
-	"popover.close": "AsideNoteを閉じる",
+	"nav.label": "Sideby Note",
+	"title": "Sideby Note",
+	"popover.title": "Sideby Note",
+	"popover.close": "Sideby Noteを閉じる",
 	"popover.count": "{open} 件未完了 · 全 {total} 件",
 	"popover.completed": "完了済み",
 	"popover.clearCancel": "キャンセル",
@@ -5096,11 +5096,11 @@ const ja = {
 	"scope.sessionHint": "このセッションだけに表示されるセッションのリストに切り替えます",
 	"scope.newSessionHint": "現在はワークスペースのリストのみ利用できます。セッションを開始するとセッションのリストが表示されます",
 	"popover.empty.title": "メモはまだありません",
-	"popover.empty.body": "アイデアを会話のそばに",
+	"popover.empty.body": "エージェントが作業している間に、アイデアを非同期で書き留める",
 	"settings.open": "設定",
 	"settings.title": "設定",
 	"settings.about": "このプラグインについて",
-	"settings.tagline": "アイデアを会話のそばに。",
+	"settings.tagline": "エージェントが作業している間に、アイデアを非同期で書き留める。",
 	"settings.version": "バージョン",
 	"settings.author": "作者",
 	"settings.project": "ソース",
@@ -5141,13 +5141,13 @@ const ja = {
 	"time.createdDone": "作成 {created} · 完了 {completed}",
 	"storage.failed": "ローカルストレージを利用できません。変更は保存されない可能性があります",
 	"forward.prefix": "このタスクを完了してください：",
-	"resize.width": "AsideNote の幅を変更",
-	"resize.height": "AsideNote の高さを変更",
+	"resize.width": "Sideby Note の幅を変更",
+	"resize.height": "Sideby Note の高さを変更",
 	"resize.hint": "ドラッグでサイズ変更、ダブルクリックでリセット",
-	"dock.open": "AsideNote を開く",
+	"dock.open": "Sideby Note を開く",
 	"dock.count": "{n} 件未完了",
-	"header.tooltip": "AsideNote · {n} 件未完了",
-	"header.tooltipEmpty": "AsideNote",
+	"header.tooltip": "Sideby Note · {n} 件未完了",
+	"header.tooltipEmpty": "Sideby Note",
 	"toast.copied": "コピーしました",
 	"toast.copyFailed": "コピーに失敗しました — もう一度お試しください",
 	"toast.forwarded": "チャットに転送しました",
@@ -5195,16 +5195,16 @@ const ja = {
 	"update.autoUnavailable": "このホストは自動更新ルートを提供していません。下のコマンドを実行してください",
 	"update.manualHint": "または直接更新：ターミナルで {command} を実行するか、プラグインページから更新してから再読み込みしてください",
 	"update.copyPrompt": "更新プロンプトをコピー",
-	"update.prompt": "DSH プラグイン AsideNote を {version} に更新するには、次を実行してください：{command}。完了したらページを再読み込みしてください。"
+	"update.prompt": "DSH プラグイン Sideby Note を {version} に更新するには、次を実行してください：{command}。完了したらページを再読み込みしてください。"
 };
 
 // src/client/i18n/pt.ts
 /** Brazilian Portuguese copy; a missing key fails the typecheck rather than falling back at runtime. */
 const pt = {
-	"nav.label": "AsideNote",
-	"title": "AsideNote",
-	"popover.title": "AsideNote",
-	"popover.close": "Fechar AsideNote",
+	"nav.label": "Sideby Note",
+	"title": "Sideby Note",
+	"popover.title": "Sideby Note",
+	"popover.close": "Fechar Sideby Note",
 	"popover.count": "{open} abertas · {total} no total",
 	"popover.completed": "Concluídas",
 	"popover.clearCancel": "Cancelar",
@@ -5219,11 +5219,11 @@ const pt = {
 	"scope.sessionHint": "Mudar para a lista da sessão, visível apenas nesta sessão",
 	"scope.newSessionHint": "Por enquanto, apenas a lista do espaço de trabalho está disponível; a lista da sessão aparece quando a sessão começar",
 	"popover.empty.title": "Nenhuma nota ainda",
-	"popover.empty.body": "Mantenha suas ideias ao lado da conversa",
+	"popover.empty.body": "Esboce suas ideias de forma assíncrona enquanto o agente trabalha",
 	"settings.open": "Configurações",
 	"settings.title": "Configurações",
 	"settings.about": "Sobre",
-	"settings.tagline": "Mantenha suas ideias ao lado da conversa.",
+	"settings.tagline": "Esboce suas ideias de forma assíncrona enquanto o agente trabalha.",
 	"settings.version": "Versão",
 	"settings.author": "Autor",
 	"settings.project": "Código-fonte",
@@ -5264,13 +5264,13 @@ const pt = {
 	"time.createdDone": "Criada {created} · Concluída {completed}",
 	"storage.failed": "O armazenamento local não está disponível; as alterações podem não ser salvas",
 	"forward.prefix": "Conclua esta tarefa:",
-	"resize.width": "Redimensionar a largura do AsideNote",
-	"resize.height": "Redimensionar a altura do AsideNote",
+	"resize.width": "Redimensionar a largura do Sideby Note",
+	"resize.height": "Redimensionar a altura do Sideby Note",
 	"resize.hint": "Arraste para redimensionar, clique duas vezes para redefinir",
-	"dock.open": "Abrir AsideNote",
+	"dock.open": "Abrir Sideby Note",
 	"dock.count": "{n} abertas",
-	"header.tooltip": "AsideNote · {n} abertas",
-	"header.tooltipEmpty": "AsideNote",
+	"header.tooltip": "Sideby Note · {n} abertas",
+	"header.tooltipEmpty": "Sideby Note",
 	"toast.copied": "Copiado",
 	"toast.copyFailed": "Falha ao copiar — tente novamente",
 	"toast.forwarded": "Encaminhada para o chat",
@@ -5318,16 +5318,16 @@ const pt = {
 	"update.autoUnavailable": "Este host não oferece rota de atualização automática; execute o comando abaixo",
 	"update.manualHint": "Ou atualize diretamente: execute {command} em um terminal, ou atualize na página de Plugins e recarregue",
 	"update.copyPrompt": "Copiar prompt de atualização",
-	"update.prompt": "Atualize o plugin DSH AsideNote para {version} executando: {command}. Recarregue a página quando terminar."
+	"update.prompt": "Atualize o plugin DSH Sideby Note para {version} executando: {command}. Recarregue a página quando terminar."
 };
 
 // src/client/i18n/ru.ts
 /** Russian copy; a missing key fails the typecheck rather than falling back at runtime. */
 const ru = {
-	"nav.label": "AsideNote",
-	"title": "AsideNote",
-	"popover.title": "AsideNote",
-	"popover.close": "Закрыть AsideNote",
+	"nav.label": "Sideby Note",
+	"title": "Sideby Note",
+	"popover.title": "Sideby Note",
+	"popover.close": "Закрыть Sideby Note",
 	"popover.count": "{open} открыто · всего {total}",
 	"popover.completed": "Выполнено",
 	"popover.clearCancel": "Отмена",
@@ -5342,11 +5342,11 @@ const ru = {
 	"scope.sessionHint": "Переключиться на список сеанса, видимый только в этом сеансе",
 	"scope.newSessionHint": "Пока доступен только список рабочей области; список сеанса появится после начала сеанса",
 	"popover.empty.title": "Заметок пока нет",
-	"popover.empty.body": "Держите идеи рядом с разговором",
+	"popover.empty.body": "Набрасывайте идеи асинхронно, пока агент работает",
 	"settings.open": "Настройки",
 	"settings.title": "Настройки",
 	"settings.about": "О плагине",
-	"settings.tagline": "Держите идеи рядом с разговором.",
+	"settings.tagline": "Набрасывайте идеи асинхронно, пока агент работает.",
 	"settings.version": "Версия",
 	"settings.author": "Автор",
 	"settings.project": "Исходный код",
@@ -5387,13 +5387,13 @@ const ru = {
 	"time.createdDone": "Создано {created} · Выполнено {completed}",
 	"storage.failed": "Локальное хранилище недоступно; изменения могут не сохраниться",
 	"forward.prefix": "Выполните эту задачу:",
-	"resize.width": "Изменить ширину AsideNote",
-	"resize.height": "Изменить высоту AsideNote",
+	"resize.width": "Изменить ширину Sideby Note",
+	"resize.height": "Изменить высоту Sideby Note",
 	"resize.hint": "Перетащите для изменения размера, двойной щелчок для сброса",
-	"dock.open": "Открыть AsideNote",
+	"dock.open": "Открыть Sideby Note",
 	"dock.count": "{n} открыто",
-	"header.tooltip": "AsideNote · {n} открыто",
-	"header.tooltipEmpty": "AsideNote",
+	"header.tooltip": "Sideby Note · {n} открыто",
+	"header.tooltipEmpty": "Sideby Note",
 	"toast.copied": "Скопировано",
 	"toast.copyFailed": "Не удалось скопировать — повторите попытку",
 	"toast.forwarded": "Переслано в чат",
@@ -5441,16 +5441,16 @@ const ru = {
 	"update.autoUnavailable": "Этот хост не предлагает автоматическое обновление; выполните команду ниже",
 	"update.manualHint": "Или обновитесь напрямую: выполните {command} в терминале либо обновитесь со страницы плагинов и перезагрузите",
 	"update.copyPrompt": "Скопировать запрос на обновление",
-	"update.prompt": "Обновите плагин DSH AsideNote до {version}, выполнив: {command}. Перезагрузите страницу по завершении."
+	"update.prompt": "Обновите плагин DSH Sideby Note до {version}, выполнив: {command}. Перезагрузите страницу по завершении."
 };
 
 // src/client/i18n/zh.ts
 /** Chinese copy — the single source of truth for the message keys. */
 const zh = {
-	"nav.label": "旁边记",
-	"title": "旁边记",
-	"popover.title": "旁边记",
-	"popover.close": "关闭旁边记",
+	"nav.label": "边记部",
+	"title": "边记部",
+	"popover.title": "边记部",
+	"popover.close": "关闭边记部",
 	"popover.count": "{open} 未完成 · {total} 条",
 	"popover.completed": "已完成",
 	"popover.clearCancel": "取消",
@@ -5464,12 +5464,12 @@ const zh = {
 	"scope.workspaceHint": "切换到工作区清单，所有会话共享",
 	"scope.sessionHint": "切换到会话清单，只属于当前会话",
 	"scope.newSessionHint": "当前只能记到工作区，会话开始后可切换",
-	"popover.empty.title": "旁边还没有记录",
-	"popover.empty.body": "让想法留在对话旁边",
+	"popover.empty.title": "边记摸鱼中..",
+	"popover.empty.body": "趁 agent 工作时，异步记下你的想法",
 	"settings.open": "设置",
 	"settings.title": "设置",
 	"settings.about": "关于",
-	"settings.tagline": "让想法留在对话旁边",
+	"settings.tagline": "趁 agent 工作时，异步记下你的想法",
 	"settings.version": "版本",
 	"settings.author": "作者",
 	"settings.project": "源代码",
@@ -5510,13 +5510,13 @@ const zh = {
 	"time.createdDone": "{created}创建，{completed}完成",
 	"storage.failed": "本地存储不可用，改动不会保留",
 	"forward.prefix": "完成以下任务：",
-	"resize.width": "调整旁边记宽度",
-	"resize.height": "调整旁边记高度",
+	"resize.width": "调整边记部宽度",
+	"resize.height": "调整边记部高度",
 	"resize.hint": "拖动调整，双击复位",
-	"dock.open": "打开旁边记",
+	"dock.open": "打开边记部",
 	"dock.count": "{n} 项未完成",
-	"header.tooltip": "旁边记 · {n} 项未完成",
-	"header.tooltipEmpty": "旁边记",
+	"header.tooltip": "边记部 · {n} 项未完成",
+	"header.tooltipEmpty": "边记部",
 	"toast.copied": "已复制",
 	"toast.copyFailed": "复制失败，请重试",
 	"toast.forwarded": "已转发到会话",
@@ -5564,7 +5564,7 @@ const zh = {
 	"update.autoUnavailable": "这台宿主没有可用的自动更新通道；请用下面的命令",
 	"update.manualHint": "也可以直接更新：在终端执行 {command}，或到「插件」页更新，装好后刷新页面即可",
 	"update.copyPrompt": "拷贝更新提示词",
-	"update.prompt": "帮我更新 DSH 插件 AsideNote（旁边记）到 {version}：在终端执行 {command}，装好后刷新页面。"
+	"update.prompt": "帮我更新 DSH 插件 Sideby Note（边记部）到 {version}：在终端执行 {command}，装好后刷新页面。"
 };
 
 // src/client/i18n/index.ts
@@ -6049,7 +6049,7 @@ function notifyTodoChange() {
 	for (const listener of TODO_LISTENERS) try {
 		listener();
 	} catch (error) {
-		console.error("dsh-aside-note: listener failed", error);
+		console.error("dsh-sideby-note: listener failed", error);
 	}
 }
 
@@ -7221,7 +7221,7 @@ function createUpdateProbe(options = {}) {
 		return fetchWithTimeout(fetchImpl, url).then((response) => response.ok ? response.json() : null).catch(() => null);
 	}
 	function readNpmVersion(host, channel) {
-		return readJson(`${host}/dsh-aside-note/${channel}`).then((body) => body !== null && typeof body.version === "string" ? body.version : null);
+		return readJson(`${host}/dsh-sideby-note/${channel}`).then((body) => body !== null && typeof body.version === "string" ? body.version : null);
 	}
 	function readGitHubVersion() {
 		return readJson(UPDATE_GITHUB_RELEASE_URL).then((body) => {
@@ -7482,7 +7482,7 @@ function updateNotesForLocale(body, locale) {
 * falls back to the manual command rather than looking like a failed install.
 */
 /** Where the host listens; keep in sync with `host/route.js`. */
-const HOST_APPLY_PATH = "/dsh-aside-note/update/apply";
+const HOST_APPLY_PATH = "/dsh-sideby-note/update/apply";
 /** An install can be slow (pnpm download, build scripts) but not unbounded. */
 const APPLY_TIMEOUT_MS = 3e5;
 function text(value) {
@@ -7826,7 +7826,7 @@ function useUpdateCenter(localeId) {
 	}, []);
 	/** Copy the ready-to-paste update prompt; the caller reports the outcome. */
 	const copyPrompt = react.default.useCallback((text) => copyText(text), []);
-	const fullReleaseUrl = notes.entries[0]?.url || (latestVersion ? `${"https://github.com/Rayle8/dsh-aside-note"}/releases/tag/v${latestVersion}` : null);
+	const fullReleaseUrl = notes.entries[0]?.url || (latestVersion ? `${"https://github.com/LighghtEeloo/dsh-sideby-note"}/releases/tag/v${latestVersion}` : null);
 	return {
 		check,
 		latestVersion,
@@ -8409,7 +8409,7 @@ function PanelHead(props) {
 */
 const h$7 = react.default.createElement;
 const NOTES_ID = "dsh-an-update-notes";
-const UPDATE_PACKAGE = "dsh-aside-note";
+const UPDATE_PACKAGE = "dsh-sideby-note";
 /** Failure codes the card can explain without echoing the host's message. */
 const FAILURE_COPY = {
 	PLUGIN_NOT_INSTALLED: "update.notInstalled",
@@ -9008,7 +9008,7 @@ function MemoPopover(props) {
 
 // src/client/index.ts
 /**
-* AsideNote browser half.
+* Sideby Note browser half.
 *
 * The plugin entry: injects the stylesheet, binds the locale namespace and
 * seats the two slots (session capture + frame-wide toast host) plus the
@@ -9033,14 +9033,14 @@ function apply(ctx) {
 	const locale = ctx.get("locale");
 	ctx.effect(() => {
 		const style = document.createElement("style");
-		style.dataset.dshPlugin = "dsh-aside-note";
+		style.dataset.dshPlugin = "dsh-sideby-note";
 		style.textContent = panel_css_default;
 		document.head.appendChild(style);
 		return () => {
 			style.remove();
 		};
-	}, "dsh-aside-note: styles");
-	if (locale && typeof locale.register === "function") ctx.effect(() => locale.register(NS, DICT), "dsh-aside-note: dictionaries");
+	}, "dsh-sideby-note: styles");
+	if (locale && typeof locale.register === "function") ctx.effect(() => locale.register(NS, DICT), "dsh-sideby-note: dictionaries");
 	const localeId = () => {
 		try {
 			const service = ctx.get("locale") || locale;
@@ -9123,8 +9123,8 @@ function apply(ctx) {
 		onOpen: (sessionId, anchor) => openMemoPopover(sessionId, anchor, "right")
 	});
 	refreshHeaderEntry = headerEntry.refresh;
-	if (locale && typeof locale.subscribe === "function") ctx.effect(() => locale.subscribe(() => refreshHeaderEntry()), "dsh-aside-note: locale changes");
-	ctx.effect(() => headerEntry.attach(() => closeMemoPopover()), "dsh-aside-note: right-side entry");
+	if (locale && typeof locale.subscribe === "function") ctx.effect(() => locale.subscribe(() => refreshHeaderEntry()), "dsh-sideby-note: locale changes");
+	ctx.effect(() => headerEntry.attach(() => closeMemoPopover()), "dsh-sideby-note: right-side entry");
 	function BoundSessionCapture(props) {
 		const sessionId = props.sessionId || "";
 		const useWorkspaces = typeof props.useWorkspaces === "function" ? props.useWorkspaces : useNoWorkspace;

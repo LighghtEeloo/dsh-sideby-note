@@ -1,44 +1,47 @@
-# 旁边记 · AsideNote
+# 边记部 · Sideby Note
 
-让想法留在对话旁边
+当主代理大功告成之际，过去的你异步发出的思绪将如闪电般归来
 
 [English](README.en.md) | 中文
 
-> 中文名 **旁边记**，英文名 **AsideNote**；包、插件 id 与仓库均为 `dsh-aside-note`。
+> **个人改版说明**：本项目由 [光吟（LighghtEeloo）](https://github.com/LighghtEeloo) 改版，基于并受原作者 [阿三石（Rayle8）](https://github.com/Rayle8) 的 [dsh-aside-note](https://github.com/Rayle8/dsh-aside-note)（旁边记 / AsideNote）启发，仅作个人使用，正文大部分保留自原 README。与上游的主要区别：
+>
+> - 界面名称与文案改为「边记部 / Sideby Note」；包名、插件 id 与更新通道改为本仓库的 `dsh-sideby-note`，安装命令为 `npx dsh-sideby-note install`。
+> - 本地存储键沿用上游的 `dsh.aside-note.*`，升级后已有便笺与设置无需迁移。
 
 轻量记录 · 按需打开 · 用完收起
 
-旁边记是面向 DeepSeek Harness（DSH）的轻量会话便笺。临时的想法、稍后的待办，随手留在对话旁；需要时一键带回，用完收起，继续眼前的事。
+边记部是面向 DeepSeek Harness（DSH）的轻量会话便笺。临时的想法、稍后的待办，随手留在对话旁；需要时一键带回，用完收起，继续眼前的事。
 
 ## 界面与入口
 
-![旁边记右侧面板](./docs/assets/preview-right.png)
+![边记部右侧面板](./docs/assets/preview-right.png)
 
 暗色主题下外观保持一致，颜色全部取自 DSH 主题令牌：
 
-![旁边记右侧面板（暗色）](./docs/assets/preview-right-dark.png)
+![边记部右侧面板（暗色）](./docs/assets/preview-right-dark.png)
 
-会话顶部右侧的「旁边记」按钮，带未完成数量：
+会话顶部右侧的「边记部」按钮，带未完成数量：
 
-<img src="./docs/assets/preview-badge.png" width="460" alt="顶部右侧旁边记按钮">
+<img src="./docs/assets/preview-badge.png" width="460" alt="顶部右侧边记部按钮">
 
 暗色主题下的同一按钮：
 
-<img src="./docs/assets/preview-badge-dark.png" width="460" alt="顶部右侧旁边记按钮（暗色）">
+<img src="./docs/assets/preview-badge-dark.png" width="460" alt="顶部右侧边记部按钮（暗色）">
 
 点击入口后在右侧打开固定面板。空白新会话还没有对话头，按钮落在右上角、右侧栏按钮左侧；发出第一条消息前只显示工作区清单。
 
 ## 快速安装
 
-旁边记以 npm 包 `dsh-aside-note` 装进 DSH profile。两种方式选一个：把提示词交给 agent，或自己执行一条命令。
+边记部以 npm 包 `dsh-sideby-note` 装进 DSH profile。两种方式选一个：把提示词交给 agent，或自己执行一条命令。
 
 ### 通过 agent 安装
 
 把下面这段发给你的 agent：
 
 ```text
-帮我安装 DSH 插件 AsideNote（旁边记），在终端执行：npx -y dsh-aside-note install
-装好后不用重启 DSH，会话右上角即可看到「旁边记」入口；如果没出现，
+帮我安装 DSH 插件 Sideby Note（边记部），在终端执行：npx -y dsh-sideby-note install
+装好后不用重启 DSH，会话右上角即可看到「边记部」入口；如果没出现，
 让我到「插件」页刷新，再把它手动关闭并开启一次。
 如果提示找不到 DSH 或找不到 profile，转告我先安装并启动 DeepSeek Harness 再重试；
 不要改仓库、不要手动拼装依赖、不要重启 DSH。
@@ -47,26 +50,26 @@
 ### 通过命令行安装
 
 ```bash
-npx dsh-aside-note install
+npx dsh-sideby-note install
 ```
 
-脚本会从 npm 临时拉取本包，找到 DSH profile（存在 `DSH_PROFILE_DIR` 时用它，否则默认 `~/.dsh/profiles/desktop`），先把 `package.json` 和 `pnpm-lock.yaml` 备份到 `.local-backup/`，再写入依赖、把 `dsh-aside-note` 追加进 `dsh.profile.bundles`，然后用 **DeepSeek Harness 自带的 node 与 pnpm** 执行 `pnpm install`（找不到运行时才回退到 PATH 上的 pnpm，可用 `DSH_RUNTIME_DIR` 指定），最后校验装出来的 `client/client.js`。用宿主自己的工具链是为了让 profile 的 pnpm store 与宿主保持一致——换成另一个主版本的 pnpm 写入，宿主下次安装会报 `ERR_PNPM_UNEXPECTED_STORE`。
+脚本会从 npm 临时拉取本包，找到 DSH profile（存在 `DSH_PROFILE_DIR` 时用它，否则默认 `~/.dsh/profiles/desktop`），先把 `package.json` 和 `pnpm-lock.yaml` 备份到 `.local-backup/`，再写入依赖、把 `dsh-sideby-note` 追加进 `dsh.profile.bundles`，然后用 **DeepSeek Harness 自带的 node 与 pnpm** 执行 `pnpm install`（找不到运行时才回退到 PATH 上的 pnpm，可用 `DSH_RUNTIME_DIR` 指定），最后校验装出来的 `client/client.js`。用宿主自己的工具链是为了让 profile 的 pnpm store 与宿主保持一致——换成另一个主版本的 pnpm 写入，宿主下次安装会报 `ERR_PNPM_UNEXPECTED_STORE`。
 
 ```bash
-npx dsh-aside-note install --profile work    # 指定 profile
-npx dsh-aside-note install --dry-run         # 只打印计划，不改任何文件
-npx dsh-aside-note install --version 1.0.0   # 固定版本，而不是 ^1.0.0
+npx dsh-sideby-note install --profile work    # 指定 profile
+npx dsh-sideby-note install --dry-run         # 只打印计划，不改任何文件
+npx dsh-sideby-note install --version 1.0.0   # 固定版本，而不是 ^1.0.0
 ```
 
-重复执行是幂等的。装完不需要重启 DSH：profile 会在约 1 秒内重新组合，安装后会话右上角即可看到「旁边记」入口。如果入口没有出现，到侧边栏「插件」页刷新，把它关闭再开启一次，运行中的 Host 会重新组合，入口随即可见。
+重复执行是幂等的。装完不需要重启 DSH：profile 会在约 1 秒内重新组合，安装后会话右上角即可看到「边记部」入口。如果入口没有出现，到侧边栏「插件」页刷新，把它关闭再开启一次，运行中的 Host 会重新组合，入口随即可见。
 
-卸载：从 `dsh.profile.bundles` 移除 `dsh-aside-note`，在 profile 目录执行 `pnpm remove dsh-aside-note`，无需重启；右上角入口随之消失，若「插件」页里仍列着它，刷新该页即可。
+卸载：从 `dsh.profile.bundles` 移除 `dsh-sideby-note`，在 profile 目录执行 `pnpm remove dsh-sideby-note`，无需重启；右上角入口随之消失，若「插件」页里仍列着它，刷新该页即可。
 
-## 为什么做旁边记
+## 为什么做边记部
 
 和 AI 一起做事时，总会冒出一些暂时顾不上的小事：这个细节等会儿改，那段结果还要核对，还有一个思路想留着继续讨论。
 
-先发进对话，容易打断当前任务；记到别处，回来又得重新找。旁边记就在会话旁边，让你先把事情记下，继续手头的工作。
+先发进对话，容易打断当前任务；记到别处，回来又得重新找。边记部就在会话旁边，让你先把事情记下，继续手头的工作。
 
 不必为几件小事建立一套管理方法。想到就记，需要就看，做完就放下。它只在你需要时打开，用完收起，尽量少打扰当前的工作。
 
@@ -74,7 +77,7 @@ npx dsh-aside-note install --version 1.0.0   # 固定版本，而不是 ^1.0.0
 
 ### 想到就记，继续手头的事
 
-点击会话顶部右侧的「旁边记」按钮，打开右侧面板，记录待办、补充想法或需要回看的细节。入口显示未完成数量，做完一条，勾掉一条。
+点击会话顶部右侧的「边记部」按钮，打开右侧面板，记录待办、补充想法或需要回看的细节。入口显示未完成数量，做完一条，勾掉一条。
 
 ### 留在工作区，下次接着做
 
@@ -94,7 +97,7 @@ npx dsh-aside-note install --version 1.0.0   # 固定版本，而不是 ^1.0.0
 
 > 便笺保存在当前浏览器，不跨设备或浏览器同步；清理站点数据会清除记录。详见[数据保存在哪里](#数据保存在哪里)。
 
-[查看安装方法](#快速安装) · [反馈问题或建议](https://github.com/Rayle8/dsh-aside-note/issues)
+[查看安装方法](#快速安装) · [反馈问题或建议](https://github.com/LighghtEeloo/dsh-sideby-note/issues)
 
 ## 功能
 
@@ -166,7 +169,7 @@ npx dsh-aside-note install --version 1.0.0   # 固定版本，而不是 ^1.0.0
 
 ## 使用
 
-1. 点击会话顶部右侧的「旁边记」按钮，打开右侧面板；有未完成条目时，按钮角标显示数量。面板顶部的「工作区 / 会话」用来切换整个工作区与当前会话的清单。
+1. 点击会话顶部右侧的「边记部」按钮，打开右侧面板；有未完成条目时，按钮角标显示数量。面板顶部的「工作区 / 会话」用来切换整个工作区与当前会话的清单。
 2. 在面板里写一条具体的小事，按设置中的添加快捷键或点击「添加」。
 3. 需要继续处理时，点击该条便笺的转发按钮，将内容追加到对话输入框，确认后自行发送。
 4. 做完后点左侧圆圈打勾；点「已完成」展开回看。
@@ -174,7 +177,7 @@ npx dsh-aside-note install --version 1.0.0   # 固定版本，而不是 ^1.0.0
 
 ## 数据保存在哪里
 
-会话便笺保存在**当前浏览器**的 `localStorage` 中，键为 `dsh.aside-note`，保持原来的 v1 结构：
+会话便笺保存在**当前浏览器**的 `localStorage` 中，键为 `dsh.aside-note`（沿用上游键名，包名改为 `dsh-sideby-note` 后已有数据仍直接读取），保持原来的 v1 结构：
 
 ```json
 {
@@ -212,6 +215,7 @@ npx dsh-aside-note install --version 1.0.0   # 固定版本，而不是 ^1.0.0
 因此：
 
 - 刷新页面、重启 DSH、切换会话都不会丢。
+- 从上游版本升级或改为本包名后，已有便笺无需迁移。
 - 不会写入项目文件，也不会同步到其他机器或其他浏览器。
 - 清理浏览器站点数据会清除便笺。
 - 读取旧数据时不会改写 `dsh.aside-note` 的结构；工作区清单从 `dsh.aside-note.workspaces` 读取，首次进入工作区时把成员会话的旧便笺合入一次。不会读取 `dsh.aside-notes.*` 这类更早的键。如果本地数据仍在旧的 `dsh.aside-notes.*.v2` 键下，把键名改为对应的 `dsh.aside-note.*` 后刷新页面即可继续使用。
@@ -252,11 +256,11 @@ npm run build     # 只重新生成 client/client.js
 ```json
 {
   "dependencies": {
-    "dsh-aside-note": "link:<path-to-repo>"
+    "dsh-sideby-note": "link:<path-to-repo>"
   },
   "dsh": {
     "profile": {
-      "bundles": ["dsh-aside-note"]
+      "bundles": ["dsh-sideby-note"]
     }
   }
 }
@@ -267,7 +271,7 @@ npm run build     # 只重新生成 client/client.js
 入口是 `src/client/index.ts`，导出 `apply(ctx)`；tsdown 负责套上 DSH 的加载壳：
 
 ```js
-window.__ModuleLoader__.load({ id: 'dsh-aside-note', factory: (require) => { … } })
+window.__ModuleLoader__.load({ id: 'dsh-sideby-note', factory: (require) => { … } })
 ```
 
 产物单独提交：CI 会重建并对比 `client/`，不一致就失败，因此不要手改 `client/client.js`。
@@ -291,11 +295,11 @@ window.__ModuleLoader__.load({ id: 'dsh-aside-note', factory: (require) => { …
 
 已在独立的 DSH profile 中实际加载，并用无头 Chrome 走通：
 
-- 会话顶部右侧出现「旁边记」按钮，角标显示未完成数；
+- 会话顶部右侧出现「边记部」按钮，角标显示未完成数；
 - 点击按钮在右侧打开面板，面板右上角对齐入口；
 - 添加后按钮角标与面板计数同步；
 - 面板内可完成、编辑、复制、转发、删除、清除已完成；
 - 刷新页面后记录仍在；面板头部可在工作区级与当前会话级清单之间切换；
-- 版本检查的 npmjs → npmmirror → GitHub Release 回退、1 小时缓存与版本比较由契约测试覆盖；发布说明的标记提取、中英文回退、上限与 Markdown 压平有独立测试；jsdom 集成测试会驱动面板显示更新卡片、展开说明并通过模拟市场完成一次更新。真实更新提示需先发布到 npm 或创建 GitHub Release。
+- 版本检查的 npmjs → npmmirror → GitHub Release 回退、1 小时缓存与版本比较由契约测试覆盖；发布说明的标记提取、中英文回退、上限与 Markdown 压平有独立测试；jsdom 集成测试会驱动面板显示更新卡片、展开说明并通过宿主更新端点完成一次更新。真实更新提示需先发布到 npm 或创建 GitHub Release。
 
-`npm run check` 通过：lint、类型检查、构建与 95 个测试（含 jsdom 里驱动完整面板流程的集成测试）。
+`npm run check` 通过：lint、类型检查、构建与 125 个测试（含 jsdom 里驱动完整面板流程的集成测试）。

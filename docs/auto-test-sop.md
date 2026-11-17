@@ -1,4 +1,4 @@
-# 旁边记（AsideNote）自动化验收测试 SOP
+# 边记部（Sideby Note）自动化验收测试 SOP
 
 本文件固定「改完代码 → 独立 profile 验收 → 出报告」这一条流程：不碰正在用的 `desktop` profile，
 不复制任何凭据，测试产物全部落在工作树的 `.test/`（已 gitignore，不提交）。照此执行，任何 agent
@@ -48,7 +48,7 @@
 | `CHROME` | `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` |
 | `PORT` | `61397` |
 | `CDP_PORT` | `9222` |
-| `PROFILE` | `aside-note-wt` |
+| `PROFILE` | `sideby-note-wt` |
 
 ## 3. 流程总览
 
@@ -56,7 +56,7 @@
 | --- | --- | --- |
 | 0 | 准备工作树：确认分支、装依赖 | `node_modules/` |
 | 1 | `npm test` 跑仓库自带套件 | `logs/test.log` |
-| 2 | 建隔离 profile 并 `link:` 挂载本工作树插件 | `work/dshhome/profiles/aside-note-wt` |
+| 2 | 建隔离 profile 并 `link:` 挂载本工作树插件 | `work/dshhome/profiles/sideby-note-wt` |
 | 3 | 起 DSH web，取启动日志里的 token | `work/server.log` |
 | 4 | 起 headless Chrome（CDP） | `work/chrome.log` |
 | 5 | 跑 UI 冒烟：入口、面板、写便笺、角标、持久化 | `assets/snapshot.png`、`assets/panel.png`、`assets/checks.json`、`logs/ui.log` |
@@ -90,15 +90,15 @@ grep -E "^ℹ (tests|pass|fail|duration_ms)" "$OUT/logs/test.log"
 ### 步骤 2：隔离 profile（不动 desktop）
 
 ```bash
-PROFILE=aside-note-wt
+PROFILE=sideby-note-wt
 DSH_HOME="$WORK/dshhome" "$DSH_CLI" --profile "$PROFILE" --from-default-profile web --dump-config > "$WORK/profile.dump.log" 2>&1
 
 cat > "$WORK/dshhome/profiles/$PROFILE/package.json" <<JSON
 {
   "name": "dsh-profile-$PROFILE",
   "private": true,
-  "dependencies": { "dsh-aside-note": "link:$REPO" },
-  "dsh": { "profile": { "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "dsh-aside-note"] } }
+  "dependencies": { "dsh-sideby-note": "link:$REPO" },
+  "dsh": { "profile": { "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "dsh-sideby-note"] } }
 }
 JSON
 
@@ -110,9 +110,9 @@ DSH_HOME="$WORK/dshhome" "$DSH_CLI" plugin --profile "$PROFILE" install --offlin
 
 ```bash
 P="$WORK/dshhome/profiles/$PROFILE"
-readlink "$P/node_modules/dsh-aside-note"
-shasum -a 256 "$P/node_modules/dsh-aside-note/client/client.js" "$REPO/client/client.js"
-DSH_HOME="$WORK/dshhome" "$DSH_CLI" --profile "$PROFILE" --dump-config | grep -n "dsh-aside-note"
+readlink "$P/node_modules/dsh-sideby-note"
+shasum -a 256 "$P/node_modules/dsh-sideby-note/client/client.js" "$REPO/client/client.js"
+DSH_HOME="$WORK/dshhome" "$DSH_CLI" --profile "$PROFILE" --dump-config | grep -n "dsh-sideby-note"
 ```
 
 ### 步骤 3：起 DSH web，取 token
@@ -198,7 +198,7 @@ rm -rf "$WORK/chrome" "$WORK/chrome.log"       # 浏览器现场约 80MB
 ## 6. `result.md` 模板
 
 ```markdown
-# 旁边记 dsh-aside-note · 自动化测试报告
+# 边记部 dsh-sideby-note · 自动化测试报告
 
 - 运行时间：YYYY-MM-DD HH:MM – HH:MM（Asia/Shanghai）
 - 结论：**PASS / FAIL**（单元/契约测试 X/Y，UI 冒烟 A/B）
@@ -215,7 +215,7 @@ rm -rf "$WORK/chrome" "$WORK/chrome.log"       # 浏览器现场约 80MB
 | Chrome | `<CDP /json/version 里的 Browser>` |
 
 ## 2. 隔离 profile 与插件挂载
-- profile：`aside-note-wt`，bundles = base + web-app + dsh-aside-note
+- profile：`sideby-note-wt`，bundles = base + web-app + dsh-sideby-note
 - `link:` 指向工作树；profile 内 `client/client.js` 与工作树 sha256 一致：`<hash>`
 
 ## 3. 自动化测试
@@ -226,7 +226,7 @@ rm -rf "$WORK/chrome" "$WORK/chrome.log"       # 浏览器现场约 80MB
 
 ![UI 冒烟整窗截图](assets/snapshot.png)
 
-![旁边记面板特写](assets/panel.png)
+![边记部面板特写](assets/panel.png)
 
 ## 5. 说明
 - 隔离 profile 无凭据；对话轮次显示 `MISSING_CREDENTIAL` 属预期，不影响面板检查。
@@ -255,7 +255,7 @@ rm -rf "$WORK/chrome" "$WORK/chrome.log"       # 浏览器现场约 80MB
 ## 附录 A：UI 冒烟脚本（`ui-smoke.mjs`）
 
 ```js
-// UI smoke test for the linked worktree build of dsh-aside-note.
+// UI smoke test for the linked worktree build of dsh-sideby-note.
 // env: REPO（工作树根）, APP_URL, OUT（assets 目录）, LOGS（logs 目录）
 import fs from 'node:fs'
 import path from 'node:path'
@@ -298,7 +298,7 @@ check('no "Failed to load plugins" banner', !(await evaluate(s, `document.body.i
 // The conversation header (and our entry) only exists once a session has a turn.
 if (!(await evaluate(s, '!!document.querySelector(".dsh-an-headerBtn")'))) {
   await evaluate(s, `(() => { const el = document.querySelector('textarea,[contenteditable=true],[role=textbox]'); el.focus(); return true })()`)
-  await s.send('Input.insertText', { text: 'UI 冒烟测试：验证旁边记入口是否挂载' })
+  await s.send('Input.insertText', { text: 'UI 冒烟测试：验证边记部入口是否挂载' })
   await sleep(600)
   await pressEnter()
   await sleep(9000)
@@ -338,7 +338,7 @@ process.exit(failed.length ? 1 : 0)
 ## 附录 B：给 agent 的下发指令模板
 
 > 按 `docs/auto-test-sop.md` 跑一遍旁注插件的自动化验收测试：
-> 在工作树里建 `.test/<timestamp>/`，先 `npm test`，再用隔离 DSH profile（`aside-note-wt`，`link:` 本工作树）
+> 在工作树里建 `.test/<timestamp>/`，先 `npm test`，再用隔离 DSH profile（`sideby-note-wt`，`link:` 本工作树）
 > 起 web + headless Chrome 跑 UI 冒烟，产出 `result.md`、`assets/snapshot.png`、`assets/panel.png`。
 > 不要碰 desktop profile，不要复制凭据，不要提交任何东西；跑完告诉我结论与报告路径。
 

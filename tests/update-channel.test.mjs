@@ -41,7 +41,7 @@ test('a stable build reads `latest` alone', async () => {
     currentVersion: '1.1.1',
   })
   assert.equal(await probe.latest(), '1.1.2')
-  assert.deepEqual(calls, ['https://registry.npmjs.org/dsh-aside-note/latest'])
+  assert.deepEqual(calls, ['https://registry.npmjs.org/dsh-sideby-note/latest'])
   assert.equal(calls.some(url => url.endsWith('/next')), false, 'a stable build never asks for a prerelease')
 })
 
@@ -58,8 +58,8 @@ test('a prerelease build reads `next` and takes the newer beta', async () => {
   })
   assert.equal(await probe.latest(), '1.2.0-beta.2')
   assert.deepEqual(calls, [
-    'https://registry.npmjs.org/dsh-aside-note/latest',
-    'https://registry.npmjs.org/dsh-aside-note/next',
+    'https://registry.npmjs.org/dsh-sideby-note/latest',
+    'https://registry.npmjs.org/dsh-sideby-note/next',
   ])
   assert.equal(isNewerVersion('1.2.0-beta.2', '1.2.0-beta.1'), true)
 })

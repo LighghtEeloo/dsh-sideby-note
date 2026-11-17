@@ -1,6 +1,6 @@
 # 发布与版本迭代
 
-本文是旁边记（AsideNote）的分支、构建与发布手册。发布动作只有两个入口：`main` 分支和 `vX.Y.Z` tag；npm 与 GitHub Release 都由同一次 tag 推送完成。
+本文是边记部（Sideby Note）的分支、构建与发布手册。发布动作只有两个入口：`main` 分支和 `vX.Y.Z` tag；npm 与 GitHub Release 都由同一次 tag 推送完成。
 
 ## 分支模型
 
@@ -129,16 +129,16 @@ trusted publisher 配置：
 ```text
 type: github
 file: publish.yml
-repository: Rayle8/dsh-aside-note
+repository: LighghtEeloo/dsh-sideby-note
 permissions: publish, stage publish
 ```
 
 首次创建配置后必须在 2 天内完成一次 trusted publish，否则配置过期。过期后重跑下面的命令并用 security key 重新授权：
 
 ```bash
-npx -y npm@11.21.1 trust github dsh-aside-note \
+npx -y npm@11.21.1 trust github dsh-sideby-note \
   --file publish.yml \
-  --repo Rayle8/dsh-aside-note \
+  --repo LighghtEeloo/dsh-sideby-note \
   --allow-publish \
   --registry=https://registry.npmjs.org/ -y
 ```
@@ -148,12 +148,12 @@ npx -y npm@11.21.1 trust github dsh-aside-note \
 ## 发布后校验
 
 ```bash
-npm view dsh-aside-note version dist-tags --registry=https://registry.npmjs.org/
-gh run list -R Rayle8/dsh-aside-note -L 3
-gh release view v1.0.0 -R Rayle8/dsh-aside-note
+npm view dsh-sideby-note version dist-tags --registry=https://registry.npmjs.org/
+gh run list -R LighghtEeloo/dsh-sideby-note -L 3
+gh release view v1.0.0 -R LighghtEeloo/dsh-sideby-note
 ```
 
-再在一个临时目录 `npm install dsh-aside-note@1.0.0`，或在测试 profile 里加载，确认 bundle 能启动。
+再在一个临时目录 `npm install dsh-sideby-note@1.0.0`，或在测试 profile 里加载，确认 bundle 能启动。
 
 ## 更新提示的耦合
 
@@ -168,28 +168,28 @@ gh release view v1.0.0 -R Rayle8/dsh-aside-note
 
 ```bash
 node tools/release/notes.mjs --version 1.0.0 --tag v1.0.0 --prev v0.9.10 --out notes.md
-gh release create v1.0.0 --verify-tag --title "旁边记 1.0.0" --notes-file notes.md
+gh release create v1.0.0 --verify-tag --title "边记部 1.0.0" --notes-file notes.md
 npm pack --pack-destination dist
-gh release upload v1.0.0 dist/dsh-aside-note-1.0.0.tgz --clobber
+gh release upload v1.0.0 dist/dsh-sideby-note-1.0.0.tgz --clobber
 ```
 
 ## 应用内更新的路径与兜底
 
 「立即更新」通过**宿主自己的更新端点**执行，不是插件市场，也不是本插件自己跑包管理器。客户端不再探测或调用 dshmarket；宿主端点只有两个：
 
-- `GET /dsh-aside-note/update/probe`：报告 profile、安装方式与当前版本。
-- `POST /dsh-aside-note/update/apply`（body `{ target }`）：就地覆盖安装，装完回读版本。
+- `GET /dsh-sideby-note/update/probe`：报告 profile、安装方式与当前版本。
+- `POST /dsh-sideby-note/update/apply`（body `{ target }`）：就地覆盖安装，装完回读版本。
 
 宿主没有这条路由（旧宿主、headless，或安装后尚未重启）时，卡片直接给出手动命令。命令由宿主生成，带目标版本和 profile 目录：
 
 ```bash
-npx -y dsh-aside-note install --version 1.1.2-beta.7 --profile-dir "<profile>"
+npx -y dsh-sideby-note install --version 1.1.2-beta.7 --profile-dir "<profile>"
 ```
 
 预发布还会把 `npx` 固定到 npmjs 并指定包版本，例如：
 
 ```bash
-npx -y --registry=https://registry.npmjs.org/ dsh-aside-note@1.1.2-beta.7 install --version 1.1.2-beta.7 --profile-dir "<profile>"
+npx -y --registry=https://registry.npmjs.org/ dsh-sideby-note@1.1.2-beta.7 install --version 1.1.2-beta.7 --profile-dir "<profile>"
 ```
 
 安装器本身也会在默认 registry 返回 `ERR_PNPM_NO_MATCHING_VERSION` 时用 npmjs 重试一次，避免 beta 用户被装回稳定版或卡在镜像同步上。
@@ -208,7 +208,7 @@ npx -y --registry=https://registry.npmjs.org/ dsh-aside-note@1.1.2-beta.7 instal
 | workflow 在 changelog 校验步骤失败 | `CHANGELOG.md` 缺少非空的 `## <version>` 小节；删掉 tag，把 `next-released` 改名后重新提交并重打 tag |
 | `EPUBLISHCONFLICT` / 版本已存在 | 该版本已发布，不能覆盖；改为新版本号 |
 | CI 报 `client/` 与源码不一致 | 本地 `npm run build` 后把 `client/client.js` 一起提交 |
-| `ENEEDAUTH` / OIDC 认证失败 | trusted publisher 的 workflow 文件名或仓库名不匹配；核对 `publish.yml` 与 `Rayle8/dsh-aside-note` |
+| `ENEEDAUTH` / OIDC 认证失败 | trusted publisher 的 workflow 文件名或仓库名不匹配；核对 `publish.yml` 与 `LighghtEeloo/dsh-sideby-note` |
 | 配置过期 | 重跑上面的 `npm trust` 命令并完成 Touch ID 授权 |
 | 刚发布后 `npm view` 仍是旧版本 | registry 传播或 npmmirror 同步有延迟；等几分钟，更新检查的镜像回退会自动处理 |
 | Release 已存在但没有 tgz 资产 | 重跑 workflow 会先卡在 npm 版本冲突；手动 `npm pack` 后 `gh release upload <tag> <tgz> --clobber` |

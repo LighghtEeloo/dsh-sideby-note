@@ -14,8 +14,8 @@ import { runProcess } from './exec.js'
 import { PACKAGE, dependencySpec, installMode, installedVersion, isProfileDir, profileDirOf } from './profile.js'
 import { compareVersions, isExactVersion, isPrerelease } from './versions.js'
 
-export const PROBE_PATH = '/dsh-aside-note/update/probe'
-export const APPLY_PATH = '/dsh-aside-note/update/apply'
+export const PROBE_PATH = '/dsh-sideby-note/update/probe'
+export const APPLY_PATH = '/dsh-sideby-note/update/apply'
 
 const REGISTRIES = ['https://registry.npmjs.org', 'https://registry.npmmirror.com']
 /** Failures a terminal command can get past; the card shows the exact command for these. */
@@ -41,7 +41,7 @@ async function readJson(url) {
   try {
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: { accept: 'application/json', 'user-agent': 'dsh-aside-note-host' },
+      headers: { accept: 'application/json', 'user-agent': 'dsh-sideby-note-host' },
     })
     if (!response.ok) return undefined
     return await response.json()

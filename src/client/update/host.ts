@@ -8,7 +8,7 @@
  */
 
 /** Where the host listens; keep in sync with `host/route.js`. */
-export const HOST_APPLY_PATH = '/dsh-aside-note/update/apply'
+export const HOST_APPLY_PATH = '/dsh-sideby-note/update/apply'
 
 /** An install can be slow (pnpm download, build scripts) but not unbounded. */
 const APPLY_TIMEOUT_MS = 5 * 60 * 1000

@@ -13,7 +13,7 @@ const LOCALE_IDS = ['zh', 'en', 'ja', 'es', 'fr', 'de', 'ru', 'pt']
 
 test('package declares the DSH bundle and web client halves', () => {
   const manifest = JSON.parse(read('package.json'))
-  assert.equal(manifest.name, 'dsh-aside-note')
+  assert.equal(manifest.name, 'dsh-sideby-note')
   assert.equal(manifest.type, 'module')
   assert.equal(manifest.exports['.'], './index.js')
   assert.equal(manifest.exports['./client'], './client/client.js')
@@ -100,7 +100,7 @@ test('the client checks for a newer release, reads its notes inline and falls ba
   assert.match(client, /https:\/\/registry\.npmmirror\.com/)
   assert.match(client, /api\.github\.com\/repos/)
   // The tag is a variable now: a prerelease build also reads `next`.
-  assert.match(client, /dsh-aside-note\/\$\{channel\}/)
+  assert.match(client, /dsh-sideby-note\/\$\{channel\}/)
   assert.match(client, /const channels = isPrereleaseVersion/)
   assert.match(client, /tag_name/)
   assert.match(client, /export function createUpdateProbe/)
@@ -115,7 +115,7 @@ test('the client checks for a newer release, reads its notes inline and falls ba
   assert.match(client, /updateNotesForLocale/)
   // The market is not a dependency of any kind: the update goes through the
   // host route, then the terminal command.
-  assert.match(client, /\/dsh-aside-note\/update\/apply/)
+  assert.match(client, /\/dsh-sideby-note\/update\/apply/)
   assert.match(client, /export async function applyHostUpdate/)
   assert.doesNotMatch(client, /dsh-market|createMarketClient|marketClient/)
   assert.equal(exists('src/client/update/market.ts'), false, 'the market client must be gone')
@@ -127,7 +127,7 @@ test('the client checks for a newer release, reads its notes inline and falls ba
   assert.match(client, /'update\.prompt'/)
   // A manual command always pins the offered version; prereleases also tell
   // npx where to fetch the package from.
-  assert.match(client, /const UPDATE_PACKAGE = 'dsh-aside-note'/)
+  assert.match(client, /const UPDATE_PACKAGE = 'dsh-sideby-note'/)
   assert.match(client, /npx -y\$\{registry\}/)
   assert.match(client, /--version \$\{latestVersion\}/)
   assert.match(client, /PLUGIN_VERSION\.includes\('-'\)/)
@@ -165,8 +165,8 @@ test('the update probe falls back from npm to the mirror and GitHub, and caches 
   })
   assert.equal(await probe.latest(), '2.1.0')
   assert.deepEqual(calls, [
-    'https://registry.npmjs.org/dsh-aside-note/latest',
-    'https://registry.npmmirror.com/dsh-aside-note/latest',
+    'https://registry.npmjs.org/dsh-sideby-note/latest',
+    'https://registry.npmmirror.com/dsh-sideby-note/latest',
   ], 'npm is consulted first and the mirror is the fallback')
   calls.length = 0
   now += hour - 1
@@ -190,9 +190,9 @@ test('the update probe falls back from npm to the mirror and GitHub, and caches 
   })
   assert.equal(await releaseOnly.latest(), '2.1.2', 'a GitHub Release backs a checkout that is not on npm, with its v prefix stripped')
   assert.deepEqual(releaseCalls, [
-    'https://registry.npmjs.org/dsh-aside-note/latest',
-    'https://registry.npmmirror.com/dsh-aside-note/latest',
-    'https://api.github.com/repos/Rayle8/dsh-aside-note/releases/latest',
+    'https://registry.npmjs.org/dsh-sideby-note/latest',
+    'https://registry.npmmirror.com/dsh-sideby-note/latest',
+    'https://api.github.com/repos/LighghtEeloo/dsh-sideby-note/releases/latest',
   ], 'GitHub is consulted only after both npm hosts miss')
 
   let offline = true
@@ -220,8 +220,8 @@ test('the update probe falls back from npm to the mirror and GitHub, and caches 
 test('patch inserts exactly the package host row', () => {
   const patch = read('cordis.patch.yml')
   assert.match(patch, /- insert:/)
-  assert.match(patch, /id: dsh-aside-note/)
-  assert.match(patch, /name: 'dsh-aside-note'/)
+  assert.match(patch, /id: dsh-sideby-note/)
+  assert.match(patch, /name: 'dsh-sideby-note'/)
   assert.doesNotMatch(patch, /@local\//)
 })
 
@@ -245,7 +245,7 @@ test('host and browser entries use the package identity', () => {
   // The loader shell is now emitted by tsdown, not hand-written in the source.
   const bundle = read('client/client.js')
   assert.match(bundle, /^window\.__ModuleLoader__\.load\(/)
-  assert.match(bundle, /id: "dsh-aside-note"/)
+  assert.match(bundle, /id: "dsh-sideby-note"/)
   assert.match(bundle, /return module\.exports; \} \}\);/)
   assert.doesNotMatch(client, /__ModuleLoader__/, 'the source must not carry a hand-written shell')
   // The blank new-session page renders hero options but not the composer
@@ -314,7 +314,7 @@ test('host and browser entries use the package identity', () => {
   assert.match(client, /SESSION_STORAGE_KEY/)
   const storageKeys = read('src/client/constants.ts')
   assert.match(storageKeys, /'dsh\.aside-note'/)
-  assert.doesNotMatch(storageKeys, /dsh\.aside-notes/, 'the storage prefix must match the dsh-aside-note package')
+  assert.doesNotMatch(storageKeys, /dsh\.aside-notes/, 'the storage prefix intentionally keeps the upstream dsh.aside-note namespace')
   assert.doesNotMatch(storageKeys, /dsh\.aside-note[^']*\.v2/, 'storage keys must not carry a version suffix')
   assert.ok(!exists('src/client/storage/migrate.ts'), 'legacy storage migration must stay removed')
   assert.doesNotMatch(client, /dsh\.session-memos\.v1|dsh\.memo\./, 'legacy keys must not be read or copied')
@@ -327,7 +327,7 @@ test('host and browser entries use the package identity', () => {
 
 test('the retired page entry is gone, not kept as a second implementation', () => {
   const client = read('src/client/index.ts')
-  for (const dead of ['function PanelBody', 'function PageShell', 'function MemoEntry', 'useTodoStore', 'dsh.dsh-aside-note.v1']) {
+  for (const dead of ['function PanelBody', 'function PageShell', 'function MemoEntry', 'useTodoStore', 'dsh.dsh-sideby-note.v1']) {
     assert.ok(!client.includes(dead), `dead surface still present: ${dead}`)
   }
   assert.doesNotMatch(readCss(), /dsh-an-(?:page|shell|heroBtn|footerBtn|dockBtn|badge|statNum|track|select)\b/)
@@ -341,21 +341,21 @@ test('locale files carry metadata and the dictionary stays in sync', () => {
   }
   const zhMeta = metas.zh
   const enMeta = metas.en
-  assert.match(zhMeta.meta.title, /旁边记/, 'the Chinese listing must use the product name')
-  assert.equal(zhMeta.meta.description, '让想法留在对话旁边，轻量会话便笺。', 'the Chinese listing carries the finalized copy')
-  assert.equal(enMeta.meta.description, 'Keep your ideas beside the conversation — a lightweight session notes panel.', 'the English listing mirrors the Chinese copy')
+  assert.match(zhMeta.meta.title, /边记部/, 'the Chinese listing must use the product name')
+  assert.equal(zhMeta.meta.description, '边记部 (Sideby Note)：趁 agent 工作时，异步记下你的想法。', 'the Chinese listing carries the finalized copy')
+  assert.equal(enMeta.meta.description, 'Sideby Note — asynchronously draft your ideas while the agent is working. A lightweight session notes panel.', 'the English listing mirrors the Chinese copy')
 
   const dict = readDict()
-  assert.equal(dict.zh['nav.label'], '旁边记')
-  assert.equal(dict.zh['popover.title'], '旁边记')
+  assert.equal(dict.zh['nav.label'], '边记部')
+  assert.equal(dict.zh['popover.title'], '边记部')
   assert.equal(dict.zh['add.placeholder'], '随手记一条')
-  assert.equal(dict.zh['popover.empty.title'], '旁边还没有记录')
-  assert.equal(dict.zh['popover.empty.body'], '让想法留在对话旁边')
-  assert.equal(dict.zh['settings.tagline'], '让想法留在对话旁边')
-  assert.equal(dict.en['nav.label'], 'AsideNote')
+  assert.equal(dict.zh['popover.empty.title'], '边记摸鱼中..')
+  assert.equal(dict.zh['popover.empty.body'], '趁 agent 工作时，异步记下你的想法')
+  assert.equal(dict.zh['settings.tagline'], '趁 agent 工作时，异步记下你的想法')
+  assert.equal(dict.en['nav.label'], 'Sideby Note')
   assert.equal(dict.en['add.placeholder'], 'Jot one down')
-  assert.match(dict.en['popover.empty.body'], /beside the conversation/)
-  assert.match(dict.en['settings.tagline'], /beside the conversation/)
+  assert.match(dict.en['popover.empty.body'], /while the agent is working/)
+  assert.match(dict.en['settings.tagline'], /while the agent is working/)
   const placeholders = text => [...text.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort()
   for (const id of LOCALE_IDS) {
     assert.deepEqual(Object.keys(dict[id]).sort(), Object.keys(dict.zh).sort(), `${id} and zh drifted apart`)

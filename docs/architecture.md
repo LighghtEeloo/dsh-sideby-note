@@ -1,14 +1,14 @@
-# 旁边记（AsideNote）架构
+# 边记部（Sideby Note）架构
 
 面向维护者的结构说明。界面约束见 [面板 UI 规则](./panel-ui-rules.md)，截图流程见 [截图 SOP](./screenshot-sop.md)。
 
 ## 1. 形态与运行时契约
 
-旁边记的**数据与界面全部在浏览器半侧**；宿主半侧只做浏览器做不到的一件事——把新版本装进 profile（见 §8）。`index.js` 因此仍然保留 `cordis.patch.yml` 需要的那一行，同时在宿主里注册两个更新端点，不读写任何便笺数据。
+边记部的**数据与界面全部在浏览器半侧**；宿主半侧只做浏览器做不到的一件事——把新版本装进 profile（见 §8）。`index.js` 因此仍然保留 `cordis.patch.yml` 需要的那一行，同时在宿主里注册两个更新端点，不读写任何便笺数据。
 
 - `package.json` 的 `dsh.bundle.patch` 指向 `cordis.patch.yml`，`dsh.client` 声明 `./client` 与需要预注入的宿主模块。
 - 壳把 `./client`（即 `client/client.js`）当 classic script 加载：`window.__ModuleLoader__.load({ id, factory })`。`factory(require)` 里的 `require` 绑定到冻结的模块表，只认 `react`、`react/jsx-runtime`、`react-dom`、`react-dom/client`、`@deepseek-ai/dsh-client-ui-primitives`；其余依赖全部内联。
-- 样式是 `import css from './styles/panel.css?inline'`，由入口在 `apply()` 里插入**一张** `<style data-dsh-plugin="dsh-aside-note">`，dispose 时移除。面板与输入框 dock 不在同一棵 React 树里，所以不能做面板级 `<style>`。
+- 样式是 `import css from './styles/panel.css?inline'`，由入口在 `apply()` 里插入**一张** `<style data-dsh-plugin="dsh-sideby-note">`，dispose 时移除。面板与输入框 dock 不在同一棵 React 树里，所以不能做面板级 `<style>`。
 - 只依赖两个服务：`slots`（`conversation.composer.dock` 捕获当前会话、`conversation.hero.options` 捕获空白新会话、`shell.overlay` 承载全局 Toast）与 `locale`（注册字典、绑定 `t`，并订阅 `locale/change` 让已打开的面板就地换语言）。未自定义的转发前缀在点击时按当前语言解析，不写进存储。
 - 顶部入口是注入宿主 header 的原生 DOM 按钮，不是 React portal——宿主重渲染会回收 portal。
 
@@ -82,7 +82,7 @@ docs/assets/             # README 截图（preview-* 与 features/）
 
 草稿按 `draftKey` 存放：会话属于工作区时，整个工作区共用一份新增/编辑草稿，切换会话或在「工作区 / 会话」之间切换都不丢字；没有工作区的会话按会话保存。提交草稿时仍按当前选中的范围写入 `dsh.aside-note.workspaces` 或 `dsh.aside-note`，草稿本身不区分范围。升级后首次打开工作区，会把当前会话的旧草稿并入共享键并清理成员会话的旧副本。
 
-`Note` 形如 `{ id, text, done, createdAt, updatedAt, completedAt? }`；`text` 上限 280，单份清单上限 300 条。会话数据继续使用 `dsh.aside-note` 的 v1 结构，工作区数据单独放在 `dsh.aside-note.workspaces`，因此新增范围不会改写旧键；首次进入工作区会把成员会话里已有的便笺合入一次，`seededSessionIds` 记住已合入的会话，之后删除不会因再次合并而复活。键名不带版本后缀，前缀与包名 `dsh-aside-note` 对齐。
+`Note` 形如 `{ id, text, done, createdAt, updatedAt, completedAt? }`；`text` 上限 280，单份清单上限 300 条。会话数据继续使用 `dsh.aside-note` 的 v1 结构，工作区数据单独放在 `dsh.aside-note.workspaces`，因此新增范围不会改写旧键；首次进入工作区会把成员会话里已有的便笺合入一次，`seededSessionIds` 记住已合入的会话，之后删除不会因再次合并而复活。键名不带版本后缀；前缀沿用上游的 `dsh.aside-note`，因此包名与插件 id 改为 `dsh-sideby-note` 后，已有便笺和设置仍可直接读取。
 
 ## 5. 构建与产物
 
@@ -113,13 +113,13 @@ docs/assets/             # README 截图（preview-* 与 features/）
 
 自 1.1.2 起，更新走**宿主**，不走插件市场。市场的更新是「先移除 bundle 再安装」，而运行中的 Desktop 拒绝移除正被 fiber 使用的插件（`bundle-in-use`）——面板打开时它永远处于这个状态。宿主改为就地覆盖，三级降级：
 
-1. `pluginManager.installBundle('dsh-aside-note@<v>', { enabled: false })`（`enabled: false` 表示只换包，不动 profile 的 bundle 选择）
+1. `pluginManager.installBundle('dsh-sideby-note@<v>', { enabled: false })`（`enabled: false` 表示只换包，不动 profile 的 bundle 选择）
 2. 若被拒为 `already-installed`：`dsh plugin add <spec> --save-exact`
 3. 仍不可用：用该 profile 自带的包管理器 `add <spec> --save-exact`
 
-装完回读 `node_modules/dsh-aside-note/package.json`，必须等于目标版本，否则报 `RESOLVED_VERSION_MISMATCH`。成功返回 `restartRequired: true`——DSH 不重载已加载的包，新版本在下次启动生效。
+装完回读 `node_modules/dsh-sideby-note/package.json`，必须等于目标版本，否则报 `RESOLVED_VERSION_MISMATCH`。成功返回 `restartRequired: true`——DSH 不重载已加载的包，新版本在下次启动生效。
 
-端点只有两个，同源、POST 才可写：`GET /dsh-aside-note/update/probe`、`POST /dsh-aside-note/update/apply`（body `{ target }`）。`link:` 安装会被直接拒绝：覆盖 checkout 的依赖声明等于把工作副本悄悄换成 registry 版本。
+端点只有两个，同源、POST 才可写：`GET /dsh-sideby-note/update/probe`、`POST /dsh-sideby-note/update/apply`（body `{ target }`）。`link:` 安装会被直接拒绝：覆盖 checkout 的依赖声明等于把工作副本悄悄换成 registry 版本。
 
 自 1.1.2-beta.7 起，客户端不再保留插件市场客户端或探测：宿主没有路由、或拒绝码属于「终端命令能绕过」的一类时，卡片直接给出手动命令。命令由宿主生成，带目标版本与 profile 目录；预发布还会固定 `npx` 的 npmjs registry，避免装回稳定版。
 

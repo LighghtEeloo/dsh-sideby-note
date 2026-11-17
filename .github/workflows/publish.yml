@@ -98,7 +98,7 @@ jobs:
           builder=(node tools/release/notes.mjs --version "$version" --tag "$GITHUB_REF_NAME")
           if [ -n "$prev" ]; then builder+=(--prev "$prev"); fi
           "${builder[@]}" --out "$notes_file"
-          flags=(--verify-tag --title "AsideNote $version" --notes-file "$notes_file")
+          flags=(--verify-tag --title "Sideby Note $version" --notes-file "$notes_file")
           if [[ "$GITHUB_REF_NAME" == v*-* ]]; then
             flags+=(--prerelease)
           fi
