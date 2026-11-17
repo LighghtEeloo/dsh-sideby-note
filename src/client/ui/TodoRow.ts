@@ -10,7 +10,7 @@ import { reportEvent } from '../rum'
 const h = React.createElement
 
 export function TodoRow(props) {
-  const { item, done, say, onToast, onToggle, onStartEdit, onDelete, editing, editDraft, setEditDraft, onEditDraftChange, onFinishEdit, onCancelEdit, editRef, forwardPrefix, sendShortcut = SEND_SHORTCUT_DEFAULT, forwarded = false, onForwarded, onUnforwarded } = props
+  const { item, done, say, onToast, onToggle, onStartEdit, onDelete, editing, editDraft, setEditDraft, onEditDraftChange, onFinishEdit, onCancelEdit, editRef, forwardPrefix, forwardPrefixFallback, sendShortcut = SEND_SHORTCUT_DEFAULT, forwarded = false, onForwarded, onUnforwarded } = props
   const editHintKey = sendShortcut === 'enter' ? 'edit.hintEnter' : 'edit.hintCtrlEnter'
   const [pending, setPending] = React.useState('')
   const mountedRef = React.useRef(true)
@@ -43,7 +43,12 @@ export function TodoRow(props) {
       if (onToast) onToast('unforwarded')
       return
     }
-    if (!appendToConversation(item.text, forwardPrefix)) {
+    // A null prefix means "not customized": resolve the localized default at
+    // click time, so a language switch between render and click still wins.
+    const prefix = forwardPrefix === null || forwardPrefix === undefined
+      ? (typeof forwardPrefixFallback === 'function' ? forwardPrefixFallback() : '')
+      : forwardPrefix
+    if (!appendToConversation(item.text, prefix)) {
       if (onToast) onToast('forwardFailed')
       return
     }

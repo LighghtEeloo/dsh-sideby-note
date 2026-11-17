@@ -18,6 +18,7 @@ export function SettingsPanel(props) {
     chooseShortcut,
     forwardPrefix,
     changeForwardPrefix,
+    resetForwardPrefix,
     prefixRef,
     analyticsEnabled,
     onToggleAnalytics,
@@ -76,10 +77,12 @@ export function SettingsPanel(props) {
                     id: 'dsh-an-forward-prefix',
                     ref: prefixRef,
                     className: 'dsh-an-settingInput dsh-an-settingTextarea',
-                    value: forwardPrefix,
+                    value: forwardPrefix === null ? '' : forwardPrefix,
                     rows: 1,
                     maxLength: 80,
-                    placeholder: say('forward.prefix'),
+                    // The default is only shown while nothing is customized; a
+                    // deliberate empty custom prefix must not look like the default.
+                    placeholder: forwardPrefix === null ? say('forward.prefix') : '',
                     'aria-label': say('settings.forwardPrefixItem'),
                     'aria-describedby': 'dsh-an-forward-prefix-hint',
                     style: {
@@ -90,7 +93,22 @@ export function SettingsPanel(props) {
                     },
                     onChange: event => changeForwardPrefix(event.target.value),
                   }),
-                  h('p', { id: 'dsh-an-forward-prefix-hint', className: 'dsh-an-settingHint' }, say('settings.forwardPrefixHint')),
+                  h(
+                    'p',
+                    { id: 'dsh-an-forward-prefix-hint', className: 'dsh-an-settingHint' },
+                    say(forwardPrefix === null ? 'settings.forwardPrefixHint' : 'settings.forwardPrefixHintCustom'),
+                    forwardPrefix === null
+                      ? null
+                      : h(
+                          'button',
+                          {
+                            type: 'button',
+                            className: 'dsh-an-settingReset',
+                            onClick: resetForwardPrefix,
+                          },
+                          say('settings.forwardPrefixReset'),
+                        ),
+                  ),
                 ),
               ),
             ),

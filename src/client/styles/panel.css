@@ -129,6 +129,9 @@ body{--an-space-1:4px;--an-space-2:8px;--an-space-3:12px;--an-space-4:16px;--an-
 .dsh-an-settingTextarea{display:block;height:auto;min-height:calc(var(--an-lh-row) + var(--an-space-4) + 2px);padding:var(--an-space-2);resize:none;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 .dsh-an-settingHint{margin:0;font-size:var(--an-fs-caption);line-height:var(--an-lh-caption);color:var(--dsw-alias-label-secondary)}
 .dsh-an-settingHintNote{margin-top:var(--an-space-1)}
+/* 自定义前缀的退路：一键回到当前语言的默认提示词 */
+.dsh-an-settingReset{margin-left:var(--an-space-1);padding:0;border:0;background:transparent;color:var(--dsw-alias-link);font:inherit;font-size:var(--an-fs-caption);line-height:var(--an-lh-caption);font-weight:500;cursor:pointer}
+.dsh-an-settingReset:focus-visible{text-decoration:underline;text-decoration-style:dotted;text-decoration-thickness:1px;text-underline-offset:3px}
 /* 匿名统计开关 · 32×18 轨道 + 14px 圆钮，开态用品牌色填充 */
 .dsh-an-settingToggle{display:flex;align-items:center;justify-content:space-between;gap:var(--an-space-2);font-size:var(--an-fs-row);line-height:var(--an-lh-row);color:var(--dsw-alias-label-primary);cursor:pointer}
 .dsh-an-switch{appearance:none;position:relative;flex:none;box-sizing:border-box;width:32px;height:18px;margin:0;border:0.5px solid var(--dsw-alias-label-tertiary);border-radius:var(--an-radius-pill);corner-shape:round;background:transparent;cursor:pointer;transition:var(--an-transition)}
@@ -237,6 +240,7 @@ body{--an-space-1:4px;--an-space-2:8px;--an-space-3:12px;--an-space-4:16px;--an-
 .dsh-an-settingChoice:hover input{border-color:var(--dsw-alias-label-primary)}
 .dsh-an-settingToggle:hover .dsh-an-switch:not(:checked){border-color:var(--dsw-alias-label-primary)}
 .dsh-an-settingLink:hover{text-decoration:underline;text-decoration-style:dotted;text-decoration-thickness:1px;text-underline-offset:3px}
+.dsh-an-settingReset:hover{text-decoration:underline;text-decoration-style:dotted;text-decoration-thickness:1px;text-underline-offset:3px}
 .dsh-an-updatePrimary:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}
 .dsh-an-headerBtn:hover{background:var(--an-hover);color:var(--dsw-alias-label-primary)}
 .dsh-an-resizeHandle:hover::before{transform:scaleY(1.4);background:var(--dsw-alias-label-secondary)}

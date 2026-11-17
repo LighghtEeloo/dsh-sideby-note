@@ -174,7 +174,8 @@ function apply(ctx: DshClientCtx) {
     root.render(h(MemoPopover, {
       sessionId,
       say: tr,
-      localeId: localeId(),
+      locale,
+      getLocaleId: localeId,
       anchorRef: { current: anchor },
       placement,
       onClose: closeMemoPopover,
@@ -191,6 +192,15 @@ function apply(ctx: DshClientCtx) {
     onOpen: (sessionId, anchor) => openMemoPopover(sessionId, anchor, 'right'),
   })
   refreshHeaderEntry = headerEntry.refresh
+
+  // A language switch does not necessarily mutate the header DOM, so the native
+  // entry has to be refreshed from the locale service as well.
+  if (locale && typeof locale.subscribe === 'function') {
+    ctx.effect(
+      () => locale.subscribe(() => refreshHeaderEntry()),
+      'dsh-aside-note: locale changes',
+    )
+  }
 
   ctx.effect(() => headerEntry.attach(() => closeMemoPopover()), 'dsh-aside-note: right-side entry')
 

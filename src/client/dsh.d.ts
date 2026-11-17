@@ -20,7 +20,9 @@ interface Navigator {
 interface DshLocaleService {
   bind(namespace: string): (key: string) => string
   register(namespace: string, dictionary: unknown): void
-  getLocale(): { id?: string; locale?: string } | null
+  getLocale(): { id?: string; locale?: string; revision?: number } | null
+  getSnapshot?(): { active?: string; revision?: number } | null
+  subscribe?(listener: () => void): () => void
 }
 
 interface DshSlotMeta {

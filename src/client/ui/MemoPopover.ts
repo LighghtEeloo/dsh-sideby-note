@@ -38,7 +38,29 @@ const h = React.createElement
 
 export function MemoPopover(props) {
   const say = props.say
-  const localeId = props.localeId
+  const localeService = props.locale
+  // The locale service publishes a revision on every language switch. The
+  // popover lives in its own React root, so without this subscription a panel
+  // opened before the switch would keep the previous language until reopened.
+  const subscribeLocale = React.useCallback(callback => {
+    if (localeService && typeof localeService.subscribe === 'function') return localeService.subscribe(callback)
+    return () => {}
+  }, [localeService])
+  const readLocaleRevision = React.useCallback(() => {
+    if (!localeService) return 0
+    try {
+      const snapshot = typeof localeService.getSnapshot === 'function'
+        ? localeService.getSnapshot()
+        : localeService.getLocale()
+      return snapshot && typeof snapshot.revision === 'number' ? snapshot.revision : 0
+    } catch {
+      return 0
+    }
+  }, [localeService])
+  React.useSyncExternalStore(subscribeLocale, readLocaleRevision, () => 0)
+  const localeId = typeof props.getLocaleId === 'function'
+    ? props.getLocaleId()
+    : (props.localeId || 'en')
   const sessionId = props.sessionId || ''
   /** The header switch remembers its choice; a workspace-less session stays session-scoped. */
   const [mode, setMode] = React.useState(() => readScopeMode())
@@ -72,6 +94,7 @@ export function MemoPopover(props) {
     chooseShortcut,
     forwardPrefix,
     changeForwardPrefix,
+    resetForwardPrefix,
     prefixRef,
     analyticsEnabled,
     toggleAnalytics,
@@ -172,7 +195,10 @@ export function MemoPopover(props) {
     onFinishEdit: finishEdit,
     onCancelEdit: cancelEdit,
     editRef,
-    forwardPrefix: forwardPrefix.trim() ? forwardPrefix : say('forward.prefix'),
+    // `null` = untouched, so the row resolves the default in the active language
+    // at click time; any string, including "", is the user's own prefix choice.
+    forwardPrefix,
+    forwardPrefixFallback: () => say('forward.prefix'),
     sendShortcut,
     forwarded: forwardedIds[item.id] === true,
     onForwarded: rememberForwarded,
@@ -243,6 +269,7 @@ export function MemoPopover(props) {
             chooseShortcut,
             forwardPrefix,
             changeForwardPrefix,
+            resetForwardPrefix,
             prefixRef,
             analyticsEnabled,
             onToggleAnalytics: toggleAnalytics,

@@ -985,8 +985,11 @@ test('clicking a forwarded note removes the mark instead of forwarding again', (
   assert.match(toggle[1], /if \(onUnforwarded\) onUnforwarded\(item\)/)
   assert.match(toggle[1], /if \(onToast\) onToast\('unforwarded'\)/)
   assert.doesNotMatch(toggle[1], /appendToConversation/, 'a forwarded note must not append again')
-  // Un-forwarded notes keep the existing append-and-remember behaviour.
-  assert.match(handler, /appendToConversation\(item\.text, forwardPrefix\)/)
+  // Un-forwarded notes keep the existing append-and-remember behaviour, with
+  // the localized default resolved at click time when nothing is customized.
+  assert.match(handler, /const prefix = forwardPrefix === null \|\| forwardPrefix === undefined/)
+  assert.match(handler, /typeof forwardPrefixFallback === 'function' \? forwardPrefixFallback\(\) : ''/)
+  assert.match(handler, /appendToConversation\(item\.text, prefix\)/)
   assert.match(handler, /if \(onForwarded\) onForwarded\(item\)/)
   assert.match(handler, /if \(onToast\) onToast\('forwarded'\)/)
   // The parent callback clears the stored flag and the in-memory id set.
@@ -1050,13 +1053,32 @@ test('the prefix prompt is explained under the field, without a visible title', 
   assert.doesNotMatch(client, /htmlFor: 'dsh-an-forward-prefix'/, 'the prefix field no longer has a visible title')
   assert.match(client, /'aria-label': say\('settings\.forwardPrefixItem'\)/, 'the field keeps an accessible name')
   assert.match(client, /'aria-describedby': 'dsh-an-forward-prefix-hint'/, 'the field points at the hint')
-  assert.match(client, /id: 'dsh-an-forward-prefix-hint', className: 'dsh-an-settingHint' \}, say\('settings\.forwardPrefixHint'\)/)
+  assert.match(client, /say\(forwardPrefix === null \? 'settings\.forwardPrefixHint' : 'settings\.forwardPrefixHintCustom'\)/)
+  assert.match(client, /className: 'dsh-an-settingReset'[\s\S]*?say\('settings\.forwardPrefixReset'\)/)
   assert.doesNotMatch(readCss(), /dsh-an-settingItemLabel/, 'the unused title style is gone')
   const dict = readDict()
-  assert.match(dict.zh['settings.forwardPrefixHint'], /若输入框为空/)
-  assert.match(dict.zh['settings.forwardPrefixHint'], /留空则只转发记录内容$/)
-  assert.match(dict.en['settings.forwardPrefixHint'], /empty composer/)
-  assert.match(dict.en['settings.forwardPrefixHint'], /leave it empty/)
+  assert.match(dict.zh['settings.forwardPrefixHint'], /当前语言的默认提示词/)
+  assert.match(dict.zh['settings.forwardPrefixHintCustom'], /留空则只转发记录内容$/)
+  assert.match(dict.en['settings.forwardPrefixHint'], /default prompt for the current language/)
+  assert.match(dict.en['settings.forwardPrefixHintCustom'], /leave it empty/)
+  assert.equal(dict.zh['settings.forwardPrefixReset'], '恢复默认提示词')
+})
+
+test('the forward prefix separates "not customized" from an empty custom value', () => {
+  const prefs = read('src/client/storage/prefs.ts')
+  // A missing key is not the same as a stored empty string: the former asks for
+  // the localized default, the latter is the user deliberately forwarding bare.
+  assert.match(prefs, /const raw = storage\(\) && storage\(\)\.getItem\(FORWARD_PREFIX_STORAGE_KEY\)\n\s+return typeof raw === 'string' \? raw\.slice\(0, 80\) : null/)
+  assert.match(prefs, /export function clearForwardPrefix\(\) \{[\s\S]*?ls\.removeItem\(FORWARD_PREFIX_STORAGE_KEY\)/)
+  const hook = read('src/client/ui/usePanelSettings.ts')
+  assert.match(hook, /resetForwardPrefix = \(\) => \{\n\s+setForwardPrefix\(null\)\n\s+clearForwardPrefix\(\)/)
+  const popover = read('src/client/ui/MemoPopover.ts')
+  assert.match(popover, /forwardPrefixFallback: \(\) => say\('forward\.prefix'\)/)
+  assert.match(popover, /forwardPrefix,\n\s+forwardPrefixFallback:/)
+  // The open panel follows a language switch instead of keeping the old copy.
+  assert.match(popover, /React\.useSyncExternalStore\(subscribeLocale, readLocaleRevision/)
+  assert.match(popover, /const localeId = typeof props\.getLocaleId === 'function'/)
+  assert.match(read('src/client/index.ts'), /root\.render\(h\(MemoPopover, \{\n\s+sessionId,\n\s+say: tr,\n\s+locale,/)
 })
 
 test('the prefix prompt is a multiline field that grows with its content', () => {
@@ -1072,6 +1094,8 @@ test('the prefix prompt is a multiline field that grows with its content', () =>
   assert.match(field, /rows: 1/, 'the field opens one line tall')
   assert.match(field, /className: 'dsh-an-settingInput dsh-an-settingTextarea'/, 'the textarea keeps the shared field skin')
   assert.match(field, /maxLength: 80/, 'the whole value stays capped at 80 characters')
+  assert.match(field, /value: forwardPrefix === null \? '' : forwardPrefix/, 'an unset prefix is not shown as user text')
+  assert.match(field, /placeholder: forwardPrefix === null \? say\('forward\.prefix'\) : ''/, 'the default placeholder belongs to the unset state only')
   assert.match(field, /onChange: event => changeForwardPrefix\(event\.target\.value\)/, 'the field stays a controlled draft')
   assert.doesNotMatch(field, /h\('input'/, 'the old single-line input is gone')
 

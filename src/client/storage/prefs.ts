@@ -103,20 +103,36 @@ export function writeSendShortcut(value) {
   }
 }
 
-/** Read the user's forward lead-in; an empty string means no prefix. */
-export function readForwardPrefix() {
+/**
+ * Read the user's forward lead-in.
+ *
+ * `null` means the user never customized it, so the caller uses the localized
+ * default; a string (including the empty string) is the user's own choice.
+ */
+export function readForwardPrefix(): string | null {
   try {
     const raw = storage() && storage().getItem(FORWARD_PREFIX_STORAGE_KEY)
-    return typeof raw === 'string' ? raw.slice(0, 80) : ''
+    return typeof raw === 'string' ? raw.slice(0, 80) : null
   } catch {
-    return ''
+    return null
   }
 }
 
+/** Persist the user's own lead-in; an empty string deliberately means no prefix. */
 export function writeForwardPrefix(value) {
   try {
     const ls = storage()
     if (ls) ls.setItem(FORWARD_PREFIX_STORAGE_KEY, String(value || '').slice(0, 80))
+  } catch {
+    /* storage is best effort */
+  }
+}
+
+/** Drop the customization so the localized default applies again. */
+export function clearForwardPrefix() {
+  try {
+    const ls = storage()
+    if (ls) ls.removeItem(FORWARD_PREFIX_STORAGE_KEY)
   } catch {
     /* storage is best effort */
   }

@@ -1,6 +1,7 @@
 /** Inline settings: send shortcut and the forward lead-in, both persisted. */
 import React from 'react'
 import {
+  clearForwardPrefix,
   readAnalyticsEnabled,
   readForwardPrefix,
   readSendShortcut,
@@ -46,6 +47,13 @@ export function usePanelSettings() {
     writeForwardPrefix(next)
   }
 
+  // Removing the key (not writing "") restores the localized default; an empty
+  // stored value stays a deliberate "no prefix".
+  const resetForwardPrefix = () => {
+    setForwardPrefix(null)
+    clearForwardPrefix()
+  }
+
   return {
     showSettings,
     setShowSettings,
@@ -53,6 +61,7 @@ export function usePanelSettings() {
     chooseShortcut,
     forwardPrefix,
     changeForwardPrefix,
+    resetForwardPrefix,
     prefixRef,
     analyticsEnabled,
     toggleAnalytics,

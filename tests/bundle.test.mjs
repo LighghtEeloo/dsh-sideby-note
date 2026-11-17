@@ -885,3 +885,178 @@ test('a blank new session opens the workspace list from the header corner', asyn
   for (const dispose of disposers) dispose()
   dom.window.close()
 })
+
+test('an untouched forward prefix follows the active language, while a customized one stays verbatim', async t => {
+  const dom = new JSDOM(
+    '<!doctype html><html><body>' +
+      '<div class="_headerUtilities"></div>' +
+      '<div data-conversation-session="session-1"><textarea data-composer-input></textarea></div>' +
+    '</body></html>',
+    { url: 'https://example.test/', pretendToBeVisual: true, runScripts: 'outside-only' },
+  )
+  const { window } = dom
+  t.after(() => window.close())
+  globalThis.window = window
+  globalThis.document = window.document
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
+
+  window.HTMLElement.prototype.getBoundingClientRect = () => ({
+    width: 320, height: 24, top: 0, left: 0, right: 320, bottom: 24, x: 0, y: 0,
+    toJSON: () => ({}),
+  })
+  window.localStorage.setItem('dsh.aside-note', JSON.stringify({
+    version: 1,
+    sessions: {
+      'session-1': {
+        items: ['Alpha', 'Beta', 'Gamma', 'Delta'].map((text, index) => ({
+          id: `seed-${index}`, text, done: false, createdAt: index + 1, updatedAt: index + 1,
+        })),
+      },
+    },
+  }))
+  window.fetch = async () => ({ ok: false, status: 404, json: async () => ({}) })
+
+  const React = await import('react')
+  const ReactDOMClient = await import('react-dom/client')
+  const { act } = React
+
+  let loaded = null
+  window.__ModuleLoader__ = { load: spec => { loaded = spec } }
+  window.eval(bundle)
+
+  const moduleTable = {
+    react: React,
+    'react-dom': await import('react-dom'),
+    'react-dom/client': ReactDOMClient,
+    '@deepseek-ai/dsh-client-ui-primitives': {},
+  }
+  const exported = loaded.factory(id => {
+    if (!(id in moduleTable)) throw new Error(`module table cannot answer ${id}`)
+    return moduleTable[id]
+  })
+
+  // A stand-in for the DSH locale service: `bind` defers to the plugin's own
+  // bundle (the fallback in makeSay), while the subscription drives live switches.
+  let active = 'zh'
+  let revision = 0
+  const listeners = new Set()
+  const locale = {
+    bind: () => key => key,
+    register: () => {},
+    getLocale: () => ({ id: active, revision }),
+    getSnapshot: () => ({ active, revision }),
+    subscribe: listener => {
+      listeners.add(listener)
+      return () => { listeners.delete(listener) }
+    },
+    setLocale: next => {
+      active = next
+      revision += 1
+      for (const listener of [...listeners]) listener()
+    },
+  }
+
+  const disposers = []
+  const registered = []
+  const ctx = {
+    get: name => (name === 'locale' ? locale : undefined),
+    effect: fn => {
+      const dispose = fn()
+      if (typeof dispose === 'function') disposers.push(dispose)
+    },
+    slots: {
+      inject: (name, factory) => factory(),
+      register: (meta, component) => {
+        registered.push({ meta, component })
+        return () => {}
+      },
+    },
+  }
+  await act(async () => { exported.apply(ctx) })
+
+  const capture = registered.find(entry => entry.meta.name === 'conversation.composer.dock').component
+  const workspace = {
+    workspaceId: 'ws-1',
+    path: '/repo',
+    title: '工作区',
+    sessionIds: ['session-1'],
+    createdAt: '',
+    updatedAt: '',
+  }
+  const useWorkspaces = selector => selector({ items: [workspace], archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null })
+
+  const rootHost = document.createElement('div')
+  document.body.appendChild(rootHost)
+  const root = ReactDOMClient.createRoot(rootHost)
+  await act(async () => {
+    root.render(React.createElement(capture, { sessionId: 'session-1', useWorkspaces }))
+  })
+  const header = document.querySelector('.dsh-an-headerBtn')
+  await act(async () => { header.click() })
+  const popover = document.querySelector('.dsh-an-popover')
+  assert.ok(popover, 'the notes panel must open')
+
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+  let prefixField = null
+  const typePrefix = async text => {
+    await act(async () => {
+      setter.call(prefixField, text)
+      prefixField.dispatchEvent(new window.Event('input', { bubbles: true }))
+    })
+  }
+  const composer = document.querySelector('[data-composer-input]')
+  const clearComposer = async () => {
+    await act(async () => {
+      setter.call(composer, '')
+      composer.dispatchEvent(new window.Event('input', { bubbles: true }))
+    })
+  }
+  const forward = async text => {
+    await clearComposer()
+    const row = [...popover.querySelectorAll('.dsh-an-row')]
+      .find(node => node.querySelector('.dsh-an-text')?.textContent === text)
+    assert.ok(row, `missing note ${text}`)
+    const buttons = [...row.querySelectorAll('.dsh-an-iconBtn')]
+    await act(async () => { buttons[1].click() })
+    return composer.value
+  }
+
+  // Settings opens with the Chinese default as the placeholder, not as a value.
+  await act(async () => { popover.querySelector('.dsh-an-settingsBtn').click() })
+  prefixField = popover.querySelector('#dsh-an-forward-prefix')
+  assert.ok(prefixField, 'the prefix field appears with the settings card')
+  assert.equal(prefixField.value, '', 'an untouched prefix has no user value')
+  assert.equal(prefixField.getAttribute('placeholder'), '完成以下任务：')
+
+  // Switching the DSH language with the panel open must re-render the panel.
+  await act(async () => { locale.setLocale('en') })
+  assert.equal(prefixField.getAttribute('placeholder'), 'Complete this task:',
+    'the untouched default follows the active language immediately')
+  assert.equal(await forward('Alpha'), 'Complete this task:\n- Alpha',
+    'an untouched prefix resolves the default in the active language at click time')
+
+  // Once customized, the user text is used verbatim in every language.
+  await typePrefix('Do this:')
+  assert.equal(window.localStorage.getItem('dsh.aside-note.forward-prefix'), 'Do this:')
+  assert.equal(await forward('Beta'), 'Do this:\n- Beta')
+
+  // A deliberately cleared custom prefix means "no prefix", not "use default".
+  await typePrefix('')
+  assert.equal(window.localStorage.getItem('dsh.aside-note.forward-prefix'), '',
+    'clearing stores an empty custom value')
+  assert.equal(prefixField.getAttribute('placeholder'), '', 'an empty custom value hides the default placeholder')
+  assert.equal(await forward('Gamma'), '- Gamma')
+
+  // The reset control drops the custom key and returns to the localized default.
+  assert.ok(popover.querySelector('.dsh-an-settingReset'), 'a customized prefix offers a way back')
+  await act(async () => { popover.querySelector('.dsh-an-settingReset').click() })
+  assert.equal(window.localStorage.getItem('dsh.aside-note.forward-prefix'), null,
+    'reset removes the custom key instead of storing an empty one')
+  assert.equal(prefixField.getAttribute('placeholder'), 'Complete this task:')
+  assert.equal(await forward('Delta'), 'Complete this task:\n- Delta')
+
+  await act(async () => { popover.querySelector('.dsh-an-popClose').click() })
+  await act(async () => { root.unmount() })
+  for (const dispose of disposers) dispose()
+  dom.window.close()
+})

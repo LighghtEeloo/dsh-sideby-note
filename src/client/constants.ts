@@ -29,7 +29,7 @@ export const PLUGIN_REPO_URL = 'https://github.com/Rayle8/dsh-aside-note'
 export const PLUGIN_REPO_LABEL = 'github.com/Rayle8/dsh-aside-note'
 /** Send preference; persisted across panel openings. Enter sends by default. */
 export const SEND_SHORTCUT_KEY = 'dsh.aside-note.send-shortcut'
-/** Lead-in written before a forwarded note; empty means no prefix. */
+/** Lead-in written before a forwarded note; absent means the localized default, empty means no prefix. */
 export const FORWARD_PREFIX_STORAGE_KEY = 'dsh.aside-note.forward-prefix'
 export const SEND_SHORTCUT_DEFAULT = 'enter'
 /** macOS names the command modifier with a symbol; other platforms say Ctrl. */

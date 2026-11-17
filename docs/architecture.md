@@ -9,7 +9,7 @@
 - `package.json` 的 `dsh.bundle.patch` 指向 `cordis.patch.yml`，`dsh.client` 声明 `./client` 与需要预注入的宿主模块。
 - 壳把 `./client`（即 `client/client.js`）当 classic script 加载：`window.__ModuleLoader__.load({ id, factory })`。`factory(require)` 里的 `require` 绑定到冻结的模块表，只认 `react`、`react/jsx-runtime`、`react-dom`、`react-dom/client`、`@deepseek-ai/dsh-client-ui-primitives`；其余依赖全部内联。
 - 样式是 `import css from './styles/panel.css?inline'`，由入口在 `apply()` 里插入**一张** `<style data-dsh-plugin="dsh-aside-note">`，dispose 时移除。面板与输入框 dock 不在同一棵 React 树里，所以不能做面板级 `<style>`。
-- 只依赖两个服务：`slots`（`conversation.composer.dock` 捕获当前会话、`conversation.hero.options` 捕获空白新会话、`shell.overlay` 承载全局 Toast）与 `locale`（注册字典、绑定 `t`）。
+- 只依赖两个服务：`slots`（`conversation.composer.dock` 捕获当前会话、`conversation.hero.options` 捕获空白新会话、`shell.overlay` 承载全局 Toast）与 `locale`（注册字典、绑定 `t`，并订阅 `locale/change` 让已打开的面板就地换语言）。未自定义的转发前缀在点击时按当前语言解析，不写进存储。
 - 顶部入口是注入宿主 header 的原生 DOM 按钮，不是 React portal——宿主重渲染会回收 portal。
 
 ## 2. 目录
@@ -78,7 +78,7 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | `dsh.aside-note.sections` | `{ open, done }` |
 | `dsh.aside-note.panel-width` / `panel-height` | 数字；高度 `0` 表示内容自适应 |
 | `dsh.aside-note.send-shortcut` | `enter` 或 `ctrl-enter` |
-| `dsh.aside-note.forward-prefix` | 最长 80 字符的转发前缀 |
+| `dsh.aside-note.forward-prefix` | 最长 80 字符的转发前缀；键不存在时使用当前语言的默认提示词，空字符串表示不加前缀 |
 
 草稿按 `draftKey` 存放：会话属于工作区时，整个工作区共用一份新增/编辑草稿，切换会话或在「工作区 / 会话」之间切换都不丢字；没有工作区的会话按会话保存。提交草稿时仍按当前选中的范围写入 `dsh.aside-note.workspaces` 或 `dsh.aside-note`，草稿本身不区分范围。升级后首次打开工作区，会把当前会话的旧草稿并入共享键并清理成员会话的旧副本。
 
