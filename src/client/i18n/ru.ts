@@ -27,6 +27,8 @@ export const ru: Record<MessageKey, string> = {
   "settings.tagline": "Набрасывайте идеи асинхронно, пока агент работает.",
   "settings.version": "Версия",
   "settings.author": "Автор",
+  "settings.improver": "Улучшения",
+  "settings.improverName": "LighghtEeloo",
   "settings.project": "Исходный код",
   "settings.shortcut": "Сочетание для отправки",
   "settings.shortcutCtrlEnter": "{mod}+Enter отправляет, Enter — новая строка",

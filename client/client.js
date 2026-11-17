@@ -126,6 +126,8 @@ const de = {
 	"settings.tagline": "Ideen entwerfen, während der Agent arbeitet.",
 	"settings.version": "Version",
 	"settings.author": "Autor",
+	"settings.improver": "Verbesserungen",
+	"settings.improverName": "LighghtEeloo",
 	"settings.project": "Quellcode",
 	"settings.shortcut": "Sende-Tastenkürzel",
 	"settings.shortcutCtrlEnter": "{mod}+Enter sendet, Enter für eine neue Zeile",
@@ -241,6 +243,8 @@ const en = {
 	"settings.tagline": "Asynchronously draft your ideas while the agent is working.",
 	"settings.version": "Version",
 	"settings.author": "Author",
+	"settings.improver": "Improver",
+	"settings.improverName": "LighghtEeloo",
 	"settings.project": "Source",
 	"settings.shortcut": "Send shortcut",
 	"settings.shortcutCtrlEnter": "{mod}+Enter sends, Enter for a new line",
@@ -356,6 +360,8 @@ const es = {
 	"settings.tagline": "Esboza tus ideas de forma asíncrona mientras el agente trabaja.",
 	"settings.version": "Versión",
 	"settings.author": "Autor",
+	"settings.improver": "Mejoras",
+	"settings.improverName": "LighghtEeloo",
 	"settings.project": "Código fuente",
 	"settings.shortcut": "Atajo de envío",
 	"settings.shortcutCtrlEnter": "{mod}+Intro envía, Intro para una nueva línea",
@@ -471,6 +477,8 @@ const fr = {
 	"settings.tagline": "Rédigez vos idées de façon asynchrone pendant que l'agent travaille.",
 	"settings.version": "Version",
 	"settings.author": "Auteur",
+	"settings.improver": "Améliorations",
+	"settings.improverName": "LighghtEeloo",
 	"settings.project": "Source",
 	"settings.shortcut": "Raccourci d'envoi",
 	"settings.shortcutCtrlEnter": "{mod}+Entrée envoie, Entrée pour un saut de ligne",
@@ -586,6 +594,8 @@ const ja = {
 	"settings.tagline": "エージェントが作業している間に、アイデアを非同期で書き留める。",
 	"settings.version": "バージョン",
 	"settings.author": "作者",
+	"settings.improver": "改良者",
+	"settings.improverName": "LighghtEeloo",
 	"settings.project": "ソース",
 	"settings.shortcut": "送信ショートカット",
 	"settings.shortcutCtrlEnter": "{mod}+Enter で送信、Enter で改行",
@@ -701,6 +711,8 @@ const pt = {
 	"settings.tagline": "Esboce suas ideias de forma assíncrona enquanto o agente trabalha.",
 	"settings.version": "Versão",
 	"settings.author": "Autor",
+	"settings.improver": "Melhorias",
+	"settings.improverName": "LighghtEeloo",
 	"settings.project": "Código-fonte",
 	"settings.shortcut": "Atalho de envio",
 	"settings.shortcutCtrlEnter": "{mod}+Enter envia, Enter para uma nova linha",
@@ -816,6 +828,8 @@ const ru = {
 	"settings.tagline": "Набрасывайте идеи асинхронно, пока агент работает.",
 	"settings.version": "Версия",
 	"settings.author": "Автор",
+	"settings.improver": "Улучшения",
+	"settings.improverName": "LighghtEeloo",
 	"settings.project": "Исходный код",
 	"settings.shortcut": "Сочетание для отправки",
 	"settings.shortcutCtrlEnter": "{mod}+Enter отправляет, Enter — новая строка",
@@ -931,6 +945,8 @@ const zh = {
 	"settings.tagline": "趁 agent 工作时，异步记下你的想法",
 	"settings.version": "版本",
 	"settings.author": "作者",
+	"settings.improver": "改良者",
+	"settings.improverName": "光吟",
 	"settings.project": "源代码",
 	"settings.shortcut": "发送快捷键",
 	"settings.shortcutCtrlEnter": "{mod}+Enter 发送，Enter 换行",
@@ -4003,7 +4019,10 @@ function SettingsPanel(props) {
 	}) : null, h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("settings.author")), h$6("span", {
 		className: "dsh-an-settingDot",
 		"aria-hidden": true
-	}, "·"), h$6("span", null, PLUGIN_AUTHOR)), h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("settings.project")), h$6("span", {
+	}, "·"), h$6("span", null, PLUGIN_AUTHOR)), h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("settings.improver")), h$6("span", {
+		className: "dsh-an-settingDot",
+		"aria-hidden": true
+	}, "·"), h$6("span", null, say("settings.improverName"))), h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("settings.project")), h$6("span", {
 		className: "dsh-an-settingDot",
 		"aria-hidden": true
 	}, "·"), h$6("a", {

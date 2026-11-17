@@ -197,6 +197,17 @@ test('the built bundle boots, applies, and seats its slots', async t => {
     ['de', 'en', 'es', 'fr', 'ja', 'pt', 'ru', 'zh'],
     'the built bundle must carry every DSH-official locale',
   )
+  // The improver is credited by Chinese name in Chinese only; every other
+  // language carries the GitHub handle instead.
+  const dict = dictionaries[0].dict
+  assert.equal(dict.zh['settings.improverName'], '光吟')
+  for (const language of ['de', 'en', 'es', 'fr', 'ja', 'pt', 'ru']) {
+    assert.equal(
+      dict[language]['settings.improverName'],
+      'LighghtEeloo',
+      `${language} must credit the improver by handle`,
+    )
+  }
 
   const seeded = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
   assert.equal(seeded.sessions['session-1'].items[0].text, '旧便笺')
@@ -261,6 +272,15 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   assert.ok(brand, 'About must show the product identity')
   assert.match(brand.textContent, /边记部/)
   assert.match(brand.textContent, /趁 agent 工作时，异步记下你的想法/)
+  // Credits: the author first, then the improver, each as its own key/value row.
+  const metaRows = [...popover.querySelectorAll('.dsh-an-settingMetaRow')].map(row => row.textContent)
+  assert.ok(metaRows.includes('作者·阿三石'), 'About credits the author')
+  assert.ok(metaRows.includes('改良者·光吟'), 'About credits the improver')
+  assert.equal(
+    metaRows.indexOf('改良者·光吟'),
+    metaRows.indexOf('作者·阿三石') + 1,
+    'the improver row sits right after the author',
+  )
   const radios = popover.querySelectorAll('input[type="radio"]')
   assert.equal(radios.length, 2)
   await act(async () => { radios[1].click() })

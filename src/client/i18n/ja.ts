@@ -27,6 +27,8 @@ export const ja: Record<MessageKey, string> = {
   "settings.tagline": "エージェントが作業している間に、アイデアを非同期で書き留める。",
   "settings.version": "バージョン",
   "settings.author": "作者",
+  "settings.improver": "改良者",
+  "settings.improverName": "LighghtEeloo",
   "settings.project": "ソース",
   "settings.shortcut": "送信ショートカット",
   "settings.shortcutCtrlEnter": "{mod}+Enter で送信、Enter で改行",

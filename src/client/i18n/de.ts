@@ -27,6 +27,8 @@ export const de: Record<MessageKey, string> = {
   "settings.tagline": "Ideen entwerfen, während der Agent arbeitet.",
   "settings.version": "Version",
   "settings.author": "Autor",
+  "settings.improver": "Verbesserungen",
+  "settings.improverName": "LighghtEeloo",
   "settings.project": "Quellcode",
   "settings.shortcut": "Sende-Tastenkürzel",
   "settings.shortcutCtrlEnter": "{mod}+Enter sendet, Enter für eine neue Zeile",

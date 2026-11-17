@@ -25,6 +25,8 @@ export const zh = {
   "settings.tagline": "趁 agent 工作时，异步记下你的想法",
   "settings.version": "版本",
   "settings.author": "作者",
+  "settings.improver": "改良者",
+  "settings.improverName": "光吟",
   "settings.project": "源代码",
   "settings.shortcut": "发送快捷键",
   "settings.shortcutCtrlEnter": "{mod}+Enter 发送，Enter 换行",

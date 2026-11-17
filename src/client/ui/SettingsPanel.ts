@@ -175,6 +175,16 @@ export function SettingsPanel(props) {
                   h('span', { className: 'dsh-an-settingDot', 'aria-hidden': true }, '·'),
                   h('span', null, PLUGIN_AUTHOR),
                 ),
+                // The improver sits right below the author, same key/value row.
+                // The name itself is copy: Chinese credits 光吟, every other
+                // language credits the GitHub handle.
+                h(
+                  'div',
+                  { className: 'dsh-an-settingMetaRow' },
+                  h('span', null, say('settings.improver')),
+                  h('span', { className: 'dsh-an-settingDot', 'aria-hidden': true }, '·'),
+                  h('span', null, say('settings.improverName')),
+                ),
                 h(
                   'div',
                   { className: 'dsh-an-settingMetaRow' },

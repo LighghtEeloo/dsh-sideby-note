@@ -27,6 +27,8 @@ export const en: Record<MessageKey, string> = {
   "settings.tagline": "Asynchronously draft your ideas while the agent is working.",
   "settings.version": "Version",
   "settings.author": "Author",
+  "settings.improver": "Improver",
+  "settings.improverName": "LighghtEeloo",
   "settings.project": "Source",
   "settings.shortcut": "Send shortcut",
   "settings.shortcutCtrlEnter": "{mod}+Enter sends, Enter for a new line",

@@ -110,7 +110,7 @@ Click a note's forward button to append it to the current chat input as a list i
 - **Remembered state**: add drafts are saved per workspace (per session outside a workspace), so switching conversations or the Workspace/Session switch never loses them; submitting still writes the list selected at that moment. Drafts are restored when the panel reopens, and the open/completed expand state plus the scope choice are remembered too.
 - **Panel size**: drag the left edge for width and the bottom handle for height, double-click either to reset; both persist in the browser.
 - **List regions**: **Open** and **Completed** each keep a sticky header and its own scroll, and expanding completed never compresses open; completed notes show creation and completion times, newest completion first.
-- **Settings**: send shortcut (Enter or ⌘/Ctrl+Enter), forward prefix, and About (version, check, author, source), saved automatically.
+- **Settings**: send shortcut (Enter or ⌘/Ctrl+Enter), forward prefix, and About (version, check, author, improver, source), saved automatically.
 - **Update notice**: a newer release puts a dot on the settings button, and Settings › About shows the notes and the update action; see [Update notice](#update-notice).
 - **Native look**: colours, radii, elevation and scrollbars all reuse DSH design tokens, following light/dark and the DSH locale; see [Design tokens](#design-tokens).
 
