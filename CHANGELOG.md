@@ -17,6 +17,10 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 
 ### Fixed
 - **Localized default forward prompt:** when the prefix prompt was never customized, forwarding now uses the default for the active language, resolved at click time; a customized prompt is used verbatim, an explicitly cleared prompt adds no lead-in, and a reset control returns to the localized default.
+
+### Contributors
+- [@LighghtEeloo](https://github.com/LighghtEeloo) — [#2](https://github.com/Rayle8/dsh-aside-note/pull/2) all official DSH languages, [#3](https://github.com/Rayle8/dsh-aside-note/pull/3) marketplace icon
+- [@Rayle8](https://github.com/Rayle8) — English fallback and the localized forward prompt
 <!-- app-update-notes:en:end -->
 
 <!-- app-update-notes:zh:start -->
@@ -28,6 +32,10 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 
 ### 修复
 - **默认转发提示词跟随语言：** 未自定义前缀提示词时，转发会按当前语言解析默认提示词；自定义内容按原文使用，主动清空则不加前缀，并提供一键恢复默认提示词。
+
+### 贡献者
+- [@LighghtEeloo](https://github.com/LighghtEeloo) — [#2](https://github.com/Rayle8/dsh-aside-note/pull/2) 全部 DSH 官方语言、[#3](https://github.com/Rayle8/dsh-aside-note/pull/3) 市场上架图标
+- [@Rayle8](https://github.com/Rayle8) — 英文回退与默认转发提示词修复
 <!-- app-update-notes:zh:end -->
 
 ## 1.1.3

@@ -34,6 +34,7 @@ git push -u origin feat/xxx
 
 - `CHANGELOG.md` 顶部始终保留 `## next-released`，所有改动写在它下面；发布命令会把它改名为版本号并插入新的空标题，CI 也会检查这个标题存在。
 - 运营与基建改动（截图、上架物料、README 结构、发布与构建工具）写进 `CHANGELOG-OPS.md` 的同名 `## next-released`；它不进 Release 正文，也不随 npm 包发布。
+- Release 正文完全由 `CHANGELOG.md` 生成：本版有外部贡献者或合并 PR 时，对应小节里要写 `### Contributors / ### 贡献者`，列出 GitHub ID 与 PR 编号；漏写就不会出现在 Release 页和面板更新卡片里。
 - `client/client.js` 是**提交进仓库的构建产物**，必须与 `src/client/**` 出现在同一个提交里；CI 会重新 build 并检查 `git diff client/`，不一致直接失败。
 - 不要手改 `client/client.js`，构建会覆盖它。
 - `package.json` 的 `version` 与 `src/client/constants.ts` 的 `PLUGIN_VERSION` 必须一致，契约测试会检查。
