@@ -24,7 +24,6 @@ import { useNoteActions } from './useNoteActions'
 import { useClearConfirm } from './useClearConfirm'
 import { useListEdge } from './useListEdge'
 import { useOutsideDismiss } from './useOutsideDismiss'
-import { saveEditDraft } from '../storage/drafts'
 import { compareDoneItems } from '../domain/items'
 
 import { TodoRow } from './TodoRow'
@@ -100,18 +99,13 @@ export function MemoPopover(props) {
   // registry answer is cached for an hour across panel opens.
   const update = useUpdateCenter(localeId)
   const newerVersion = update.latestVersion
-  const { draft, addRef, composingRef, add, onDraftChange, onDraftKeyDown } = useComposerDraft({
+  const { draft, addRef, composingRef, add, recall, onDraftChange, onDraftKeyDown } = useComposerDraft({
     draftKey,
     commit,
     report,
     sendShortcut,
   })
-  const { editingId, editDraft, setEditDraft, editRef, startEdit, finishEdit, cancelEdit, stopEditing, toggle, remove } = useNoteActions({
-    draftKey,
-    commit,
-    report,
-    forgetForwardedItems,
-  })
+  const { toggle, takeBack } = useNoteActions({ commit, report, forgetForwardedItems })
   const { confirmClear, askClearConfirm, dismissClearConfirm, confirmClearDone } = useClearConfirm({
     sessionId,
     showDone,
@@ -147,12 +141,10 @@ export function MemoPopover(props) {
       const workspace = scopeForSession(sessionId, 'workspace')
       if (workspace.kind === 'workspace') ensureWorkspaceRecord(workspace.id, workspace.sessionIds)
     }
-    // Leaving a list abandons its inline editors and pending clear confirmation.
+    // Leaving a list discards a pending clear confirmation; the composer
+    // draft belongs to the workspace, so it survives the switch.
     writeScopeMode(next)
     setMode(next)
-    // The draft is shared by both scopes, so closing the editor here must not
-    // discard what was typed; reopening the row restores it.
-    stopEditing()
     dismissClearConfirm()
     notifyTodoChange()
   }
@@ -170,6 +162,21 @@ export function MemoPopover(props) {
     applySections({ open: sectionsRef.current.open, done: false })
   }
 
+  /**
+   * 退回 moves the note's text into the top composer and removes the row.
+   * The composer is the only text editor, so recalling over an existing draft
+   * would silently destroy it; ask the user to send or clear it first instead.
+   */
+  const recallItem = item => {
+    if (draft.trim()) {
+      report('recallBlocked')
+      return
+    }
+    if (!takeBack(item)) return
+    recall(item.text)
+    report('recalled')
+  }
+
   const row = item => h(TodoRow, {
     key: item.id,
     item,
@@ -178,20 +185,11 @@ export function MemoPopover(props) {
     localeId,
     onToast: report,
     onToggle: toggle,
-    onStartEdit: startEdit,
-    onDelete: remove,
-    editing: editingId === item.id,
-    editDraft,
-    setEditDraft,
-    onEditDraftChange: value => saveEditDraft(draftKey, item.id, value),
-    onFinishEdit: finishEdit,
-    onCancelEdit: cancelEdit,
-    editRef,
+    onRecall: recallItem,
     // `null` = untouched, so the row resolves the default in the active language
     // at click time; any string, including "", is the user's own prefix choice.
     forwardPrefix,
     forwardPrefixFallback: () => say('forward.prefix'),
-    sendShortcut,
     forwarded: forwardedIds[item.id] === true,
     onForwarded: rememberForwarded,
     onUnforwarded: unrememberForwarded,

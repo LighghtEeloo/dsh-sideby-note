@@ -73,14 +73,16 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | `dsh.aside-note` | `{ version: 1, sessions: { [sessionId]: { sessionId, updatedAt, items: Note[] } } }`（会话键保持原结构） |
 | `dsh.aside-note.workspaces` | `{ version: 1, workspaces: { [workspaceId]: { workspaceId, updatedAt, items: Note[], seededSessionIds: string[] } } }` |
 | `dsh.aside-note.scope-mode` | `workspace`（工作区，默认）或 `session`（当前会话） |
-| `dsh.aside-note.drafts` | `{ version: 1, sessions: { [draftKey]: { add, edits: { [itemId]: text } } } }`；`draftKey` 为 `ws:<workspaceId>`（工作区共享）或会话 ID |
+| `dsh.aside-note.drafts` | `{ version: 1, sessions: { [draftKey]: { add } } }`；`draftKey` 为 `ws:<workspaceId>`（工作区共享）或会话 ID；旧版就地编辑留下的 `edits` 会被忽略并在下次写入草稿时清理 |
 | `dsh.aside-note.forwarded` | `{ version: 1, sessions: { [listKey]: { [itemId]: true } } }`；`listKey` 为 `ws:<workspaceId>` 或会话 ID |
 | `dsh.aside-note.sections` | `{ open, done }` |
 | `dsh.aside-note.panel-width` / `panel-height` | 数字；高度 `0` 表示内容自适应 |
 | `dsh.aside-note.send-shortcut` | `enter` 或 `ctrl-enter` |
 | `dsh.aside-note.forward-prefix` | 最长 80 字符的转发前缀；键不存在时使用当前语言的默认提示词，空字符串表示不加前缀 |
 
-草稿按 `draftKey` 存放：会话属于工作区时，整个工作区共用一份新增/编辑草稿，切换会话或在「工作区 / 会话」之间切换都不丢字；没有工作区的会话按会话保存。提交草稿时仍按当前选中的范围写入 `dsh.aside-note.workspaces` 或 `dsh.aside-note`，草稿本身不区分范围。升级后首次打开工作区，会把当前会话的旧草稿并入共享键并清理成员会话的旧副本。
+草稿按 `draftKey` 存放：会话属于工作区时，整个工作区共用一份新增草稿，切换会话或在「工作区 / 会话」之间切换都不丢字；没有工作区的会话按会话保存。提交草稿时仍按当前选中的范围写入 `dsh.aside-note.workspaces` 或 `dsh.aside-note`，草稿本身不区分范围。升级后首次打开工作区，会把当前会话的旧草稿并入共享键并清理成员会话的旧副本。
+
+面板里只有顶部一个文字编辑区。点某行的「退回」会先把便笺从清单移除，再把正文放进顶部输入框（桌面端自动聚焦）；提交后作为一条新便笺重新加入。输入框已有未提交内容时不覆盖，改为提示先发送或清空。
 
 `Note` 形如 `{ id, text, done, createdAt, updatedAt, completedAt? }`；`text` 上限 280，单份清单上限 300 条。会话数据继续使用 `dsh.aside-note` 的 v1 结构，工作区数据单独放在 `dsh.aside-note.workspaces`，因此新增范围不会改写旧键；首次进入工作区会把成员会话里已有的便笺合入一次，`seededSessionIds` 记住已合入的会话，之后删除不会因再次合并而复活。键名不带版本后缀；前缀沿用上游的 `dsh.aside-note`，因此包名与插件 id 改为 `dsh-sideby-note` 后，已有便笺和设置仍可直接读取。
 
@@ -97,7 +99,7 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | 文件 | 覆盖 |
 | --- | --- |
 | `tests/contract.test.mjs` | 清单与 patch 形状、工具链约定、样式令牌、无障碍与交互规则、字典完整性 |
-| `tests/bundle.test.mjs` | 在 jsdom 里执行**构建产物**：模块表、slot 注册、样式注入、入口注入，并驱动完整面板流程（添加、设置、完成、清除确认、编辑、缩放、删除、分区记忆）；另有工作区测试，验证两个会话共享清单、旧便笺只合入一次、工作区/会话切换与持久化、转发只写入当前会话输入框；还有空白新会话测试，验证入口落在 header corner、只有工作区清单，以及首轮对话后入口移到 utilities 并解锁会话清单 |
+| `tests/bundle.test.mjs` | 在 jsdom 里执行**构建产物**：模块表、slot 注册、样式注入、入口注入，并驱动完整面板流程（添加、设置、完成、清除确认、退回输入框、缩放、清空到空态、分区记忆）；另有工作区测试，验证两个会话共享清单、旧便笺只合入一次、工作区/会话切换与持久化、转发只写入当前会话输入框；还有空白新会话测试，验证入口落在 header corner、只有工作区清单，以及首轮对话后入口移到 utilities 并解锁会话清单 |
 
 契约测试按模块读取源码（需要时读 bundle 或 CSS），断言的是约束而不是实现细节；集成测试提供行为兜底。
 

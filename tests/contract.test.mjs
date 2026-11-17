@@ -266,8 +266,9 @@ test('host and browser entries use the package identity', () => {
   assert.match(client, /data-sidebar-right-panel\]\[data-sidebar-right-open\]/)
   assert.match(client, /DRAFT_STORAGE_KEY/)
   assert.match(client, /saveAddDraft/)
-  assert.match(client, /saveEditDraft/)
-  assert.match(client, /readEditDraft/)
+  assert.match(client, /const recall = text =>/)
+  assert.match(client, /item\.recall/)
+  assert.doesNotMatch(client, /saveEditDraft|readEditDraft|item\.edit|item\.delete/, 'the inline editor is gone')
   assert.match(client, /dsh-an-listArea/)
   assert.match(client, /dsh-an-listSection/)
   // Sticky heads stay transparent in flow and only take the panel's raised
@@ -278,7 +279,7 @@ test('host and browser entries use the package identity', () => {
   assert.match(client, /dsh-an-forwardMark/)
   assert.match(client, /item\.forwarded/)
   assert.doesNotMatch(client, /dsh-an-checkHalf|dsh-an-checkForwarded|HALF_DONE_|item\.pendingCountdown|settings\.halfCheck/)
-  assert.match(client, /edit\.hintEnter/)
+  assert.match(client, /h\(IconRewind, null\)/)
   assert.doesNotMatch(client, /settings\.forward(?:Check|Mark)/, 'the stale forward-mark description is gone')
   assert.match(client, /settings\.forwardPrefixItem/)
   assert.match(client, /SECTION_STATE_KEY/)
@@ -733,7 +734,7 @@ test('transient outcomes go to the frame-wide toast seat', () => {
   assert.match(client, /ctx\.slots\.inject\('shell\.overlay'/)
   assert.match(client, /name: 'shell\.overlay'/)
   assert.match(client, /h\(Toast, \{/)
-  for (const kind of ['copied', 'forwarded', 'unforwarded', 'deleted', 'cleared', 'copyFailed', 'forwardFailed', 'saveFailed']) {
+  for (const kind of ['copied', 'forwarded', 'unforwarded', 'recalled', 'recallBlocked', 'cleared', 'copyFailed', 'forwardFailed', 'saveFailed']) {
     assert.match(client, new RegExp(`toast\\.${kind}`), `missing toast copy for ${kind}`)
   }
   assert.doesNotMatch(client, /dsh-an-copied|dsh-an-forwarded/, 'inline success marks duplicate the toast')
@@ -743,7 +744,7 @@ test('a failed write keeps the row and says so', () => {
   const client = read('src/client/index.ts') + read('src/client/ui/useSessionMemoStore.ts') + read('src/client/ui/MemoPopover.ts') + read('src/client/ui/useNoteActions.ts') + read('src/client/ui/useComposerDraft.ts')
   assert.match(client, /if \(!ok\) return false/)
   assert.match(client, /if \(!ok\) \{\n\s+report\('saveFailed'\)/)
-  assert.match(client, /A failed delete keeps the row/)
+  assert.match(client, /A failed write keeps the row/)
 })
 
 test('icon-only controls use the shared tooltip', () => {
@@ -751,12 +752,22 @@ test('icon-only controls use the shared tooltip', () => {
   assert.match(client, /function withTooltip\(/)
   assert.match(client, /h\(Tooltip, \{ label, side: 'top'/)
   const iconButtons = [...client.matchAll(/className: 'dsh-an-iconBtn[^']*',\n\s+'aria-label': say\(([^)]+)\)/g)]
-  assert.equal(iconButtons.length, 4, 'all four row actions must be present')
+  assert.equal(iconButtons.length, 3, 'copy, forward and rewind are the three icon actions')
   const buttonTitles = [...client.matchAll(/'aria-label': say\('[^']+'\),\n\s+title:/g)]
   assert.deepEqual(buttonTitles, [], 'aria-labelled buttons must not carry a second native title')
 })
 
-test('completed notes hide the forward action and keep the other three', () => {
+test('rewind is the product refresh arc flipped counter-clockwise', () => {
+  const primitives = read('src/client/ui/primitives.ts')
+  // The icon set has no undo glyph; mirroring the shell's own refresh arc keeps
+  // its stroke and optical size instead of drawing a plugin-specific SVG.
+  assert.match(primitives, /IconRewind = \(\) => h\(Glyph, \{ name: 'IconRefreshOutlineRegular', size: 14, className: 'dsh-an-glyphFlip' \}\)/)
+  assert.match(primitives, /h\(Component, \{ size: props\.size, className: props\.className \}\)/)
+  assert.match(readCss(), /\.dsh-an-glyphFlip\{transform:scaleX\(-1\)\}/)
+  assert.doesNotMatch(readCss(), /dsh-an-recall/, 'the text-button style is gone')
+})
+
+test('completed notes hide the forward action and keep copy plus rewind', () => {
   const client = read('src/client/index.ts') + read('src/client/ui/TodoRow.ts')
   const start = client.indexOf("className: 'dsh-an-actions'")
   assert.ok(start > 0, 'row actions missing')
@@ -765,17 +776,16 @@ test('completed notes hide the forward action and keep the other three', () => {
   // entirely: a done row never renders a disabled forward button.
   assert.match(actions, /done \? null : withTooltip\(say\(forwarded \? 'item\.forwarded' : 'item\.forward'\)/)
   assert.equal([...actions.matchAll(/\? null : withTooltip/g)].length, 1, 'forward is the only conditional action')
-  // Copy, edit and delete stay unconditional direct children of the action row.
-  for (const key of ['item.copy', 'item.edit', 'item.delete']) {
-    const escaped = key.replace(/\./g, '\\.')
-    assert.match(actions, new RegExp(`,\\n\\s+withTooltip\\(say\\('${escaped}'\\)`), `${key} must stay unconditional`)
-    assert.doesNotMatch(actions, new RegExp(`\\? null : withTooltip\\(say\\('${escaped}'\\)`), `${key} must not be conditional`)
-  }
+  // Copy and rewind (退回) stay unconditional direct children of the action row.
+  assert.match(actions, /withTooltip\(say\('item\.copy'\)/)
+  assert.match(actions, /withTooltip\(say\('item\.recall'\)/)
+  assert.doesNotMatch(actions, /\? null : withTooltip\(say\('item\.recall'\)/, 'rewind must not be conditional')
   // The surviving actions keep their reading order around the optional one.
-  const order = ["withTooltip(say('item.copy')", "withTooltip(say(forwarded ? 'item.forwarded'", "withTooltip(say('item.edit')", "withTooltip(say('item.delete')"]
+  const order = ["withTooltip(say('item.copy')", "withTooltip(say(forwarded ? 'item.forwarded'", "withTooltip(say('item.recall')"]
     .map(snippet => actions.indexOf(snippet))
   assert.ok(order.every(index => index > 0), 'row action order drifted')
   assert.deepEqual([...order].sort((a, b) => a - b), order, 'row action order drifted')
+  assert.doesNotMatch(actions, /item\.(?:edit|delete)|dsh-an-iconBtnDanger/, 'inline edit and delete are gone')
 })
 
 test('animations and transitions stay tokenised', () => {
@@ -910,7 +920,7 @@ test('send shortcuts default to Enter and name the platform modifier', () => {
   assert.match(client, /function isSendModifier\(event\)/)
   assert.match(client, /IS_MAC \? event\.metaKey === true : event\.ctrlKey === true/)
   const dict = readDict()
-  for (const key of ['settings.shortcutCtrlEnter', 'settings.shortcutEnter', 'add.shortcut', 'add.shortcutEnter', 'edit.hintCtrlEnter', 'edit.hintEnter']) {
+  for (const key of ['settings.shortcutCtrlEnter', 'settings.shortcutEnter', 'add.shortcut', 'add.shortcutEnter']) {
     assert.match(dict.zh[key], /\{mod\}\+Enter/, `zh ${key} names the platform modifier`)
     assert.match(dict.en[key], /\{mod\}\+Enter/, `en ${key} names the platform modifier`)
   }

@@ -105,9 +105,9 @@ Click a note's forward button to append it to the current chat input as a list i
 
 - **Workspace-level notes**: one list is shared by every session in a workspace by default, so switching conversations keeps it in view; the panel header switches between **Workspace** and **Session**, and sessions outside a workspace only have the session scope. Tabs in the same browser stay in sync.
 - **Entry and panel**: an icon button at the top right badges the open count; a blank new session shows it in the corner with the workspace list only until the first message, without the session option; clicking it opens a fixed panel aligned to the entry, which shifts left of the DSH right sidebar and closes when you switch sessions.
-- **Note actions**: add, complete, copy, edit by double-click or pencil, and delete; clearing completed notes asks for confirmation, and completed notes expand for review.
+- **Note actions**: add, complete, copy, forward, and rewind a note into the composer to edit; clearing completed notes asks for confirmation, and completed notes expand for review. Clearing the composer after rewinding a note removes it.
 - **One-click forward**: each note is appended to the **currently open conversation's** composer as a `-` item, with the customizable prefix written only when the composer is empty — nothing is sent automatically. The forward button gains a check per list, and clicking it again removes the mark.
-- **Remembered state**: add and edit drafts are saved per workspace (per session outside a workspace), so switching conversations or the Workspace/Session switch never loses them; submitting still writes the list selected at that moment. Drafts are restored when the panel reopens, and the open/completed expand state plus the scope choice are remembered too.
+- **Remembered state**: add drafts are saved per workspace (per session outside a workspace), so switching conversations or the Workspace/Session switch never loses them; submitting still writes the list selected at that moment. Drafts are restored when the panel reopens, and the open/completed expand state plus the scope choice are remembered too.
 - **Panel size**: drag the left edge for width and the bottom handle for height, double-click either to reset; both persist in the browser.
 - **List regions**: **Open** and **Completed** each keep a sticky header and its own scroll, and expanding completed never compresses open; completed notes show creation and completion times, newest completion first.
 - **Settings**: send shortcut (Enter or ⌘/Ctrl+Enter), forward prefix, and About (version, check, author, source), saved automatically.
@@ -135,12 +135,12 @@ Five states shot from the same demo session and the same set of notes, in both t
     <td><img src="./docs/assets/features/settings-dark.png" width="300" alt="Settings, dark"></td>
   </tr>
   <tr>
-    <td>Row actions<br>copy / forward / edit / delete on hover</td>
+    <td>Row actions<br>copy / forward / rewind on hover</td>
     <td><img src="./docs/assets/features/actions.png" width="300" alt="Row actions"></td>
     <td><img src="./docs/assets/features/actions-dark.png" width="300" alt="Row actions, dark"></td>
   </tr>
   <tr>
-    <td>Clear completed<br>a second confirmation guards the delete</td>
+    <td>Clear completed<br>a second confirmation guards clearing</td>
     <td><img src="./docs/assets/features/clear.png" width="300" alt="Clear completed confirmation"></td>
     <td><img src="./docs/assets/features/clear-dark.png" width="300" alt="Clear completed confirmation, dark"></td>
   </tr>
@@ -167,15 +167,16 @@ The panel and the entry button read from one token block in `src/client/styles/p
 | Motion | `--ds-transition-duration*`, `--ds-ease-in-out` | 100 / 200ms, opacity and transform only |
 | Scrollbar | shared theme skin | the panel rebinds `--dsh-scrollbar-*` to l2 and gives the list a 9px rail with a 2px inset |
 
-Feedback reuses product surfaces too: copy, forward, delete, clear-completed, and failed writes all report through a `shell.overlay` toast that outlives the panel, and icon buttons use the `ui-primitives` `Tooltip`.
+Feedback reuses product surfaces too: copy, forward, rewind, clear-completed, and failed writes all report through a `shell.overlay` toast that outlives the panel, and icon buttons use the `ui-primitives` `Tooltip`.
 
 ## Usage
 
 1. Click the **Sideby Note** button at the top right of the conversation to open the right-side panel. Its badge shows the unfinished count when there are open notes; the **Workspace / Session** switch in the panel header moves between the whole workspace and the current conversation.
 2. Write one concrete follow-up in the panel and use your configured add shortcut or click **Add**.
-3. When you are ready to continue, click the note's forward button to append it to the chat input, then review and send it yourself.
-4. Click the circle to mark it complete; expand **Completed** to look back.
-5. Click outside the panel or press Esc to close.
+3. To change a note, click its **Rewind** button (↺): the text goes back into the top composer, ready to edit and submit again. Clearing that composer removes the note.
+4. When you are ready to continue, click the note's forward button to append it to the chat input, then review and send it yourself.
+5. Click the circle to mark it complete; expand **Completed** to look back.
+6. Click outside the panel or press Esc to close.
 
 ## Where data lives
 
@@ -212,7 +213,7 @@ The list shared by one workspace lives separately under `dsh.aside-note.workspac
 
 `workspaces` holds the list shared by one workspace; `seededSessionIds` remembers which member sessions were already folded in, so notes are merged once and never resurrect after a delete. Session data stays under the original `dsh.aside-note` key and workspace data is never written back into it; sessions without a workspace only use their `sessions` record. The panel header's scope choice lives separately under `dsh.aside-note.scope-mode` (`workspace` or `session`, default `workspace`).
 
-Unsaved add/edit drafts live under `dsh.aside-note.drafts`: sessions in one workspace share a single workspace draft, so switching conversations or the scope never loses text; the submitted note goes to the workspace list or the session list according to the scope selected at that moment. Sessions outside a workspace keep their own draft. The first time a workspace is opened after upgrading, the current session's old draft is folded into the shared one.
+Unsaved add drafts live under `dsh.aside-note.drafts`: sessions in one workspace share a single workspace draft, so switching conversations or the scope never loses text; the submitted note goes to the workspace list or the session list according to the scope selected at that moment. Sessions outside a workspace keep their own draft. The first time a workspace is opened after upgrading, the current session's old draft is folded into the shared one; `edits` records left by the old inline editor are ignored and cleaned up on the next draft write.
 
 Therefore:
 
@@ -294,7 +295,7 @@ Loaded in an isolated DSH profile and driven through headless Chrome:
 - the **Sideby Note** button appears at the top right, with the open count on its badge;
 - clicking it opens the panel on the right, aligned with the entry;
 - adding updates both the badge and the panel count;
-- complete, edit, copy, forward, delete, and clear-completed work in the panel;
+- complete, copy, forward, rewind into the composer, and clear-completed work in the panel;
 - records survive a refresh, and the panel header switches between the workspace list and the current session's list;
 - the npmjs → npmmirror → GitHub Release fallback, the one-hour cache, and the version comparison are covered by the contract tests, and the jsdom test drives the visible update notice; the live notice needs a published npm package or a GitHub Release.
 
