@@ -12,6 +12,9 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 ### Fixed
 - **Panel language follows DSH:** the panel now reads DSH's live locale (`active`) instead of a field the locale service no longer exposes, and re-binds its dictionary when a client-plugin reload replaces the locale service. Previously it could fall back to English while DSH was set to Chinese.
 
+### Changed
+- **One editor for note text:** a note can now be edited only in the top composer. Each row's inline editor and delete button are gone; **Rewind** (↺) moves the text back into the composer and removes the row, submitting adds it back, and clearing the composer removes the note. An existing draft is never overwritten.
+
 ### Removed
 - **Anonymous feature statistics:** the panel no longer reports usage events. The Settings › Privacy switch, the bundled analytics SDK and the anonymous visitor id are gone, so no analytics data leaves the browser.
 
@@ -22,6 +25,9 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 <!-- app-update-notes:zh:start -->
 ### 修复
 - **面板语言跟随 DSH：** 面板改为读取 DSH 当前语言的 `active` 字段（不再读语言服务已不提供的旧字段），并在客户端插件热重载替换语言服务后重新绑定字典；此前可能在 DSH 为中文时回退成英文。
+
+### 变更
+- **便笺正文只保留一个编辑区：** 行内编辑器与行尾「删除」按钮已移除，改为「退回」（↺）——把正文放回顶部输入框并从清单移除，改完提交后重新加入；清空输入框即删除该条。录入框已有内容时不会覆盖。
 
 ### 移除
 - **匿名功能统计：** 面板不再上报使用事件。设置 › 隐私开关、内置统计 SDK 与匿名访客 ID 均已移除，不会有统计数据的请求离开浏览器。

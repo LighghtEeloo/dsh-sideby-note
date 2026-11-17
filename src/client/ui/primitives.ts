@@ -23,15 +23,18 @@ export const icon = name => (typeof PRIMITIVES[name] === 'function' ? PRIMITIVES
 export function Glyph(props) {
   const Component = icon(props.name)
   if (!Component) return null
-  return h(Component, { size: props.size })
+  return h(Component, { size: props.size, className: props.className })
 }
 
 export const IconCheck = props => h(Glyph, { name: 'IconCheckOutlineMedium', size: props && props.size ? props.size : 12 })
 export const IconCopy = () => h(Glyph, { name: 'IconCopyOutlineRegular', size: 14 })
 export const IconForward = () => h(Glyph, { name: 'IconShareOutlineRegular', size: 14 })
 export const IconGear = () => h(Glyph, { name: 'IconSettingsOutlineRegular', size: 14 })
-export const IconPencil = () => h(Glyph, { name: 'IconEditOutlineRegular', size: 14 })
-export const IconTrash = () => h(Glyph, { name: 'IconTrashOutlineRegular', size: 14 })
+/**
+ * Rewind is the product refresh arc mirrored to run counter-clockwise (↺):
+ * the set has no undo glyph, and flipping keeps the shell's stroke and size.
+ */
+export const IconRewind = () => h(Glyph, { name: 'IconRefreshOutlineRegular', size: 14, className: 'dsh-an-glyphFlip' })
 
 export const IconChevron = () => h(Glyph, { name: 'IconChevronRightOutlineRegular', size: 12 })
 export const IconEmpty = () => h(Glyph, { name: 'IconChecklistOutlineRegular', size: 18 })

@@ -353,36 +353,47 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   assert.equal(afterClear.sessions['session-1'].items.length, 1)
   assert.equal(afterClear.sessions['session-1'].items[0].done, false)
 
-  // Edit the remaining note in place.
-  const editButton = popover.querySelector('.dsh-an-iconBtn[aria-label="编辑"]')
-  assert.ok(editButton, 'the row must offer edit')
-  await act(async () => { editButton.click() })
-  const editInput = popover.querySelector('.dsh-an-editInput')
-  assert.ok(editInput, 'editing swaps in the inline editor')
+  // 退回 is the only way back into the composer: it moves the remaining note
+  // into the top input and clears the row. A non-empty draft is never replaced.
+  const recallButton = popover.querySelector('.dsh-an-iconBtn[aria-label="退回"]')
+  assert.ok(recallButton, 'the row must offer 退回')
   await act(async () => {
-    valueSetter.call(editInput, '改过的便笺')
-    editInput.dispatchEvent(new window.Event('input', { bubbles: true }))
+    valueSetter.call(addField, '未发送的草稿')
+    addField.dispatchEvent(new window.Event('input', { bubbles: true }))
   })
-  await act(async () => { popover.querySelector('.dsh-an-miniPrimary').click() })
-  const afterEdit = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
-  assert.equal(afterEdit.sessions['session-1'].items[0].text, '改过的便笺')
+  await act(async () => { recallButton.click() })
+  const blocked = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
+  assert.equal(blocked.sessions['session-1'].items.length, 1, 'a non-empty composer blocks 退回')
+  assert.equal(addField.value, '未发送的草稿', 'the existing draft is left untouched')
+  await act(async () => {
+    valueSetter.call(addField, '')
+    addField.dispatchEvent(new window.Event('input', { bubbles: true }))
+  })
+  await act(async () => { recallButton.click() })
+  await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 40)) })
+  const afterRecall = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
+  assert.equal(afterRecall.sessions['session-1'].items.length, 0, '退回 removes the row')
+  assert.equal(addField.value, '旧便笺', 'the note text lands in the top composer')
+  assert.equal(popover.querySelector('.dsh-an-editInput'), null, 'there is no inline editor')
+  const empty = popover.querySelector('.dsh-an-empty')
+  assert.ok(empty, 'the list falls back to the empty state')
+  assert.match(empty.textContent, /边记摸鱼中\.\./)
+  assert.match(empty.textContent, /趁 agent 工作时，异步记下你的想法/)
+
+  // Submitting the recalled text adds it back as a fresh open note.
+  await act(async () => { popover.querySelector('.dsh-an-addBtn').click() })
+  const afterReturn = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
+  assert.equal(afterReturn.sessions['session-1'].items[0].text, '旧便笺')
+  assert.equal(afterReturn.sessions['session-1'].items[0].done, false)
+  assert.equal(addField.value, '', 'the composer clears after adding the recalled note')
+  await act(async () => { popover.querySelector('.dsh-an-iconBtn[aria-label="退回"]').click() })
+  await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 40)) })
 
   const widthHandle = popover.querySelector('.dsh-an-resizeHandle')
   assert.ok(widthHandle, 'a right-side panel exposes the width handle')
   const widthBefore = Number(window.localStorage.getItem('dsh.aside-note.panel-width')) || 360
   await act(async () => { widthHandle.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })) })
   assert.ok(Number(window.localStorage.getItem('dsh.aside-note.panel-width')) > widthBefore)
-
-  // Delete the last note; the store empties and the panel falls back to the empty state.
-  const deleteButton = popover.querySelector('.dsh-an-iconBtnDanger[aria-label="删除"]')
-  assert.ok(deleteButton, 'the row must offer delete')
-  await act(async () => { deleteButton.click() })
-  const afterDelete = JSON.parse(window.localStorage.getItem('dsh.aside-note'))
-  assert.equal(afterDelete.sessions['session-1'].items.length, 0)
-  const empty = popover.querySelector('.dsh-an-empty')
-  assert.ok(empty, 'the list falls back to the empty state')
-  assert.match(empty.textContent, /边记摸鱼中\.\./)
-  assert.match(empty.textContent, /趁 agent 工作时，异步记下你的想法/)
 
   // Section collapse is remembered.
   await act(async () => { popover.querySelector('.dsh-an-sectionHead .dsh-an-doneToggle').click() })
@@ -539,7 +550,8 @@ test('one workspace shares its notes and forwards into the visible session', asy
   // open; the per-session copies are retired so they cannot reappear later.
   const migrated = JSON.parse(window.localStorage.getItem('dsh.aside-note.drafts'))
   assert.equal(migrated.sessions['ws:ws-1'].add, '会话一的旧草稿')
-  assert.equal(migrated.sessions['ws:ws-1'].edits['seed-1'], '旧编辑草稿')
+  assert.equal(migrated.sessions['ws:ws-1'].edits, undefined,
+    'inline edit drafts are retired instead of being carried into the composer store')
   assert.equal(migrated.sessions['session-1'], undefined, 'the legacy session draft is retired')
   assert.equal(migrated.sessions['session-2'], undefined, 'member-session copies are retired too')
   assert.equal(inputOf(popover).value, '会话一的旧草稿', 'the shared draft starts from the legacy text')
@@ -581,21 +593,6 @@ test('one workspace shares its notes and forwards into the visible session', asy
   await act(async () => { popover.querySelector('[data-scope-mode="workspace"]').click() })
   assert.equal(inputOf(popover).value, '工作区草稿', 'and comes back with the workspace list')
 
-  // An edit draft is kept as well: switching tabs closes the editor, and
-  // reopening the row restores what was typed.
-  const seedRow = [...popover.querySelectorAll('.dsh-an-row')]
-    .find(node => node.querySelector('.dsh-an-text')?.textContent === '会话一的事项')
-  await act(async () => { seedRow.querySelector('button[aria-label="编辑"]').click() })
-  await typeInto(popover.querySelector('.dsh-an-editInput'), '会话一的事项 · 改')
-  await act(async () => { popover.querySelector('[data-scope-mode="session"]').click() })
-  await act(async () => { popover.querySelector('[data-scope-mode="workspace"]').click() })
-  const editRow = [...popover.querySelectorAll('.dsh-an-row')]
-    .find(node => node.querySelector('.dsh-an-text')?.textContent === '会话一的事项')
-  await act(async () => { editRow.querySelector('button[aria-label="编辑"]').click() })
-  assert.equal(popover.querySelector('.dsh-an-editInput').value, '会话一的事项 · 改',
-    'the edit draft survives the scope switch')
-  const editActions = [...popover.querySelectorAll('.dsh-an-editActions .dsh-an-mini')]
-  await act(async () => { editActions[1].click() })
 
   // A note added in session-1 lands in the workspace list, not the session list.
   await typeInto(inputOf(popover), '新增的共享事项')

@@ -22,10 +22,14 @@ export function useComposerDraft({ draftKey, commit, report, sendShortcut }) {
 
   // Opening the panel focuses the composer on pointer devices only: on touch
   // the same focus raises the software keyboard before the user asked for it.
+  const hasFinePointer = () => (
+    typeof window.matchMedia !== 'function' || window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  )
+
   React.useLayoutEffect(() => {
     const node = addRef.current
     if (!node) return
-    if (typeof window.matchMedia === 'function' && !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+    if (!hasFinePointer()) return
     node.focus()
     const end = node.value.length
     try {
@@ -47,6 +51,33 @@ export function useComposerDraft({ draftKey, commit, report, sendShortcut }) {
     }
     setDraft('')
     clearAddDraft(key)
+  }
+
+  /**
+   * Replace the composer with a recalled note and put the caret at its end.
+   *
+   * This is the only text editor for a note: the row leaves the list and its
+   * text lands here, where the user can change it and submit it again.
+   */
+  const recall = text => {
+    const value = String(text || '').slice(0, MAX_TEXT)
+    setDraft(value)
+    saveAddDraft(key, value)
+    window.requestAnimationFrame(() => {
+      const node = addRef.current
+      if (!node) return
+      // Touch keeps its soft keyboard closed until the field itself is tapped.
+      if (hasFinePointer()) {
+        node.focus()
+        const end = node.value.length
+        try {
+          node.setSelectionRange(end, end)
+        } catch {
+          /* selection APIs are best effort */
+        }
+      }
+      resizeAdd(node)
+    })
   }
 
   const insertDraftNewline = node => {
@@ -97,5 +128,5 @@ export function useComposerDraft({ draftKey, commit, report, sendShortcut }) {
     }
   }
 
-  return { draft, addRef, composingRef, add, onDraftChange, onDraftKeyDown }
+  return { draft, addRef, composingRef, add, recall, onDraftChange, onDraftKeyDown }
 }
