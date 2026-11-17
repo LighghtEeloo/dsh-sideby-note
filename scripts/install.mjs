@@ -11,7 +11,7 @@
  *   npx dsh-sideby-note install                     # DSH_PROFILE_DIR, else "desktop"
  *   npx dsh-sideby-note install --profile work      # ~/.dsh/profiles/work (or %USERPROFILE%\.dsh\profiles\work)
  *   npx dsh-sideby-note install --profile-dir <dir> # explicit profile directory
- *   npx dsh-sideby-note install --version 1.0.0    # exact pin instead of ^1.0.0
+ *   npx dsh-sideby-note install --version 0.1.0    # exact pin instead of ^0.1.0
  *   npx dsh-sideby-note install --dry-run          # print the plan, change nothing
  *   npx dsh-sideby-note install --no-install       # edit the manifest only
  *
@@ -24,7 +24,10 @@ import { dirname, join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
 const PACKAGE = 'dsh-sideby-note'
-const DEFAULT_RANGE = '^1.0.0'
+// A caret range never crosses a 0.x minor, so this must move with every
+// 0.x.0 release; `npx dsh-sideby-note install` fetches the latest installer,
+// which then pulls the latest line.
+const DEFAULT_RANGE = '^0.1.0'
 
 const USAGE = `Usage: dsh-sideby-note install [options]
 
@@ -157,7 +160,7 @@ function runInstall(command, commandArgs, cwd, extraEnv) {
 /**
  * Whether the requested range names a prerelease.
  *
- * Prereleases are excluded from the default `^1.0.0` range and reach npmjs
+ * Prereleases are excluded from the default `^0.1.0` range and reach npmjs
  * before the configured mirror, so the package manager gets one retry against
  * npmjs when the mirror has not caught up yet.
  * @param {string} range
