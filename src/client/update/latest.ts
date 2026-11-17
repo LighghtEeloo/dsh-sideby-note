@@ -153,7 +153,7 @@ export function createUpdateProbe(options: UpdateProbeOptions = {}) {
   }
 
   function readNpmVersion(host: string, channel: string): Promise<string | null> {
-    return readJson(`${host}/dsh-aside-note/${channel}`).then(body =>
+    return readJson(`${host}/dsh-sideby-note/${channel}`).then(body =>
       body !== null && typeof body.version === 'string' ? body.version : null,
     )
   }

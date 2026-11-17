@@ -1,5 +1,5 @@
 /**
- * AsideNote browser half.
+ * Sideby Note browser half.
  *
  * The plugin entry: injects the stylesheet, binds the locale namespace and
  * seats the two slots (session capture + frame-wide toast host) plus the
@@ -94,14 +94,14 @@ function apply(ctx: DshClientCtx) {
   // leave it unstyled until the panel had been opened once.
   ctx.effect(() => {
     const style = document.createElement('style')
-    style.dataset.dshPlugin = 'dsh-aside-note'
+    style.dataset.dshPlugin = 'dsh-sideby-note'
     style.textContent = CSS
     document.head.appendChild(style)
     return () => { style.remove() }
-  }, 'dsh-aside-note: styles')
+  }, 'dsh-sideby-note: styles')
 
   if (locale && typeof locale.register === 'function') {
-    ctx.effect(() => locale.register(NS, DICT), 'dsh-aside-note: dictionaries')
+    ctx.effect(() => locale.register(NS, DICT), 'dsh-sideby-note: dictionaries')
   }
 
   const localeId = () => {
@@ -208,11 +208,11 @@ function apply(ctx: DshClientCtx) {
   if (locale && typeof locale.subscribe === 'function') {
     ctx.effect(
       () => locale.subscribe(() => refreshHeaderEntry()),
-      'dsh-aside-note: locale changes',
+      'dsh-sideby-note: locale changes',
     )
   }
 
-  ctx.effect(() => headerEntry.attach(() => closeMemoPopover()), 'dsh-aside-note: right-side entry')
+  ctx.effect(() => headerEntry.attach(() => closeMemoPopover()), 'dsh-sideby-note: right-side entry')
 
   function BoundSessionCapture(props) {
     const sessionId = props.sessionId || ''

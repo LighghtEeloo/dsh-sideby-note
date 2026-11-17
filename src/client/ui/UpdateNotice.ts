@@ -26,7 +26,7 @@ import { reportEvent } from '../rum'
 const h = React.createElement
 
 const NOTES_ID = 'dsh-an-update-notes'
-const UPDATE_PACKAGE = 'dsh-aside-note'
+const UPDATE_PACKAGE = 'dsh-sideby-note'
 
 /** Failure codes the card can explain without echoing the host's message. */
 const FAILURE_COPY: Record<string, string> = {

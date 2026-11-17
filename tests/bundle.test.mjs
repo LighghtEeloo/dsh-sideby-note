@@ -28,7 +28,7 @@ const RUNNING = manifest.version
 // version instead of pinning one shape, which broke every release.
 const CHANNELS = /-(?:alpha|beta|rc)\./.test(RUNNING) ? ['latest', 'next'] : ['latest']
 const REGISTRY_URLS = ['https://registry.npmjs.org', 'https://registry.npmmirror.com']
-  .flatMap(host => CHANNELS.map(channel => `${host}/dsh-aside-note/${channel}`))
+  .flatMap(host => CHANNELS.map(channel => `${host}/dsh-sideby-note/${channel}`))
 // The core only: a prerelease build (1.1.2-beta.1) would otherwise make PATCH NaN.
 const [MAJOR, MINOR, PATCH] = RUNNING.replace(/-.*$/, '').split('.').map(Number)
 const LATEST = `${MAJOR + 1}.0.0`
@@ -89,7 +89,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
 - **旧版本：** 修复了上一个版本的问题。 （#30）
 <!-- app-update-notes:zh:end -->
 `
-  const releaseUrl = version => `https://github.com/Rayle8/dsh-aside-note/releases/tag/v${version}`
+  const releaseUrl = version => `https://github.com/LighghtEeloo/dsh-sideby-note/releases/tag/v${version}`
   const RELEASES = [
     { tag_name: `v${LATEST}`, html_url: releaseUrl(LATEST), body: RELEASE_BODY },
     { tag_name: `v${IN_BETWEEN}`, html_url: releaseUrl(IN_BETWEEN), body: OLDER_BODY },
@@ -119,10 +119,10 @@ test('the built bundle boots, applies, and seats its slots', async t => {
       }
       return json(200, { version: LATEST })
     }
-    if (url === 'https://api.github.com/repos/Rayle8/dsh-aside-note/releases?per_page=50') {
+    if (url === 'https://api.github.com/repos/LighghtEeloo/dsh-sideby-note/releases?per_page=50') {
       return json(200, RELEASES)
     }
-    if (url === '/dsh-aside-note/update/apply' && method === 'POST') {
+    if (url === '/dsh-sideby-note/update/apply' && method === 'POST') {
       hostUpdates += 1
       hostTarget = JSON.parse(init.body).target
       return json(200, {
@@ -142,7 +142,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   window.__ModuleLoader__ = { load: spec => { loaded = spec } }
   window.eval(bundle)
 
-  assert.equal(loaded.id, 'dsh-aside-note')
+  assert.equal(loaded.id, 'dsh-sideby-note')
   const moduleTable = {
     react: React,
     'react-dom': ReactDOM,
@@ -203,7 +203,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   assert.equal(window.localStorage.getItem('dsh.aside-note.send-shortcut'), 'ctrl-enter')
   assert.equal(window.localStorage.getItem('dsh.aside-note.migrated'), null, 'no migration marker is written')
 
-  const style = document.querySelector('style[data-dsh-plugin="dsh-aside-note"]')
+  const style = document.querySelector('style[data-dsh-plugin="dsh-sideby-note"]')
   assert.ok(style, 'the document-level stylesheet must be injected')
   assert.match(style.textContent, /\.dsh-an-popover\{/)
 
@@ -220,7 +220,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   const button = document.querySelector('._headerUtilities > .dsh-an-headerBtn')
   assert.ok(button, 'the header entry must be injected into the host utilities row')
   assert.equal(button.dataset.sessionId, 'session-1')
-  assert.match(button.getAttribute('aria-label'), /旁边记/)
+  assert.match(button.getAttribute('aria-label'), /边记部/)
   // The seeded note is open, so the entry already shows a count.
   assert.equal(button.querySelector('.dsh-an-headerCount').textContent, '1')
 
@@ -228,7 +228,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   await act(async () => { button.click() })
   const popover = document.querySelector('.dsh-an-popover')
   assert.ok(popover, 'clicking the header entry must open the panel')
-  assert.equal(popover.querySelector('.dsh-an-popTitle').textContent, '旁边记', 'the panel title is the product name')
+  assert.equal(popover.querySelector('.dsh-an-popTitle').textContent, '边记部', 'the panel title is the product name')
   const addField = popover.querySelector('.dsh-an-input')
   assert.ok(addField, 'the panel must render the add field')
   assert.equal(addField.getAttribute('placeholder'), '随手记一条', 'the composer uses the finalized placeholder')
@@ -259,8 +259,8 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   assert.equal(popover.dataset.settings, 'true', 'the panel marks the settings state for the layout rules')
   const brand = popover.querySelector('.dsh-an-settingBrand')
   assert.ok(brand, 'About must show the product identity')
-  assert.match(brand.textContent, /旁边记/)
-  assert.match(brand.textContent, /让想法留在对话旁边/)
+  assert.match(brand.textContent, /边记部/)
+  assert.match(brand.textContent, /趁 agent 工作时，异步记下你的想法/)
   const radios = popover.querySelectorAll('input[type="radio"]')
   assert.equal(radios.length, 2)
   await act(async () => { radios[1].click() })
@@ -401,8 +401,8 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   assert.equal(afterDelete.sessions['session-1'].items.length, 0)
   const empty = popover.querySelector('.dsh-an-empty')
   assert.ok(empty, 'the list falls back to the empty state')
-  assert.match(empty.textContent, /旁边还没有记录/)
-  assert.match(empty.textContent, /让想法留在对话旁边/)
+  assert.match(empty.textContent, /边记摸鱼中\.\./)
+  assert.match(empty.textContent, /趁 agent 工作时，异步记下你的想法/)
 
   // Section collapse is remembered.
   await act(async () => { popover.querySelector('.dsh-an-sectionHead .dsh-an-doneToggle').click() })
@@ -419,7 +419,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
 
   await act(async () => { reactRoot.unmount() })
   for (const dispose of disposers) dispose()
-  assert.equal(document.querySelector('style[data-dsh-plugin="dsh-aside-note"]'), null,
+  assert.equal(document.querySelector('style[data-dsh-plugin="dsh-sideby-note"]'), null,
     'the stylesheet must be removed when the plugin is disposed')
   dom.window.close()
 })

@@ -18,16 +18,16 @@ const ORIGIN = { host: '127.0.0.1:61433', origin: 'http://127.0.0.1:61433', 'sec
 
 /** A profile on disk with this package installed at `version`. */
 function makeProfile(t) {
-  const dir = mkdtempSync(join(tmpdir(), 'aside-note-profile-'))
+  const dir = mkdtempSync(join(tmpdir(), 'sideby-note-profile-'))
   t.after(() => rmSync(dir, { recursive: true, force: true }))
   writeFileSync(join(dir, 'package.json'), JSON.stringify({
     name: 'dsh-profile-desktop',
-    dependencies: { 'dsh-aside-note': '1.1.1' },
-    dsh: { profile: { bundles: ['dsh-aside-note'] } },
+    dependencies: { 'dsh-sideby-note': '1.1.1' },
+    dsh: { profile: { bundles: ['dsh-sideby-note'] } },
   }))
-  const installed = join(dir, 'node_modules', 'dsh-aside-note')
+  const installed = join(dir, 'node_modules', 'dsh-sideby-note')
   mkdirSync(installed, { recursive: true })
-  writeFileSync(join(installed, 'package.json'), JSON.stringify({ name: 'dsh-aside-note', version: '1.1.1' }))
+  writeFileSync(join(installed, 'package.json'), JSON.stringify({ name: 'dsh-sideby-note', version: '1.1.1' }))
   return dir
 }
 
@@ -142,7 +142,7 @@ test('a second click during an install is answered busy', async t => {
   assert.equal(settled.status, 502)
   assert.equal(settled.body.code, 'bundle-in-use')
   assert.equal(settled.body.retryable, true)
-  assert.match(settled.body.hint, /^npx -y dsh-aside-note install --version 1\.1\.2 --profile-dir /,
+  assert.match(settled.body.hint, /^npx -y dsh-sideby-note install --version 1\.1\.2 --profile-dir /,
     'a refusal a terminal can get past carries the exact command')
 })
 
@@ -150,8 +150,8 @@ test('the probe reports the profile and refuses a checkout install', async t => 
   const dir = makeProfile(t)
   writeFileSync(join(dir, 'package.json'), JSON.stringify({
     name: 'dsh-profile-desktop',
-    dependencies: { 'dsh-aside-note': 'link:../checkout' },
-    dsh: { profile: { bundles: ['dsh-aside-note'] } },
+    dependencies: { 'dsh-sideby-note': 'link:../checkout' },
+    dsh: { profile: { bundles: ['dsh-sideby-note'] } },
   }))
   const routes = mount(dir, undefined)
   const answer = await call(routes, PROBE_PATH, { method: 'GET' })

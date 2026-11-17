@@ -53,14 +53,14 @@ async function boot(t, apply) {
     if (url.startsWith('https://registry.npmjs.org/')) return json(200, { version: NEXT })
     if (url.startsWith('https://registry.npmmirror.com/')) return json(404, {})
     if (url.startsWith('https://api.github.com/')) return json(200, [])
-    if (url === '/dsh-aside-note/update/apply' && init.method === 'POST') return apply(JSON.parse(init.body))
+    if (url === '/dsh-sideby-note/update/apply' && init.method === 'POST') return apply(JSON.parse(init.body))
     return json(404, {})
   }
 
   let loaded = null
   window.__ModuleLoader__ = { load: spec => { loaded = spec } }
   window.eval(bundle)
-  assert.equal(loaded.id, 'dsh-aside-note')
+  assert.equal(loaded.id, 'dsh-sideby-note')
 
   const moduleTable = {
     react: React,
@@ -136,7 +136,7 @@ const clipboard = window => {
 }
 
 test('a host with no update route hands over the offered version, without touching the market', async t => {
-  const hint = `npx -y --registry=https://registry.npmjs.org/ dsh-aside-note@${NEXT} install --version ${NEXT} --profile-dir "${PROFILE}"`
+  const hint = `npx -y --registry=https://registry.npmjs.org/ dsh-sideby-note@${NEXT} install --version ${NEXT} --profile-dir "${PROFILE}"`
   const { window, act, popover, calls, until, dispose } = await boot(t, () => json(501, {
     ok: false,
     code: 'AUTO_UPDATE_UNAVAILABLE',
@@ -167,7 +167,7 @@ test('a host with no update route hands over the offered version, without touchi
 test('a prerelease host hint without the npmjs pin is replaced by the pinned command', async t => {
   // An older host half pins the version but not the registry. Handing that hint
   // over would let npx fetch the stable installer and miss the prerelease.
-  const stale = `npx -y dsh-aside-note install --version ${NEXT} --profile-dir "${PROFILE}"`
+  const stale = `npx -y dsh-sideby-note install --version ${NEXT} --profile-dir "${PROFILE}"`
   const { act, popover, until, dispose } = await boot(t, () => json(501, {
     ok: false,
     code: 'AUTO_UPDATE_UNAVAILABLE',
@@ -182,7 +182,7 @@ test('a prerelease host hint without the npmjs pin is replaced by the pinned com
 
   assert.ok(!fallback.textContent.includes(stale), 'the stale hint is not rendered verbatim')
   assert.match(fallback.textContent, /--registry=https:\/\/registry\.npmjs\.org\//)
-  assert.match(fallback.textContent, /dsh-aside-note@9\.9\.9-beta\.1/)
+  assert.match(fallback.textContent, /dsh-sideby-note@9\.9\.9-beta\.1/)
   assert.match(fallback.textContent, /--version 9\.9\.9-beta\.1/)
   await dispose()
 })
@@ -203,7 +203,7 @@ test('a host refusal a terminal can get past uses the pinned command', async t =
   // The host sent no hint for this code, so the card pins the offered version
   // itself; a prerelease also names npmjs so npx cannot pick the stable line.
   assert.match(fallback.textContent, /npx -y --registry=https:\/\/registry\.npmjs\.org\//)
-  assert.match(fallback.textContent, new RegExp(`dsh-aside-note@${NEXT.replaceAll('.', '\\.')}`))
+  assert.match(fallback.textContent, new RegExp(`dsh-sideby-note@${NEXT.replaceAll('.', '\\.')}`))
   assert.match(fallback.textContent, new RegExp(`--version ${NEXT.replaceAll('.', '\\.')}`))
   assert.equal(calls.filter(call => call.url.includes('/dsh-market/')).length, 0,
     'the market is never probed')

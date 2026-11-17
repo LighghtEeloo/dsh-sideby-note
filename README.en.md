@@ -1,44 +1,47 @@
-# AsideNote · 旁边记
+# Sideby Note · 边记部
 
-Keep your ideas beside the conversation
+Asynchronously draft your ideas while the agent is working
 
 [中文](README.md) | English
 
-> Product name: **AsideNote** (Chinese name **旁边记**, “keep your ideas beside the conversation”); the package, plugin id and repository are all `dsh-aside-note`.
+> **Personal fork notice:** This is a personal adaptation of [dsh-aside-note](https://github.com/Rayle8/dsh-aside-note) (旁边记 / AsideNote), based and inspired by the original project; most of the text below is preserved from the original README. Main differences from the original:
+>
+> - Display name and copy are **Sideby Note** (边记部); the package name, plugin id and update channel are the fork's `dsh-sideby-note`, installed with `npx dsh-sideby-note install`.
+> - Local storage keys keep the upstream `dsh.aside-note.*` names, so existing notes and settings carry over after the rename.
 
 Jot it down · Open as needed · Tuck it away
 
-AsideNote is a lightweight session notes plugin for DeepSeek Harness (DSH). Keep passing thoughts and follow-ups beside the conversation, bring them back to the chat input when needed, then tuck the panel away and carry on.
+Sideby Note is a lightweight session notes plugin for DeepSeek Harness (DSH). Keep passing thoughts and follow-ups beside the conversation, bring them back to the chat input when needed, then tuck the panel away and carry on.
 
 ## Preview and entry
 
-![AsideNote right-side panel](./docs/assets/preview-right.png)
+![Sideby Note right-side panel](./docs/assets/preview-right.png)
 
 The same panel in the dark theme; every colour comes from DSH theme tokens:
 
-![AsideNote right-side panel, dark](./docs/assets/preview-right-dark.png)
+![Sideby Note right-side panel, dark](./docs/assets/preview-right-dark.png)
 
-An **AsideNote** button at the top right of the conversation, with the open count:
+A **Sideby Note** button at the top right of the conversation, with the open count:
 
-<img src="./docs/assets/preview-badge.png" width="460" alt="AsideNote button at the top right">
+<img src="./docs/assets/preview-badge.png" width="460" alt="Sideby Note button at the top right">
 
 The same button in the dark theme:
 
-<img src="./docs/assets/preview-badge-dark.png" width="460" alt="AsideNote button at the top right, dark">
+<img src="./docs/assets/preview-badge-dark.png" width="460" alt="Sideby Note button at the top right, dark">
 
 Clicking the entry opens a fixed panel on the right. A blank new session has no conversation header yet, so the button sits in the top-right corner beside the right-sidebar control and shows the workspace list only until the first message.
 
 ## Quick install
 
-AsideNote installs into a DSH profile as the npm package `dsh-aside-note`. Pick one: hand the prompt to an agent, or run a single command.
+Sideby Note installs into a DSH profile as the npm package `dsh-sideby-note`. Pick one: hand the prompt to an agent, or run a single command.
 
 ### Install with an agent
 
 Give your agent this block:
 
 ```text
-Install the DSH plugin AsideNote by running: npx -y dsh-aside-note install
-No DSH restart is needed afterwards: the 旁边记 entry is at the top right of the conversation.
+Install the DSH plugin Sideby Note by running: npx -y dsh-sideby-note install
+No DSH restart is needed afterwards: the 边记部 entry is at the top right of the conversation.
 If it is missing, tell me to refresh the Plugins page and switch the plugin off and on once.
 If it says DSH or a profile cannot be found, tell me to install and start the DeepSeek Harness
 client first and retry; do not clone the repo, hand-assemble dependencies, or restart DSH.
@@ -47,26 +50,26 @@ client first and retry; do not clone the repo, hand-assemble dependencies, or re
 ### Install from the command line
 
 ```bash
-npx dsh-aside-note install
+npx dsh-sideby-note install
 ```
 
-The installer pulls this package from npm, finds the DSH profile (it honours `DSH_PROFILE_DIR`, otherwise `~/.dsh/profiles/desktop`), backs up `package.json` and `pnpm-lock.yaml` into `.local-backup/`, adds the dependency, appends `dsh-aside-note` to `dsh.profile.bundles`, runs `pnpm install` **through the node and pnpm DeepSeek Harness ships** (falling back to the pnpm on PATH, and `DSH_RUNTIME_DIR` pins a runtime) and finally verifies the installed `client/client.js`. The host's own toolchain keeps the profile's pnpm store in step with the host — a profile written by another pnpm major answers `ERR_PNPM_UNEXPECTED_STORE` on the host's next install.
+The installer pulls this package from npm, finds the DSH profile (it honours `DSH_PROFILE_DIR`, otherwise `~/.dsh/profiles/desktop`), backs up `package.json` and `pnpm-lock.yaml` into `.local-backup/`, adds the dependency, appends `dsh-sideby-note` to `dsh.profile.bundles`, runs `pnpm install` **through the node and pnpm DeepSeek Harness ships** (falling back to the pnpm on PATH, and `DSH_RUNTIME_DIR` pins a runtime) and finally verifies the installed `client/client.js`. The host's own toolchain keeps the profile's pnpm store in step with the host — a profile written by another pnpm major answers `ERR_PNPM_UNEXPECTED_STORE` on the host's next install.
 
 ```bash
-npx dsh-aside-note install --profile work    # pick a profile
-npx dsh-aside-note install --dry-run         # print the plan, write nothing
-npx dsh-aside-note install --version 1.0.0   # pin the version instead of ^1.0.0
+npx dsh-sideby-note install --profile work    # pick a profile
+npx dsh-sideby-note install --dry-run         # print the plan, write nothing
+npx dsh-sideby-note install --version 1.0.0   # pin the version instead of ^1.0.0
 ```
 
-It is safe to re-run. No restart is needed: DSH re-composes the profile within about a second, and the 旁边记 entry appears at the top right of the conversation. If it does not, refresh the sidebar **Plugins** page and toggle the plugin off and on once — the running host recomposes and the entry appears.
+It is safe to re-run. No restart is needed: DSH re-composes the profile within about a second, and the 边记部 entry appears at the top right of the conversation. If it does not, refresh the sidebar **Plugins** page and toggle the plugin off and on once — the running host recomposes and the entry appears.
 
-To uninstall, drop `dsh-aside-note` from `dsh.profile.bundles`, run `pnpm remove dsh-aside-note` in the profile directory, and no restart is needed: the entry disappears right away, and if the **Plugins** page still lists it, refresh that page.
+To uninstall, drop `dsh-sideby-note` from `dsh.profile.bundles`, run `pnpm remove dsh-sideby-note` in the profile directory, and no restart is needed: the entry disappears right away, and if the **Plugins** page still lists it, refresh that page.
 
-## Why AsideNote
+## Why Sideby Note
 
 Working with AI often brings up things you want to revisit: a detail to change later, a result to double-check, or an idea to explore next.
 
-Sending them straight into the conversation can interrupt the task at hand. Writing them somewhere else means finding them again later. AsideNote keeps them beside the conversation so you can jot them down and carry on.
+Sending them straight into the conversation can interrupt the task at hand. Writing them somewhere else means finding them again later. Sideby Note keeps them beside the conversation so you can jot them down and carry on.
 
 A few small tasks should not need a whole management system. Capture a thought, look back when you need it, and let it go when you are done. Open the panel on your terms and tuck it away afterward, with little interruption to the work at hand.
 
@@ -74,7 +77,7 @@ A few small tasks should not need a whole management system. Capture a thought, 
 
 ### Capture it and keep going
 
-Click the **AsideNote** button at the top right of the conversation to open the right-side panel. Record tasks, ideas, and details to revisit. The button shows the unfinished count; check off each item as you finish it.
+Click the **Sideby Note** button at the top right of the conversation to open the right-side panel. Record tasks, ideas, and details to revisit. The button shows the unfinished count; check off each item as you finish it.
 
 ### Keep it in the workspace and pick it up later
 
@@ -94,7 +97,7 @@ Click a note's forward button to append it to the current chat input as a list i
 
 > Notes are stored in the current browser and do not sync across devices or browsers. Clearing site data removes them. See [Where data lives](#where-data-lives).
 
-[Quick install](#quick-install) · [Feedback and issues](https://github.com/Rayle8/dsh-aside-note/issues)
+[Quick install](#quick-install) · [Feedback and issues](https://github.com/LighghtEeloo/dsh-sideby-note/issues)
 
 ## Features
 
@@ -166,7 +169,7 @@ Feedback reuses product surfaces too: copy, forward, delete, clear-completed, an
 
 ## Usage
 
-1. Click the **AsideNote** button at the top right of the conversation to open the right-side panel. Its badge shows the unfinished count when there are open notes; the **Workspace / Session** switch in the panel header moves between the whole workspace and the current conversation.
+1. Click the **Sideby Note** button at the top right of the conversation to open the right-side panel. Its badge shows the unfinished count when there are open notes; the **Workspace / Session** switch in the panel header moves between the whole workspace and the current conversation.
 2. Write one concrete follow-up in the panel and use your configured add shortcut or click **Add**.
 3. When you are ready to continue, click the note's forward button to append it to the chat input, then review and send it yourself.
 4. Click the circle to mark it complete; expand **Completed** to look back.
@@ -174,7 +177,7 @@ Feedback reuses product surfaces too: copy, forward, delete, clear-completed, an
 
 ## Where data lives
 
-Session notes live in the browser's `localStorage` under `dsh.aside-note`, in the original v1 shape:
+Session notes live in the browser's `localStorage` under `dsh.aside-note` — the upstream key name, kept so data already in the browser loads after the package rename — in the original v1 shape:
 
 ```json
 {
@@ -212,6 +215,7 @@ Unsaved add/edit drafts live under `dsh.aside-note.drafts`: sessions in one work
 Therefore:
 
 - Refreshing, restarting DSH, or switching sessions keeps the records.
+- Notes already stored by the upstream package load without a migration.
 - Nothing is written into the project or synced to another machine/browser.
 - Clearing site data clears the notes.
 - Reading old data never rewrites the shape of `dsh.aside-note`; workspace lists are read from `dsh.aside-note.workspaces`, and the first visit to a workspace folds its member-session notes in once. Keys like `dsh.aside-notes.*` from earlier builds are not read. If your data still sits under the old `dsh.aside-notes.*.v2` keys, rename them to the matching `dsh.aside-note.*` keys and reload.
@@ -252,11 +256,11 @@ To run the checkout inside DSH, link it into a profile (replace `<path-to-repo>`
 ```json
 {
   "dependencies": {
-    "dsh-aside-note": "link:<path-to-repo>"
+    "dsh-sideby-note": "link:<path-to-repo>"
   },
   "dsh": {
     "profile": {
-      "bundles": ["dsh-aside-note"]
+      "bundles": ["dsh-sideby-note"]
     }
   }
 }
@@ -267,7 +271,7 @@ After adding the bundle row, toggle it off/on in the sidebar **Plugins** page to
 The entry is `src/client/index.ts`, which exports `apply(ctx)`; tsdown wraps it in DSH's loader shell:
 
 ```js
-window.__ModuleLoader__.load({ id: 'dsh-aside-note', factory: (require) => { … } })
+window.__ModuleLoader__.load({ id: 'dsh-sideby-note', factory: (require) => { … } })
 ```
 
 The artifact is committed: CI rebuilds it and fails when `client/` does not match, so do not edit `client/client.js` by hand.
@@ -291,11 +295,11 @@ Branching, versioning and the release checklist: [release and versioning](./docs
 
 Loaded in an isolated DSH profile and driven through headless Chrome:
 
-- the **AsideNote** button appears at the top right, with the open count on its badge;
+- the **Sideby Note** button appears at the top right, with the open count on its badge;
 - clicking it opens the panel on the right, aligned with the entry;
 - adding updates both the badge and the panel count;
 - complete, edit, copy, forward, delete, and clear-completed work in the panel;
 - records survive a refresh, and the panel header switches between the workspace list and the current session's list;
 - the npmjs → npmmirror → GitHub Release fallback, the one-hour cache, and the version comparison are covered by the contract tests, and the jsdom test drives the visible update notice; the live notice needs a published npm package or a GitHub Release.
 
-`npm run check` passes: lint, typecheck, build, and 95 tests, including jsdom integration tests that drive the whole panel, expand the release notes, run an update through a mocked market, and check the busy/no-market fallback.
+`npm run check` passes: lint, typecheck, build, and 125 tests, including jsdom integration tests that drive the whole panel, expand the release notes, run an update through the host route, and check the busy and no-route fallbacks.

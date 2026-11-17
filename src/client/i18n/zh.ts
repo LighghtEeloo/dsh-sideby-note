@@ -1,9 +1,9 @@
 /** Chinese copy — the single source of truth for the message keys. */
 export const zh = {
-  "nav.label": "旁边记",
-  "title": "旁边记",
-  "popover.title": "旁边记",
-  "popover.close": "关闭旁边记",
+  "nav.label": "边记部",
+  "title": "边记部",
+  "popover.title": "边记部",
+  "popover.close": "关闭边记部",
   "popover.count": "{open} 未完成 · {total} 条",
   "popover.completed": "已完成",
   "popover.clearCancel": "取消",
@@ -17,12 +17,12 @@ export const zh = {
   "scope.workspaceHint": "切换到工作区清单，所有会话共享",
   "scope.sessionHint": "切换到会话清单，只属于当前会话",
   "scope.newSessionHint": "当前只能记到工作区，会话开始后可切换",
-  "popover.empty.title": "旁边还没有记录",
-  "popover.empty.body": "让想法留在对话旁边",
+  "popover.empty.title": "边记摸鱼中..",
+  "popover.empty.body": "趁 agent 工作时，异步记下你的想法",
   "settings.open": "设置",
   "settings.title": "设置",
   "settings.about": "关于",
-  "settings.tagline": "让想法留在对话旁边",
+  "settings.tagline": "趁 agent 工作时，异步记下你的想法",
   "settings.version": "版本",
   "settings.author": "作者",
   "settings.project": "源代码",
@@ -63,13 +63,13 @@ export const zh = {
   "time.createdDone": "{created}创建，{completed}完成",
   "storage.failed": "本地存储不可用，改动不会保留",
   "forward.prefix": "完成以下任务：",
-  "resize.width": "调整旁边记宽度",
-  "resize.height": "调整旁边记高度",
+  "resize.width": "调整边记部宽度",
+  "resize.height": "调整边记部高度",
   "resize.hint": "拖动调整，双击复位",
-  "dock.open": "打开旁边记",
+  "dock.open": "打开边记部",
   "dock.count": "{n} 项未完成",
-  "header.tooltip": "旁边记 · {n} 项未完成",
-  "header.tooltipEmpty": "旁边记",
+  "header.tooltip": "边记部 · {n} 项未完成",
+  "header.tooltipEmpty": "边记部",
   "toast.copied": "已复制",
   "toast.copyFailed": "复制失败，请重试",
   "toast.forwarded": "已转发到会话",
@@ -117,7 +117,7 @@ export const zh = {
   "update.autoUnavailable": "这台宿主没有可用的自动更新通道；请用下面的命令",
   "update.manualHint": "也可以直接更新：在终端执行 {command}，或到「插件」页更新，装好后刷新页面即可",
   "update.copyPrompt": "拷贝更新提示词",
-  "update.prompt": "帮我更新 DSH 插件 AsideNote（旁边记）到 {version}：在终端执行 {command}，装好后刷新页面。"
+  "update.prompt": "帮我更新 DSH 插件 Sideby Note（边记部）到 {version}：在终端执行 {command}，装好后刷新页面。"
 } as const
 
 export type MessageKey = keyof typeof zh

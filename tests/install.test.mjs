@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const SCRIPT = fileURLToPath(new URL('../scripts/install.mjs', import.meta.url))
 
 function makeProfile(manifest, t) {
-  const dir = mkdtempSync(join(tmpdir(), 'asidenote-install-'))
+  const dir = mkdtempSync(join(tmpdir(), 'sidebynote-install-'))
   t.after(() => rmSync(dir, { recursive: true, force: true }))
   writeFileSync(join(dir, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
   return dir
@@ -37,7 +37,7 @@ function runRaw(args, env) {
  * for. It keeps the network out of the test.
  */
 function fakePnpm(t) {
-  const dir = mkdtempSync(join(tmpdir(), 'asidenote-pnpm-'))
+  const dir = mkdtempSync(join(tmpdir(), 'sidebynote-pnpm-'))
   t.after(() => rmSync(dir, { recursive: true, force: true }))
   const bin = join(dir, 'pnpm')
   writeFileSync(bin, installScript())
@@ -50,9 +50,9 @@ function installScript() {
   return [
     '#!/bin/sh',
     'set -e',
-    'mkdir -p node_modules/dsh-aside-note/client',
-    `printf '{"version":"1.0.0"}' > node_modules/dsh-aside-note/package.json`,
-    `printf '// bundle\\n' > node_modules/dsh-aside-note/client/client.js`,
+    'mkdir -p node_modules/dsh-sideby-note/client',
+    `printf '{"version":"1.0.0"}' > node_modules/dsh-sideby-note/package.json`,
+    `printf '// bundle\\n' > node_modules/dsh-sideby-note/client/client.js`,
     '',
   ].join('\n')
 }
@@ -63,7 +63,7 @@ function installScript() {
  * install, so the test can tell which toolchain the installer picked.
  */
 function fakeRuntime(t) {
-  const root = mkdtempSync(join(tmpdir(), 'asidenote-runtime-'))
+  const root = mkdtempSync(join(tmpdir(), 'sidebynote-runtime-'))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   const node = join(root, 'primary-runtime', 'dependencies', 'node', 'bin', 'node')
   const pnpm = join(root, 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs')
@@ -77,7 +77,7 @@ function fakeRuntime(t) {
 
 /** A runtime directory that does not contain a runtime, to pin the PATH path. */
 function emptyRuntime(t) {
-  const root = mkdtempSync(join(tmpdir(), 'asidenote-noruntime-'))
+  const root = mkdtempSync(join(tmpdir(), 'sidebynote-noruntime-'))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   return root
 }
@@ -96,11 +96,11 @@ test('a fresh profile gets the dependency and the bundle line', (t) => {
   assert.equal(result.status, 0, result.stderr)
 
   const manifest = manifestOf(dir)
-  assert.equal(manifest.dependencies['dsh-aside-note'], '^1.0.0')
+  assert.equal(manifest.dependencies['dsh-sideby-note'], '^1.0.0')
   assert.deepEqual(manifest.dsh.profile.bundles, [
     '@deepseek-ai/dsh-base',
     '@deepseek-ai/dsh-web-app',
-    'dsh-aside-note',
+    'dsh-sideby-note',
   ])
   assert.ok(existsSync(join(dir, '.local-backup')), 'the manifest is backed up before it is edited')
 })
@@ -122,10 +122,10 @@ test(
     const result = spawnSync(process.execPath, [SCRIPT, '--profile-dir', dir], { encoding: 'utf8', env })
 
     assert.equal(result.status, 0, result.stderr)
-    assert.match(result.stdout, /installed: dsh-aside-note@1\.0\.0/)
+    assert.match(result.stdout, /installed: dsh-sideby-note@1\.0\.0/)
     assert.match(result.stdout, /After install/)
     assert.match(result.stdout, /Plugins page/)
-    assert.match(result.stdout, /旁边记/)
+    assert.match(result.stdout, /边记部/)
     assert.match(result.stdout, /off\s+and on once/)
     // The DSH client has no page reload; the entry is expected right after install.
     assert.doesNotMatch(result.stdout, /reload the page/i)
@@ -164,7 +164,7 @@ test(
   { skip: process.platform === 'win32' && 'the stand-in node is a POSIX shell script' },
   (t) => {
     const dir = makeProfile(structuredClone(BASE), t)
-    const root = mkdtempSync(join(tmpdir(), 'asidenote-prerelease-runtime-'))
+    const root = mkdtempSync(join(tmpdir(), 'sidebynote-prerelease-runtime-'))
     t.after(() => rmSync(root, { recursive: true, force: true }))
     const node = join(root, 'primary-runtime', 'dependencies', 'node', 'bin', 'node')
     const pnpm = join(root, 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs')
@@ -179,9 +179,9 @@ test(
       '  *" --registry=https://registry.npmjs.org/"*) ;;',
       '  *) printf "[ERR_PNPM_NO_MATCHING_VERSION] No matching version found\\n" >&2; exit 1 ;;',
       'esac',
-      'mkdir -p node_modules/dsh-aside-note/client',
-      `printf '{"version":"1.1.2-beta.7"}' > node_modules/dsh-aside-note/package.json`,
-      `printf '// bundle\\n' > node_modules/dsh-aside-note/client/client.js`,
+      'mkdir -p node_modules/dsh-sideby-note/client',
+      `printf '{"version":"1.1.2-beta.7"}' > node_modules/dsh-sideby-note/package.json`,
+      `printf '// bundle\\n' > node_modules/dsh-sideby-note/client/client.js`,
       '',
     ].join('\n'))
     chmodSync(node, 0o755)
@@ -201,25 +201,25 @@ test(
     assert.equal(invocations.length, 2, 'one miss, one npmjs retry')
     assert.doesNotMatch(invocations[0], /--registry=/)
     assert.match(invocations[1], /--registry=https:\/\/registry\.npmjs\.org\//)
-    assert.equal(manifestOf(dir).dependencies['dsh-aside-note'], '1.1.2-beta.7')
-    assert.match(result.stdout, /installed: dsh-aside-note@1\.1\.2-beta\.7/)
+    assert.equal(manifestOf(dir).dependencies['dsh-sideby-note'], '1.1.2-beta.7')
+    assert.match(result.stdout, /installed: dsh-sideby-note@1\.1\.2-beta\.7/)
   },
 )
 
 test('re-running is idempotent and keeps the existing bundle order', (t) => {
   const manifest = structuredClone(BASE)
-  manifest.dependencies['dsh-aside-note'] = '~0.9.9'
-  manifest.dsh.profile.bundles.splice(1, 0, 'dsh-aside-note')
+  manifest.dependencies['dsh-sideby-note'] = '~0.9.9'
+  manifest.dsh.profile.bundles.splice(1, 0, 'dsh-sideby-note')
   const dir = makeProfile(manifest, t)
 
   assert.equal(runInstaller(dir, ['--no-install']).status, 0)
   assert.equal(runInstaller(dir, ['--no-install']).status, 0)
 
   const after = manifestOf(dir)
-  assert.equal(after.dependencies['dsh-aside-note'], '^1.0.0')
+  assert.equal(after.dependencies['dsh-sideby-note'], '^1.0.0')
   assert.deepEqual(after.dsh.profile.bundles, [
     '@deepseek-ai/dsh-base',
-    'dsh-aside-note',
+    'dsh-sideby-note',
     '@deepseek-ai/dsh-web-app',
   ])
 })
@@ -239,7 +239,7 @@ test('--version writes the exact range it was given', (t) => {
   const dir = makeProfile(structuredClone(BASE), t)
 
   assert.equal(runInstaller(dir, ['--no-install', '--version', '2.0.1']).status, 0)
-  assert.equal(manifestOf(dir).dependencies['dsh-aside-note'], '2.0.1')
+  assert.equal(manifestOf(dir).dependencies['dsh-sideby-note'], '2.0.1')
 })
 
 test('a directory that is not a DSH profile is refused untouched', (t) => {
@@ -254,7 +254,7 @@ test('a directory that is not a DSH profile is refused untouched', (t) => {
 })
 
 test('a missing profile points at --profile instead of failing obscurely', (t) => {
-  const dir = join(mkdtempSync(join(tmpdir(), 'asidenote-missing-')), 'nope')
+  const dir = join(mkdtempSync(join(tmpdir(), 'sidebynote-missing-')), 'nope')
   t.after(() => rmSync(dirname(dir), { recursive: true, force: true }))
 
   const result = runInstaller(dir)
@@ -263,7 +263,7 @@ test('a missing profile points at --profile instead of failing obscurely', (t) =
 })
 
 test('a machine without DSH is told to install the client first', (t) => {
-  const home = mkdtempSync(join(tmpdir(), 'asidenote-home-'))
+  const home = mkdtempSync(join(tmpdir(), 'sidebynote-home-'))
   t.after(() => rmSync(home, { recursive: true, force: true }))
   const env = { ...process.env, DSH_HOME: home }
   delete env.DSH_PROFILE_DIR

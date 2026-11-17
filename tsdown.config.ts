@@ -1,5 +1,5 @@
 /**
- * Builds the browser bundle for AsideNote.
+ * Builds the browser bundle for Sideby Note.
  *
  * The shell loads a `dsh.client` package through its `./client` export as a
  * classic script: `window.__ModuleLoader__.load({ id, factory })`, where the
