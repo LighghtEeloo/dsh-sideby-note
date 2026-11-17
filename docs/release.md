@@ -44,12 +44,14 @@ git push -u origin feat/xxx
 
 | 变更 | 版本 |
 | --- | --- |
-| 修复、文档、内部整理 | `0.9.x` |
+| 修复、文档、内部整理 | `0.1.x` |
 | 新功能、兼容性增强 | `0.x.0` |
 | 破坏性变更（存储键、插件 id、DSH 兼容范围） | `1.0.0` |
-| 预发布 | `0.10.0-beta.1` |
+| 预发布 | `0.2.0-beta.1` |
 
-预发布 tag 形如 `v0.10.0-beta.1`：workflow 会发布到 npm 的 `next` dist-tag，并把 GitHub Release 标记为 prerelease，不会影响稳定用户的更新提示。
+`dsh-sideby-note` 从 **0.1.0** 起走自己的 0.x 线；更早的版本属于上游 `dsh-aside-note`，只作历史保留。caret 范围跨不过 0.x 的 minor，所以每次发 `0.x.0` 都要把 `scripts/install.mjs` 的 `DEFAULT_RANGE` 一并改成新的 `^0.x.0`——`npx dsh-sideby-note install` 取到的总是最新安装器，新用户因此会装上最新一行。
+
+预发布 tag 形如 `v0.2.0-beta.1`：workflow 会发布到 npm 的 `next` dist-tag，并把 GitHub Release 标记为 prerelease，不会影响稳定用户的更新提示。
 
 ## 发布步骤
 
@@ -59,11 +61,11 @@ git push -u origin feat/xxx
 # 0. 发版前先按截图 SOP 重拍并提交（docs: reshoot …），让 release 提交带上新图
 # 1. 确认 next-released 下已经写好本次要发布的内容
 # 2. 一条命令完成版本号、CHANGELOG、检查、提交和 tag
-npm run release -- 0.10.0
+npm run release -- 0.2.0
 
 # 3. 推送 main 与 tag；tag 触发 npm 发布和 GitHub Release
 git push origin main
-git push origin v0.10.0
+git push origin v0.2.0
 ```
 
 `npm run release -- <version>` 会：
@@ -74,9 +76,9 @@ git push origin v0.10.0
 4. 运行 `npm run check`，确认 lint、类型、测试和构建产物都一致；
 5. 提交 `release: <version>` 并打 `v<version>` tag，**不自动 push**。
 
-预发布同样适用：`npm run release -- 0.10.0-beta.1` 会得到 `v0.10.0-beta.1` tag，workflow 自动发到 npm 的 `next` dist-tag。
+预发布同样适用：`npm run release -- 0.2.0-beta.1` 会得到 `v0.2.0-beta.1` tag，workflow 自动发到 npm 的 `next` dist-tag。
 
-只想先看改动、不提交时用 `npm run release -- 0.10.0 --dry-run`：会改文件并跑检查，但不 commit、不打 tag，之后用 `git restore .` 丢弃。
+只想先看改动、不提交时用 `npm run release -- 0.2.0 --dry-run`：会改文件并跑检查，但不 commit、不打 tag，之后用 `git restore .` 丢弃。
 
 ## 自动发布链路
 
@@ -119,7 +121,7 @@ Release 正文由 [tools/release/notes.mjs](../tools/release/notes.mjs) 从 `CHA
 - 本地预览：
 
   ```bash
-  node tools/release/notes.mjs --version 1.0.0 --tag v1.0.0 --prev v0.9.10
+  node tools/release/notes.mjs --version 0.1.0 --tag v0.1.0
   ```
 
   再加 `--out notes.md` 可写到文件。`tests/release-notes-build.test.mjs` 会同时校验发布页正文与面板解析结果，防止两边漂移。
@@ -150,10 +152,10 @@ npx -y npm@11.21.1 trust github dsh-sideby-note \
 ```bash
 npm view dsh-sideby-note version dist-tags --registry=https://registry.npmjs.org/
 gh run list -R LighghtEeloo/dsh-sideby-note -L 3
-gh release view v1.0.0 -R LighghtEeloo/dsh-sideby-note
+gh release view v0.1.0 -R LighghtEeloo/dsh-sideby-note
 ```
 
-再在一个临时目录 `npm install dsh-sideby-note@1.0.0`，或在测试 profile 里加载，确认 bundle 能启动。
+再在一个临时目录 `npm install dsh-sideby-note@0.1.0`，或在测试 profile 里加载，确认 bundle 能启动。
 
 ## 更新提示的耦合
 
@@ -161,16 +163,16 @@ gh release view v1.0.0 -R LighghtEeloo/dsh-sideby-note
 
 1. **npm（或 GitHub Release）有新版本**：版本号来自 npm，npm 不可用时回退到 npmmirror，再回退到 GitHub 最新 Release。
 2. **对应的 GitHub Release 存在**：面板读取 `releases?per_page=50`，取出版本高于本地、且不高于最新版的 Release 正文；只打 tag 不建 Release 时列表为空，卡片会退化为「暂无更新说明 + 完整更新说明链接」。feed 不可用时回退到 `releases/tags/v<最新版本>` 单条。workflow 已经自动创建 Release 并上传 tgz。
-3. **Release 正文带 `app-update-notes` 标记**：没有标记的旧版本在该版本条目内提示「暂无更新说明」，完整说明链接仍然可用；从 1.0.0 起由生成器保证标记存在。
+3. **Release 正文带 `app-update-notes` 标记**：没有标记的旧版本在该版本条目内提示「暂无更新说明」，完整说明链接仍然可用；从本包首版 0.1.0 起由生成器保证标记存在。
 4. **多版本区间**：本地与最新版之间跨多个版本时，面板按版本从新到旧逐条展示，最新一条默认展开、其余折叠；草稿和预发布被剔除，最多 6 条，更多时给出 releases 列表链接。
 
 `releases/latest` 会跳过 prerelease，所以预发布不会触发稳定用户的提示。手动补建 Release 时，建议直接用生成器，避免漏掉标记：
 
 ```bash
-node tools/release/notes.mjs --version 1.0.0 --tag v1.0.0 --prev v0.9.10 --out notes.md
-gh release create v1.0.0 --verify-tag --title "边记部 1.0.0" --notes-file notes.md
+node tools/release/notes.mjs --version 0.1.0 --tag v0.1.0 --out notes.md
+gh release create v0.1.0 --verify-tag --title "边记部 0.1.0" --notes-file notes.md
 npm pack --pack-destination dist
-gh release upload v1.0.0 dist/dsh-sideby-note-1.0.0.tgz --clobber
+gh release upload v0.1.0 dist/dsh-sideby-note-0.1.0.tgz --clobber
 ```
 
 ## 应用内更新的路径与兜底

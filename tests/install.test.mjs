@@ -51,7 +51,7 @@ function installScript() {
     '#!/bin/sh',
     'set -e',
     'mkdir -p node_modules/dsh-sideby-note/client',
-    `printf '{"version":"1.0.0"}' > node_modules/dsh-sideby-note/package.json`,
+    `printf '{"version":"0.1.0"}' > node_modules/dsh-sideby-note/package.json`,
     `printf '// bundle\\n' > node_modules/dsh-sideby-note/client/client.js`,
     '',
   ].join('\n')
@@ -96,7 +96,7 @@ test('a fresh profile gets the dependency and the bundle line', (t) => {
   assert.equal(result.status, 0, result.stderr)
 
   const manifest = manifestOf(dir)
-  assert.equal(manifest.dependencies['dsh-sideby-note'], '^1.0.0')
+  assert.equal(manifest.dependencies['dsh-sideby-note'], '^0.1.0')
   assert.deepEqual(manifest.dsh.profile.bundles, [
     '@deepseek-ai/dsh-base',
     '@deepseek-ai/dsh-web-app',
@@ -122,7 +122,7 @@ test(
     const result = spawnSync(process.execPath, [SCRIPT, '--profile-dir', dir], { encoding: 'utf8', env })
 
     assert.equal(result.status, 0, result.stderr)
-    assert.match(result.stdout, /installed: dsh-sideby-note@1\.0\.0/)
+    assert.match(result.stdout, /installed: dsh-sideby-note@0\.1\.0/)
     assert.match(result.stdout, /After install/)
     assert.match(result.stdout, /Plugins page/)
     assert.match(result.stdout, /边记部/)
@@ -216,7 +216,7 @@ test('re-running is idempotent and keeps the existing bundle order', (t) => {
   assert.equal(runInstaller(dir, ['--no-install']).status, 0)
 
   const after = manifestOf(dir)
-  assert.equal(after.dependencies['dsh-sideby-note'], '^1.0.0')
+  assert.equal(after.dependencies['dsh-sideby-note'], '^0.1.0')
   assert.deepEqual(after.dsh.profile.bundles, [
     '@deepseek-ai/dsh-base',
     'dsh-sideby-note',

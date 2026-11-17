@@ -60,7 +60,7 @@ The installer pulls this package from npm, finds the DSH profile (it honours `DS
 ```bash
 npx dsh-sideby-note install --profile work    # pick a profile
 npx dsh-sideby-note install --dry-run         # print the plan, write nothing
-npx dsh-sideby-note install --version 1.0.0   # pin the version instead of ^1.0.0
+npx dsh-sideby-note install --version 0.1.0   # pin the version instead of ^0.1.0
 ```
 
 It is safe to re-run. No restart is needed: DSH re-composes the profile within about a second, and the 边记部 entry appears at the top right of the conversation. If it does not, refresh the sidebar **Plugins** page and toggle the plugin off and on once — the running host recomposes and the entry appears.

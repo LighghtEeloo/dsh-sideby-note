@@ -60,7 +60,7 @@ npx dsh-sideby-note install
 ```bash
 npx dsh-sideby-note install --profile work    # 指定 profile
 npx dsh-sideby-note install --dry-run         # 只打印计划，不改任何文件
-npx dsh-sideby-note install --version 1.0.0   # 固定版本，而不是 ^1.0.0
+npx dsh-sideby-note install --version 0.1.0   # 固定版本，而不是 ^0.1.0
 ```
 
 重复执行是幂等的。装完不需要重启 DSH：profile 会在约 1 秒内重新组合，安装后会话右上角即可看到「边记部」入口。如果入口没有出现，到侧边栏「插件」页刷新，把它关闭再开启一次，运行中的 Host 会重新组合，入口随即可见。
