@@ -5,7 +5,6 @@ import { appendToConversation } from '../domain/forward'
 import { copyText } from '../domain/clipboard'
 import { metaLabel } from '../domain/items'
 import { IconCheck, IconCopy, IconForward, IconPencil, IconTrash, withTooltip } from './primitives'
-import { reportEvent } from '../rum'
 
 const h = React.createElement
 
@@ -54,7 +53,6 @@ export function TodoRow(props) {
     }
     // Remember the forward so the button keeps its check after a reopen.
     if (onForwarded) onForwarded(item)
-    reportEvent('note_forwarded', { ext1: props.scopeKind })
     if (onToast) onToast('forwarded')
   }
 

@@ -388,36 +388,6 @@ test('runtime fallbacks land on English, never Chinese', () => {
   assert.match(i18n, /locale === boundService/)
 })
 
-test('the analytics switch names the platform, the purpose and the limits', () => {
-  const dict = readDict()
-  assert.equal(dict.zh['settings.analytics'], '匿名功能统计')
-  assert.equal(dict.en['settings.analytics'], 'Anonymous feature statistics')
-  // The copy leads with who measures what and why, then states the limits in
-  // plain language instead of a bare "anonymous statistics" label.
-  assert.match(dict.zh['settings.analyticsHint'], /腾讯云可观测平台/)
-  assert.match(dict.zh['settings.analyticsHint'], /常用功能/)
-  assert.match(dict.zh['settings.analyticsHint'], /容易卡住/)
-  assert.match(dict.zh['settings.analyticsHint'], /操作类型/)
-  assert.match(dict.zh['settings.analyticsHint'], /匿名访客 ID/)
-  assert.match(dict.zh['settings.analyticsHint'], /网络、地域、设备类型/)
-  assert.match(dict.zh['settings.analyticsHint'], /不读取便笺、对话或账号信息/)
-  assert.match(dict.zh['settings.analyticsHint'], /插件版本/)
-  assert.match(dict.zh['settings.analyticsHint'], /关闭后不再上报/)
-  // The SDK also collects basic environment metadata, so the copy must not
-  // claim an exclusive "only these fields" list.
-  assert.doesNotMatch(dict.zh['settings.analyticsHint'], /只记录|仅记录/)
-  assert.match(dict.en['settings.analyticsHint'], /Tencent Cloud Observability Platform/)
-  assert.match(dict.en['settings.analyticsHint'], /which features are used/)
-  assert.match(dict.en['settings.analyticsHint'], /get stuck/)
-  assert.match(dict.en['settings.analyticsHint'], /reports include/)
-  assert.match(dict.en['settings.analyticsHint'], /anonymous visitor ID/)
-  assert.match(dict.en['settings.analyticsHint'], /network, region and device type/)
-  assert.match(dict.en['settings.analyticsHint'], /the plugin version/)
-  assert.match(dict.en['settings.analyticsHint'], /never notes, conversations or account details/)
-  assert.match(dict.en['settings.analyticsHint'], /stops all further reporting/)
-  assert.doesNotMatch(dict.en['settings.analyticsHint'], /only the action type/)
-})
-
 test('documentation and preview assets are present', () => {
   const previews = [
     'docs/assets/preview-badge.png',

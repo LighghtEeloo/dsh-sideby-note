@@ -26,7 +26,6 @@ import { useListEdge } from './useListEdge'
 import { useOutsideDismiss } from './useOutsideDismiss'
 import { saveEditDraft } from '../storage/drafts'
 import { compareDoneItems } from '../domain/items'
-import { reportEvent } from '../rum'
 
 import { TodoRow } from './TodoRow'
 import { PanelHead } from './PanelHead'
@@ -96,8 +95,6 @@ export function MemoPopover(props) {
     changeForwardPrefix,
     resetForwardPrefix,
     prefixRef,
-    analyticsEnabled,
-    toggleAnalytics,
   } = usePanelSettings()
   // Version check, release notes and the in-app update share one hook; the
   // registry answer is cached for an hour across panel opens.
@@ -108,14 +105,12 @@ export function MemoPopover(props) {
     commit,
     report,
     sendShortcut,
-    scopeKind: scope.kind,
   })
   const { editingId, editDraft, setEditDraft, editRef, startEdit, finishEdit, cancelEdit, stopEditing, toggle, remove } = useNoteActions({
     draftKey,
     commit,
     report,
     forgetForwardedItems,
-    scopeKind: scope.kind,
   })
   const { confirmClear, askClearConfirm, dismissClearConfirm, confirmClearDone } = useClearConfirm({
     sessionId,
@@ -160,7 +155,6 @@ export function MemoPopover(props) {
     stopEditing()
     dismissClearConfirm()
     notifyTodoChange()
-    reportEvent('note_scope_changed', { ext1: next })
   }
 
   const clearDone = () => {
@@ -172,7 +166,6 @@ export function MemoPopover(props) {
       return
     }
     report('cleared')
-    reportEvent('completed_notes_cleared', { ext1: scope.kind, ext2: String(clearedItems.length) })
     forgetForwardedItems(clearedItems.map(item => item.id))
     applySections({ open: sectionsRef.current.open, done: false })
   }
@@ -183,7 +176,6 @@ export function MemoPopover(props) {
     done: item.done,
     say,
     localeId,
-    scopeKind: scope.kind,
     onToast: report,
     onToggle: toggle,
     onStartEdit: startEdit,
@@ -246,10 +238,7 @@ export function MemoPopover(props) {
       openCount,
       total,
       showSettings,
-      onToggleSettings: () => {
-        if (!showSettings) reportEvent('settings_opened')
-        setShowSettings(value => !value)
-      },
+      onToggleSettings: () => setShowSettings(value => !value),
       onClose: props.onClose,
       newerVersion,
       scopeMode: effectiveMode,
@@ -271,8 +260,6 @@ export function MemoPopover(props) {
             changeForwardPrefix,
             resetForwardPrefix,
             prefixRef,
-            analyticsEnabled,
-            onToggleAnalytics: toggleAnalytics,
             update,
             onToast: report,
           }),

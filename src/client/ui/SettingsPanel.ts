@@ -20,8 +20,6 @@ export function SettingsPanel(props) {
     changeForwardPrefix,
     resetForwardPrefix,
     prefixRef,
-    analyticsEnabled,
-    onToggleAnalytics,
     update,
   } = props
   return h(
@@ -110,29 +108,6 @@ export function SettingsPanel(props) {
                         ),
                   ),
                 ),
-              ),
-            ),
-            h(
-              'div',
-              { className: 'dsh-an-settingGroup' },
-              h('div', { className: 'dsh-an-settingLabel' }, say('settings.privacy')),
-              h(
-                'div',
-                { className: 'dsh-an-settingBody' },
-                h(
-                  'label',
-                  { className: 'dsh-an-settingToggle' },
-                  h('span', null, say('settings.analytics')),
-                  h('input', {
-                    type: 'checkbox',
-                    role: 'switch',
-                    className: 'dsh-an-switch',
-                    checked: analyticsEnabled === true,
-                    onChange: event => onToggleAnalytics(event.target.checked),
-                    'aria-describedby': 'dsh-an-analytics-hint',
-                  }),
-                ),
-                h('p', { id: 'dsh-an-analytics-hint', className: 'dsh-an-settingHint' }, say('settings.analyticsHint')),
               ),
             ),
             h(
