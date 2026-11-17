@@ -2,13 +2,19 @@
 
 The 1.0.0–2.0.1 iterations were development builds of the same plugin; the 2.x line was withdrawn from npm before it became public and the changelog was consolidated at 0.9.10, the first public release under the `dsh-aside-note` name. The public line resumes here at 1.0.0, the first stable release.
 
+`dsh-sideby-note` starts its own public line at 0.1.0, the first release of this fork under the new name. Older sections below it — the `dsh-aside-note` releases from 0.9.10 onward — are inherited history kept for reference.
+
 This file records user-visible changes only. Screenshots, marketplace listing material, documentation structure and the release pipeline are tracked in [CHANGELOG-OPS.md](./CHANGELOG-OPS.md), so the notes the panel shows never carry build or operations chores.
 
 ## next-released
 
-## 1.1.5
+## 0.1.0
 
 <!-- app-update-notes:en:start -->
+### Added
+- **First release under the new name:** `dsh-sideby-note` 0.1.0 is the first published version of this fork, branded 边记部 / Sideby Note; notes and settings already stored under the shared `dsh.aside-note.*` keys are read as-is.
+- **All official DSH languages:** the panel, the note-entry tooltips and the plugin listing now follow every language the DSH client ships — Chinese, English, Japanese, Spanish, French, German, Russian and Brazilian Portuguese — and switch immediately with the DSH language setting.
+
 ### Fixed
 - **Panel language follows DSH:** the panel now reads DSH's live locale (`active`) instead of a field the locale service no longer exposes, and re-binds its dictionary when a client-plugin reload replaces the locale service. Previously it could fall back to English while DSH was set to Chinese.
 
@@ -23,6 +29,10 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 <!-- app-update-notes:en:end -->
 
 <!-- app-update-notes:zh:start -->
+### 新增
+- **新名称的首个版本：** `dsh-sideby-note` 0.1.0 是本次改版的首个公开版本（边记部 / Sideby Note）；沿用 `dsh.aside-note.*` 键的既有便笺与设置会原样读取。
+- **支持全部 DSH 官方语言：** 面板、入口提示与插件列表现在跟随 DSH 客户端提供的全部语言——中文、英语、日语、西班牙语、法语、德语、俄语和巴西葡萄牙语，并随 DSH 语言设置即时切换。
+
 ### 修复
 - **面板语言跟随 DSH：** 面板改为读取 DSH 当前语言的 `active` 字段（不再读语言服务已不提供的旧字段），并在客户端插件热重载替换语言服务后重新绑定字典；此前可能在 DSH 为中文时回退成英文。
 

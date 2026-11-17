@@ -1,6 +1,6 @@
 {
   "name": "dsh-sideby-note",
-  "version": "1.1.5",
+  "version": "0.1.0",
   "type": "module",
   "description": "Sideby Note (边记部) — asynchronously draft your ideas while the agent is working: a lightweight per-session notes button and right-side panel for the DeepSeek Harness Web GUI. Based and inspired by dsh-aside-note.",
   "license": "MIT",
