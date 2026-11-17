@@ -66,7 +66,7 @@ npm test
 
 1. 在 `$WORK` 下新建一个一次性 `DSH_HOME`，用发行版自带模板生成 `demo` profile；
 2. 把当前仓库以 `link:` 装进该 profile，`--offline` 安装，store 指向 `$WORK/pnpm-store`（**不会**在仓库里留下 `.pnpm-store`）；
-3. 写入 `ui-theme.preference=light` 与 `welcomeNoticeVersion`；仅在 `COPY_CREDENTIALS=1` 时复制凭据；
+3. 写入 `locale.preference=zh`、`ui-theme.preference=light` 与 `welcomeNoticeVersion`；仅在 `COPY_CREDENTIALS=1` 时复制凭据；
 4. 起 `dsh --profile demo --no-open --port $PORT`，从日志里取 `token`（只保存在变量里，不打印）；
 5. 起 headless Chrome（CDP）并固定内容区 1440×900、`deviceScaleFactor=4`（输出 5760×3600，给 1080 宽功能图与 1920 宽整窗图留足细节）。macOS 用 `--window-size=1440,1043` + `--force-device-scale-factor=4`；Windows 上 headless 的内容区会被窗口边框吃掉 8 像素，所以 `run.ps1` 另设 `SHOT_VIEWPORT=1440x900@4`，由 `lib/cdp.mjs` 调 `Emulation.setDeviceMetricsOverride` 精确对齐，`crop.py` 的 4x 常量无需改动；
 6. `bootstrap.mjs` 造会话与便笺（便笺写进工作区清单，见第 4 节），并把便笺时间回拨到固定年龄；
@@ -74,6 +74,8 @@ npm test
 8. 改 `preference: dark` 重启服务、重新取 token，同样拍暗色功能图与预览图；
 9. `crop.py` 裁切功能图、`crop.py --preview` 缩放整窗并裁入口特写，写入 `docs/assets/features/` 与 `docs/assets/`；
 10. 退出时杀掉服务与 Chrome，删除 `$WORK`（`KEEP=1` 时保留）。
+
+> `run.sh` / `run.ps1` 会在临时 profile 的 `cordis.patch.yml` 里固定 `locale.preference: zh`，让截图始终是中文界面，不随执行者的浏览器语言变化；这样重新生成的功能图与预览图才能和现有 README 保持一致的文案与排版。
 
 ## 4. 截图状态矩阵
 
