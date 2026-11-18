@@ -109,7 +109,7 @@ export function scopeForSession(sessionId, mode: ScopeMode = 'workspace'): MemoS
   return { kind: 'session', id, title: '', sessionIds: id ? [id] : [] }
 }
 
-/** Stable key for the forward marks of one list. */
+/** Stable key of one list (a workspace or a session). */
 export function scopeKey(scope) {
   if (!scope || !scope.id) return ''
   return scope.kind === 'workspace' ? `ws:${scope.id}` : String(scope.id)

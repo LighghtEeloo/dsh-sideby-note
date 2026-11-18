@@ -1,4 +1,4 @@
-/** Open/completed sections, their sticky heads, rows and the clear confirmation. */
+/** Open/archived sections, their sticky heads, rows and the clear confirmation. */
 import React from 'react'
 import { ClearConfirm } from './ClearConfirm'
 import { EmptyState } from './EmptyState'
@@ -9,7 +9,7 @@ const h = React.createElement
 export function NoteList(props) {
   const {
     say, listRef, listHasMore, syncListEdge,
-    showOpen, toggleOpen, openItems, openCount, total, row,
+    showOpen, toggleOpen, openItems, openListRef, openCount, total, row,
     showDone, toggleDone, doneItems,
     confirmClear, askClearConfirm, dismissClearConfirm, confirmClearDone,
   } = props
@@ -43,10 +43,10 @@ export function NoteList(props) {
             ),
             showOpen
               ? openItems.length
-                ? h('ul', { className: 'dsh-an-rows' }, openItems.map(row))
+                ? h('ul', { className: 'dsh-an-rows', ref: openListRef }, openItems.map(row))
                 : h(EmptyState, {
-                    title: say(total ? 'list.allDone.title' : 'popover.empty.title'),
-                    body: say(total ? 'list.allDone.body' : 'popover.empty.body'),
+                    title: say(total ? 'list.allArchived.title' : 'popover.empty.title'),
+                    body: say(total ? 'list.allArchived.body' : 'popover.empty.body'),
                   })
               : null,
           ),
@@ -66,7 +66,7 @@ export function NoteList(props) {
                       onClick: toggleDone,
                     },
                     h('span', { className: 'dsh-an-chevron', 'data-open': showDone ? 'true' : 'false' }, h(IconChevron, null)),
-                    say('popover.completed'),
+                    say('popover.archived'),
                     h('span', { className: 'dsh-an-sectionCount' }, String(doneItems.length)),
                   ),
                   showDone
@@ -75,7 +75,7 @@ export function NoteList(props) {
                         className: 'dsh-an-clear',
                         'aria-expanded': confirmClear ? 'true' : 'false',
                         onClick: askClearConfirm,
-                      }, say('popover.clearDone'))
+                      }, say('popover.clearArchived'))
                     : null,
                 ),
                 showDone && confirmClear

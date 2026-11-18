@@ -39,7 +39,8 @@ const DRAFT = `${MAJOR + 1}.0.1`
 
 test('the built bundle boots, applies, and seats its slots', async t => {
   const dom = new JSDOM(
-    '<!doctype html><html><body><div class="_headerUtilities"></div></body></html>',
+    '<!doctype html><html><body><div class="_headerUtilities"></div>' +
+      '<div data-conversation-session="session-1"><textarea data-composer-input></textarea></div></body></html>',
     { url: 'https://example.test/', pretendToBeVisual: true, runScripts: 'outside-only' },
   )
   const { window } = dom
@@ -357,15 +358,70 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   })
   assert.equal(window.localStorage.getItem('dsh.aside-note.forward-prefix'), '请处理：')
 
-  // Complete one note, then clear the completed list through its confirmation.
-  const check = popover.querySelector('.dsh-an-check')
-  assert.ok(check, 'the row must render its checkbox')
-  await act(async () => { check.click() })
+  // There is no checkbox: open rows lead with a reorder grip instead.
+  assert.equal(popover.querySelector('.dsh-an-check'), null, 'notes are no longer completed by hand')
+  const openRows = () => [...popover.querySelectorAll('.dsh-an-listSection:first-child .dsh-an-row')]
+  const openTexts = () => openRows().map(node => node.querySelector('.dsh-an-text').textContent)
+  const storedTexts = () => JSON.parse(window.localStorage.getItem('dsh.aside-note')).sessions['session-1'].items.map(item => item.text)
+  assert.deepEqual(openTexts(), ['新的一条', '旧便笺'])
+  const firstGrip = openRows()[0].querySelector('.dsh-an-grip')
+  assert.ok(firstGrip, 'an open row carries a grip')
+  assert.equal(firstGrip.getAttribute('aria-label'), '拖动排序，↑↓ 亦可')
+
+  // ↓ on a focused grip moves that note one slot down and keeps focus on it.
+  firstGrip.focus()
+  const press = async (node, key) => {
+    await act(async () => {
+      node.dispatchEvent(new window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
+    })
+  }
+  await press(firstGrip, 'ArrowDown')
+  assert.deepEqual(openTexts(), ['旧便笺', '新的一条'], 'ArrowDown moves the note down')
+  assert.deepEqual(storedTexts(), ['旧便笺', '新的一条'], 'the new order is stored')
+  assert.equal(document.activeElement, firstGrip, 'the moved grip keeps focus')
+  await press(firstGrip, 'ArrowDown')
+  assert.deepEqual(storedTexts(), ['旧便笺', '新的一条'], 'the last note cannot move further down')
+  await press(firstGrip, 'ArrowUp')
+  assert.deepEqual(storedTexts(), ['新的一条', '旧便笺'], 'ArrowUp moves it back')
+
+  // 递入对话 needs a composer on screen; without one nothing changes.
+  const composer = document.querySelector('[data-composer-input]')
+  const insertButton = text => openRows()
+    .find(node => node.querySelector('.dsh-an-text').textContent === text)
+    .querySelector('.dsh-an-iconBtn[aria-label="递入对话"]')
+  await act(async () => { insertButton('新的一条').click() })
+  assert.equal(composer.value, '', 'a hidden composer receives nothing')
+  assert.ok(storedTexts().length === 2 && JSON.parse(window.localStorage.getItem('dsh.aside-note'))
+    .sessions['session-1'].items.every(item => item.done === false), 'a failed insert keeps the note open')
+
+  // With the composer visible the note lands there and is archived in one step.
+  composer.getBoundingClientRect = () => ({
+    width: 320, height: 24, top: 0, left: 0, right: 320, bottom: 24, x: 0, y: 0, toJSON: () => ({}),
+  })
+  await act(async () => { insertButton('新的一条').click() })
+  assert.equal(composer.value, '请处理：\n- 新的一条', 'the note goes into the chat composer with the prefix')
+  const inserted = JSON.parse(window.localStorage.getItem('dsh.aside-note')).sessions['session-1'].items
+    .find(item => item.text === '新的一条')
+  assert.equal(inserted.done, true, 'putting the note into the chat archives it')
+  assert.ok(Number.isFinite(inserted.completedAt), 'the archive time is stamped')
+  assert.equal(window.localStorage.getItem('dsh.aside-note.forwarded'), null, 'no forward marks are written')
   await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 40)) })
   assert.equal(document.querySelector('.dsh-an-headerCount').textContent, '1')
-  await act(async () => { popover.querySelector('.dsh-an-doneHead .dsh-an-doneToggle').click() })
+  assert.deepEqual(openTexts(), ['旧便笺'])
+
+  // The archive is collapsed by default; an archived row has neither a grip nor an insert action.
+  const archiveToggle = popover.querySelector('.dsh-an-doneHead .dsh-an-doneToggle')
+  assert.match(archiveToggle.textContent, /归档/)
+  await act(async () => { archiveToggle.click() })
+  const archivedRow = popover.querySelector('.dsh-an-rowArchived')
+  assert.ok(archivedRow, 'the archived note renders in the archive')
+  assert.equal(archivedRow.querySelector('.dsh-an-grip'), null, 'archived rows sort by time, not by hand')
+  assert.ok(archivedRow.querySelector('.dsh-an-gripSpacer'), 'the text keeps the shared edge')
+  assert.equal(archivedRow.querySelector('.dsh-an-insert'), null, 'an archived note cannot be inserted again')
+  assert.ok(archivedRow.querySelector('.dsh-an-iconBtn[aria-label="退回"]'), 'an archived note can still be taken back')
   const clearButton = popover.querySelector('.dsh-an-clear')
-  assert.ok(clearButton, 'the completed section must offer clear')
+  assert.ok(clearButton, 'the archive must offer clear')
+  assert.equal(clearButton.textContent, '清空归档')
   await act(async () => { clearButton.click() })
   assert.ok(popover.querySelector('.dsh-an-clearConfirm'), 'clearing asks for a second click')
   await act(async () => { popover.querySelector('.dsh-an-miniDanger').click() })
@@ -702,22 +758,62 @@ test('one workspace shares its notes and forwards into the visible session', asy
   await act(async () => { secondPopover.querySelector('[data-scope-mode="workspace"]').click() })
   assert.match(secondPopover.querySelector('.dsh-an-popFoot').textContent, /便笺数据仅保存在本地/)
 
-  // Forwarding writes into session-2's composer only: session-1's stays empty,
+  // 递入对话 writes into session-2's composer only: session-1's stays empty,
   // proving the shared note follows the conversation currently on screen.
   const row = [...secondPopover.querySelectorAll('.dsh-an-row')]
     .find(node => node.querySelector('.dsh-an-text').textContent === '新增的共享事项')
-  const forward = row.querySelector('.dsh-an-iconBtn[aria-label="转发到会话"]')
-  assert.ok(forward, 'the open note offers forward')
-  await act(async () => { forward.click() })
+  const insert = row.querySelector('.dsh-an-iconBtn[aria-label="递入对话"]')
+  assert.ok(insert, 'the open note offers 递入对话')
+  await act(async () => { insert.click() })
   const composers = [...window.document.querySelectorAll('[data-conversation-session]')]
   const valueOf = id => composers
     .find(node => node.getAttribute('data-conversation-session') === id)
     .querySelector('[data-composer-input]').value
   assert.match(valueOf('session-2'), /- 新增的共享事项/, 'the note lands in the visible composer')
   assert.equal(valueOf('session-1'), '', 'the hidden session composer is untouched')
+  const workspaceItems = () => JSON.parse(window.localStorage.getItem('dsh.aside-note.workspaces')).workspaces['ws-1'].items
+  assert.equal(workspaceItems().find(item => item.text === '新增的共享事项').done, true,
+    'the shared note is archived for every conversation of the workspace')
 
-  const marks = JSON.parse(window.localStorage.getItem('dsh.aside-note.forwarded'))
-  assert.ok(marks.sessions['ws:ws-1'], 'forward marks belong to the workspace list')
+  // Drag a grip: every row reports the same 24px box here, so a drop 60px
+  // below the start lands the first open note at the end of the open list.
+  const Pointer = window.PointerEvent || window.MouseEvent
+  const pointer = (node, type, clientY) => node.dispatchEvent(new Pointer(type, {
+    bubbles: true, cancelable: true, button: 0, pointerId: 1, clientY,
+  }))
+  const openList = () => secondPopover.querySelector('.dsh-an-listSection:first-child .dsh-an-rows')
+  const openOrder = () => [...openList().querySelectorAll('.dsh-an-text')].map(node => node.textContent)
+  const storedOpen = () => workspaceItems().filter(item => !item.done).map(item => item.text)
+  const before = openOrder()
+  assert.equal(before.length, 2)
+  assert.deepEqual(storedOpen(), before)
+  let grip = openList().querySelector('.dsh-an-grip')
+  await act(async () => {
+    pointer(grip, 'pointerdown', 0)
+    pointer(grip, 'pointermove', 10)
+    pointer(grip, 'pointermove', 60)
+  })
+  assert.equal(openList().dataset.dragging, 'true', 'the list marks the drag')
+  assert.equal(grip.closest('.dsh-an-row').dataset.dragging, 'true', 'the held row lifts')
+  await act(async () => { pointer(grip, 'pointerup', 60) })
+  const after = [...before.slice(1), before[0]]
+  assert.deepEqual(openOrder(), after, 'the drop reorders the rendered list')
+  assert.deepEqual(storedOpen(), after, 'the drop is stored')
+  assert.equal(openList().dataset.dragging, undefined, 'the drag mark is cleared')
+  assert.equal(secondPopover.querySelector('.dsh-an-row[data-dragging]'), null)
+
+  // Escape cancels a drag in flight without closing the panel or moving anything.
+  grip = openList().querySelector('.dsh-an-grip')
+  await act(async () => {
+    pointer(grip, 'pointerdown', 0)
+    pointer(grip, 'pointermove', 60)
+    document.body.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+    pointer(grip, 'pointerup', 60)
+  })
+  assert.ok(document.querySelector('.dsh-an-popover'), 'Escape during a drag keeps the panel open')
+  assert.deepEqual(storedOpen(), after, 'a cancelled drag stores nothing')
+  assert.deepEqual([...openList().querySelectorAll('.dsh-an-row')].map(node => node.style.transform), ['', ''],
+    'every row returns to its own slot')
 
   // One buffer is shared across the workspace's conversations, but the save
   // lands in the scope selected at that moment: submitted from the session
@@ -1055,8 +1151,7 @@ test('an untouched forward prefix follows the active language, while a customize
     const row = [...popover.querySelectorAll('.dsh-an-row')]
       .find(node => node.querySelector('.dsh-an-text')?.textContent === text)
     assert.ok(row, `missing note ${text}`)
-    const buttons = [...row.querySelectorAll('.dsh-an-iconBtn')]
-    await act(async () => { buttons[1].click() })
+    await act(async () => { row.querySelector('.dsh-an-insert').click() })
     return composer.value
   }
 

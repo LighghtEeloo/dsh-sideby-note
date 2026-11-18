@@ -61,17 +61,11 @@ for (const note of NOTES) {
   await pressEnter()
   await sleep(700)
 }
-await evaluate(session, `(() => {
-  for (const r of document.querySelectorAll('.dsh-an-row')) {
-    const t = r.querySelector('.dsh-an-text').textContent
-    const note = ${JSON.stringify(NOTES)}.find(n => n.text === t)
-    if (note && note.done) r.querySelector('.dsh-an-check').click()
-  }
-  return true
-})()`)
 await sleep(1500)
 
-// Anchor the notes to the plan's ages; capture.mjs re-anchors before each theme.
+// Archive the planned notes and anchor every note to the plan's ages (the panel
+// has no checkbox, so the archive state is written straight into the store);
+// capture.mjs re-anchors before each theme.
 if (!(await evaluate(session, anchorExpression()))) {
   throw new Error(`no note store at ${NOTES_KEY}`)
 }

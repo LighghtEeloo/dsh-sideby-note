@@ -275,9 +275,10 @@ test('host and browser entries use the package identity', () => {
   // surface while pinned, so no differently coloured block sits at rest.
   assert.match(readCss(), /\.dsh-an-sectionHead,\.dsh-an-doneHead\{[^}]*position:sticky[^}]*top:0[^}]*background:transparent/)
   assert.match(readCss(), /\[data-stuck\][^{]*\{[^}]*background:var\(--dsh-an-panelSurface,var\(--dsw-alias-bg-layer-2\)\)/)
-  assert.match(client, /FORWARDED_STORAGE_KEY/)
-  assert.match(client, /dsh-an-forwardMark/)
-  assert.match(client, /item\.forwarded/)
+  // Forward marks are gone: putting a note into the chat archives it instead.
+  assert.doesNotMatch(client, /FORWARDED_STORAGE_KEY|dsh-an-forwardMark|item\.forwarded|useForwardMarks|readForwardedIds/)
+  assert.ok(!exists('src/client/storage/forwarded.ts'), 'the forward-mark store is removed')
+  assert.ok(!exists('src/client/ui/useForwardMarks.ts'), 'the forward-mark hook is removed')
   assert.doesNotMatch(client, /dsh-an-checkHalf|dsh-an-checkForwarded|HALF_DONE_|item\.pendingCountdown|settings\.halfCheck/)
   assert.match(client, /h\(IconRewind, null\)/)
   assert.doesNotMatch(client, /settings\.forward(?:Check|Mark)/, 'the stale forward-mark description is gone')
@@ -287,8 +288,9 @@ test('host and browser entries use the package identity', () => {
   assert.match(client, /const bullet = `- \$\{note\}`/)
   assert.match(client, /appendToConversation/)
   assert.match(client, /'forward\.prefix'/)
-  assert.match(client, /IconForward/)
-  assert.match(client, /item\.forward/)
+  assert.match(client, /IconInsert/)
+  assert.match(client, /item\.insert/)
+  assert.doesNotMatch(client, /IconForward|item\.forward\b|'item\.mark(?:Done|Open)'/)
   assert.match(client, /PLUGIN_VERSION/)
   assert.match(client, /settings\.open/)
   assert.doesNotMatch(client, /SEND_SHORTCUT|sendShortcut|settings\.shortcut/, 'the send shortcut setting is gone')
@@ -308,7 +310,7 @@ test('host and browser entries use the package identity', () => {
   assert.match(client, /IconCopy/)
   assert.match(client, /copyText/)
   assert.match(client, /toast\.copied/)
-  assert.match(client, /time\.createdDone/)
+  assert.match(client, /time\.createdArchived/)
   assert.match(client, /sort\(compareDoneItems\)/)
   assert.match(client, /'settings\.project'/)
   assert.match(client, /PLUGIN_REPO_URL/)
@@ -366,10 +368,26 @@ test('locale files carry metadata and the dictionary stays in sync', () => {
       assert.deepEqual(placeholders(dict[id][key]), placeholders(dict.zh[key]), `placeholders differ for ${key} in ${id}`)
     }
   }
-  assert.equal(dict.zh['popover.clearConfirm'], '清除 {n} 项已完成记录？')
-  assert.equal(dict.en['popover.clearConfirm'], 'Clear {n} completed notes?')
-  assert.match(dict.zh['item.forwarded'], /移除标识/)
-  assert.match(dict.en['item.forwarded'], /remove the mark/)
+  // The archive term stays, but the panel labels stay short enough to stay quiet.
+  assert.equal(dict.zh['popover.archived'], '归档')
+  assert.equal(dict.zh['list.open'], '待续')
+  assert.equal(dict.zh['popover.clearConfirm'], '清空归档中的 {n} 条？')
+  assert.equal(dict.en['popover.clearConfirm'], 'Clear {n} archived notes?')
+  for (const key of ['popover.archived', 'list.open', 'popover.clearArchived', 'item.insert', 'toast.inserted', 'toast.cleared']) {
+    assert.ok([...dict.zh[key]].length <= 6, `${key} grew past a short label: ${dict.zh[key]}`)
+  }
+  for (const [key, value] of Object.entries(dict.zh)) {
+    // The prompt asks the agent to finish a task; update copy finishes an install.
+    if (key === 'forward.prefix' || key.startsWith('update.')) continue
+    assert.doesNotMatch(value, /完成/, `${key} still says 完成`)
+  }
+  assert.equal(dict.zh['item.insert'], '递入对话')
+  assert.equal(dict.en['item.insert'], 'Hand to chat')
+  for (const id of LOCALE_IDS) {
+    for (const gone of ['item.markDone', 'item.markOpen', 'item.forward', 'item.forwarded', 'toast.forwarded', 'toast.unforwarded', 'toast.forwardFailed']) {
+      assert.equal(dict[id][gone], undefined, `${id} still carries ${gone}`)
+    }
+  }
 })
 
 test('runtime fallbacks land on English, never Chinese', () => {
@@ -734,9 +752,10 @@ test('transient outcomes go to the frame-wide toast seat', () => {
   assert.match(client, /ctx\.slots\.inject\('shell\.overlay'/)
   assert.match(client, /name: 'shell\.overlay'/)
   assert.match(client, /h\(Toast, \{/)
-  for (const kind of ['copied', 'forwarded', 'unforwarded', 'recalled', 'recallBlocked', 'cleared', 'copyFailed', 'forwardFailed', 'saveFailed']) {
+  for (const kind of ['copied', 'inserted', 'recalled', 'recallBlocked', 'cleared', 'copyFailed', 'insertFailed', 'saveFailed']) {
     assert.match(client, new RegExp(`toast\\.${kind}`), `missing toast copy for ${kind}`)
   }
+  assert.doesNotMatch(client, /toast\.(?:un)?forwarded|toast\.forwardFailed/, 'the forward-mark toasts are gone')
   assert.doesNotMatch(client, /dsh-an-copied|dsh-an-forwarded/, 'inline success marks duplicate the toast')
 })
 
@@ -752,7 +771,7 @@ test('icon-only controls use the shared tooltip', () => {
   assert.match(client, /function withTooltip\(/)
   assert.match(client, /h\(Tooltip, \{ label, side: 'top'/)
   const iconButtons = [...client.matchAll(/className: 'dsh-an-iconBtn[^']*',\n\s+'aria-label': say\(([^)]+)\)/g)]
-  assert.equal(iconButtons.length, 3, 'copy, forward and rewind are the three icon actions')
+  assert.equal(iconButtons.length, 3, 'rewind, copy and insert are the three icon actions')
   const buttonTitles = [...client.matchAll(/'aria-label': say\('[^']+'\),\n\s+title:/g)]
   assert.deepEqual(buttonTitles, [], 'aria-labelled buttons must not carry a second native title')
 })
@@ -767,21 +786,19 @@ test('rewind is the product refresh arc flipped counter-clockwise', () => {
   assert.doesNotMatch(readCss(), /dsh-an-recall/, 'the text-button style is gone')
 })
 
-test('completed notes hide the forward action and keep copy plus rewind', () => {
-  const client = read('src/client/index.ts') + read('src/client/ui/TodoRow.ts')
-  const start = client.indexOf("className: 'dsh-an-actions'")
+test('archived notes drop the insert action and keep rewind plus copy', () => {
+  const client = read('src/client/ui/TodoRow.ts')
+  const start = client.indexOf("{ className: 'dsh-an-actions' }")
   assert.ok(start > 0, 'row actions missing')
-  const actions = client.slice(start, client.indexOf('function EmptyState', start))
-  // Forwarding is the only action a completed note drops, and it disappears
-  // entirely: a done row never renders a disabled forward button.
-  assert.match(actions, /done \? null : withTooltip\(say\(forwarded \? 'item\.forwarded' : 'item\.forward'\)/)
-  assert.equal([...actions.matchAll(/\? null : withTooltip/g)].length, 1, 'forward is the only conditional action')
-  // Copy and rewind (退回) stay unconditional direct children of the action row.
+  const actions = client.slice(start)
+  // Inserting is what archives a note, so an archived row has nothing left to
+  // hand over: the action disappears instead of rendering disabled.
+  assert.match(actions, /archived \? null : withTooltip\(say\('item\.insert'\)/)
+  assert.equal([...actions.matchAll(/\? null : withTooltip/g)].length, 1, 'insert is the only conditional action')
   assert.match(actions, /withTooltip\(say\('item\.copy'\)/)
   assert.match(actions, /withTooltip\(say\('item\.recall'\)/)
-  assert.doesNotMatch(actions, /\? null : withTooltip\(say\('item\.recall'\)/, 'rewind must not be conditional')
-  // The surviving actions keep their reading order around the optional one.
-  const order = ["withTooltip(say('item.copy')", "withTooltip(say(forwarded ? 'item.forwarded'", "withTooltip(say('item.recall')"]
+  // Rewind, copy, then the primary insert at the trailing edge.
+  const order = ["withTooltip(say('item.recall')", "withTooltip(say('item.copy')", "withTooltip(say('item.insert')"]
     .map(snippet => actions.indexOf(snippet))
   assert.ok(order.every(index => index > 0), 'row action order drifted')
   assert.deepEqual([...order].sort((a, b) => a - b), order, 'row action order drifted')
@@ -880,10 +897,11 @@ test('the section counts carry the status hierarchy', () => {
   )
   assert.match(client, /openCount \? h\('span', \{ className: 'dsh-an-sectionCount' \}, String\(openCount\)\) : null/)
   assert.match(client, /h\('span', \{ className: 'dsh-an-sectionCount' \}, String\(doneItems\.length\)\)/)
-  // Cards and the add field share one card surface so the panel material stays
-  // the quietest layer, while the 0.5px card edge stays the strongest line.
+  // The add field keeps the card surface so the panel material stays the
+  // quietest layer, while the 0.5px card edge stays the strongest line.
   assert.match(css, /\.dsh-an-add\{[^}]*border:0\.5px solid var\(--dsw-alias-settings-card-stroke\)[^}]*background:var\(--dsw-alias-settings-card-fill\)/)
-  assert.match(css, /\.dsh-an-rows\{[^}]*border:0\.5px solid var\(--dsw-alias-settings-card-stroke\)[^}]*background:var\(--dsw-alias-settings-card-fill\)/)
+  // The notes themselves sit bare on the panel, so the add card is the one framed surface.
+  assert.doesNotMatch(css, /\.dsh-an-rows\{[^}]*(?:border|background):/)
 })
 
 test('the panel never raises the soft keyboard on touch devices', () => {
@@ -891,7 +909,7 @@ test('the panel never raises the soft keyboard on touch devices', () => {
   assert.match(client, /\(hover: hover\) and \(pointer: fine\)/)
 })
 
-test('completed notes sort by newest completion', () => {
+test('archived notes sort by newest archive', () => {
   const client = read('src/client/domain/items.ts')
   const extract = name => {
     const start = client.indexOf(`function ${name}(`)
@@ -934,68 +952,105 @@ test('the composer sends on Enter and breaks on Shift+Enter, like the main compo
   assert.equal(dict.en['add.shortcut'], 'Enter sends · Shift+Enter for a new line')
 })
 
-test('forwarding marks the forward button, never the checkbox', () => {
-  const client = read('src/client/index.ts') + read('src/client/ui/TodoRow.ts')
-  // The checkbox renders only the note's own open/done state.
-  assert.match(client, /'aria-checked': checked \? 'true' : 'false'/)
-  assert.doesNotMatch(client, /aria-checked': checked \? 'true' : half/)
-  // The forwarded state lives on the forward action as a small check badge.
-  assert.match(client, /'data-forwarded': forwarded \? 'true' : undefined/)
-  assert.match(client, /className: 'dsh-an-forwardMark'/)
-  assert.match(client, /item\.forwarded/)
-  // Forwarding no longer stages a delayed completion.
-  assert.doesNotMatch(client, /setPendingDone|startPending|clearPendingTimers/)
-  assert.match(client, /const toggleCheck = \(\) => onToggle\(item\)/)
+test('the checkbox is gone; open rows lead with a reorder grip', () => {
+  const row = read('src/client/ui/TodoRow.ts')
+  const css = readCss()
+  assert.doesNotMatch(row, /role: 'checkbox'|aria-checked|onToggle/, 'there is no manual completion any more')
+  assert.doesNotMatch(css, /dsh-an-check|dsh-an-rowFoot|dsh-an-itemBody/, 'the checkbox and footer styles are gone')
+  assert.doesNotMatch(read('src/client/ui/useNoteActions.ts'), /done: !candidate\.done/, 'nothing toggles a note back and forth')
+  // The grip is a real button: a drag handle for pointers, ↑/↓ for keyboards.
+  assert.match(row, /className: 'dsh-an-grip',\n\s+'aria-label': say\('item\.reorder'\),\n\s+\.\.\.grip,/)
+  assert.match(row, /: h\('span', \{ className: 'dsh-an-gripSpacer', 'aria-hidden': true \}\)/)
+  const popover = read('src/client/ui/MemoPopover.ts')
+  assert.match(popover, /grip: item\.done \? null : reorder\.gripProps\(item\.id\)/, 'archived rows sort by time and carry no grip')
+  const grip = css.match(/\.dsh-an-grip\{([^}]*)\}/)
+  assert.ok(grip, 'grip rule missing')
+  assert.match(grip[1], /touch-action:none/, 'touch drags must not scroll the list')
+  assert.match(grip[1], /cursor:grab/)
+  assert.match(grip[1], /color:var\(--dsw-alias-label-tertiary\)/, 'the grip rests in the quiet non-text ink')
+  const hook = read('src/client/ui/useRowReorder.ts')
+  assert.match(hook, /setPointerCapture/)
+  assert.match(hook, /event\.key !== 'ArrowUp' && event\.key !== 'ArrowDown'/)
+  // Escape cancels the drag without also closing the panel.
+  assert.match(hook, /window\.addEventListener\('keydown', onEscape, true\)/)
+  assert.match(hook, /event\.stopPropagation\(\)\n\s+finish\(false\)/)
 })
 
-test('the forwarded mark borrows the forward icon palette, not a state colour', () => {
-  const client = read('src/client/index.ts') + read('src/client/ui/TodoRow.ts') + read('src/client/styles/panel.css')
-  const rule = readCss().match(/\.dsh-an-forwardMark\{([^}]*)\}/)
-  assert.ok(rule, 'forward mark rule missing')
-  const body = rule[1]
-  // The badge is neutral: it uses the same secondary/foreground pair as the
-  // icon buttons, never a success or brand fill.
-  assert.match(body, /background:var\(--dsw-alias-label-secondary\)/)
-  assert.match(body, /color:var\(--dsw-alias-label-primary-foreground\)/)
-  assert.doesNotMatch(body, /--dsw-alias-state-|--dsw-alias-brand/)
-  assert.doesNotMatch(body, /#[0-9a-f]{3,8}\b|\brgba?\(/i)
-  // Geometry stays: a 10px dot bottom-right with an 8px check inside.
-  assert.match(body, /width:10px/)
-  assert.match(body, /height:10px/)
-  assert.match(body, /right:0;bottom:0/)
-  assert.match(client, /className: 'dsh-an-forwardMark', 'aria-hidden': true \}, h\(IconCheck, \{ size: 8 \}\)/)
+test('rows are bare lines whose age gives way to the actions', () => {
+  const css = readCss()
+  const rows = css.match(/\.dsh-an-rows\{([^}]*)\}/)
+  assert.ok(rows, 'rows rule missing')
+  assert.doesNotMatch(rows[1], /border|background/, 'the note list is not a card')
+  const row = css.match(/\.dsh-an-row\{([^}]*)\}/)
+  assert.ok(row, 'row rule missing')
+  assert.doesNotMatch(row[1], /border-top/, 'rows have no dividers')
+  assert.match(row[1], /grid-template-columns:16px minmax\(0,1fr\) auto/)
+  // Age and actions overlap in one cell; hover-capable devices swap them.
+  assert.match(css, /\.dsh-an-trail>\*\{grid-area:1\/1\}/)
+  const rules = cssRules()
+  const meta = rules.find(rule => rule.selector === '.dsh-an-meta' && rule.media.includes('hover:hover'))
+  assert.ok(meta && /opacity:1/.test(meta.body), 'pointer devices show the age at rest')
+  const swap = rules.find(rule => rule.selector === '.dsh-an-row:hover .dsh-an-meta,.dsh-an-row:focus-within .dsh-an-meta')
+  assert.ok(swap && /opacity:0/.test(swap.body), 'hover and focus hide the age behind the actions')
+  const gripHover = rules.find(rule => rule.selector === '.dsh-an-grip' && rule.media.includes('hover:hover'))
+  assert.ok(gripHover && /opacity:0/.test(gripHover.body), 'pointer devices reveal the grip on hover only')
+  // Archived notes only step down in ink; they are not struck through.
+  assert.match(css, /\.dsh-an-rowArchived \.dsh-an-text\{color:var\(--dsw-alias-label-secondary\)\}/)
+  assert.doesNotMatch(css, /line-through/)
+  // The enter animation must not pin `transform` once it ends, or the drag's
+  // inline transforms would be overridden by the filled keyframe.
+  assert.match(css, /\.dsh-an-rows>\.dsh-an-row\{animation:dsh-an-row-in var\(--an-dur-base\) var\(--an-ease\) backwards\}/)
+  // The held row lifts on the panel surface with the shared elevation.
+  assert.match(css, /\.dsh-an-row\[data-dragging="true"\]\{[^}]*background:var\(--dsh-an-panelSurface\);box-shadow:var\(--dsw-elevation-prominent\)/)
 })
 
-test('clicking a forwarded note removes the mark instead of forwarding again', () => {
-  const client = read('src/client/index.ts') + read('src/client/ui/TodoRow.ts') + read('src/client/ui/MemoPopover.ts') + read('src/client/ui/useForwardMarks.ts')
-  const start = client.indexOf('const forward = () => {')
-  assert.ok(start > 0, 'forward handler missing')
-  const end = client.indexOf('\n      }', start)
-  assert.ok(end > start, 'forward handler is unterminated')
-  const handler = client.slice(start, end)
-  // The forwarded flag short-circuits before the composer write.
-  const toggle = handler.match(/if \(forwarded\) \{([\s\S]*?)\}/)
-  assert.ok(toggle, 'forwarded notes need their own branch')
-  assert.match(toggle[1], /if \(onUnforwarded\) onUnforwarded\(item\)/)
-  assert.match(toggle[1], /if \(onToast\) onToast\('unforwarded'\)/)
-  assert.doesNotMatch(toggle[1], /appendToConversation/, 'a forwarded note must not append again')
-  // Un-forwarded notes keep the existing append-and-remember behaviour, with
-  // the localized default resolved at click time when nothing is customized.
-  assert.match(handler, /const prefix = forwardPrefix === null \|\| forwardPrefix === undefined/)
-  assert.match(handler, /typeof forwardPrefixFallback === 'function' \? forwardPrefixFallback\(\) : ''/)
-  assert.match(handler, /appendToConversation\(item\.text, prefix\)/)
-  assert.match(handler, /if \(onForwarded\) onForwarded\(item\)/)
-  assert.match(handler, /if \(onToast\) onToast\('forwarded'\)/)
-  // The parent callback clears the stored flag and the in-memory id set.
-  assert.match(client, /const unrememberForwarded = item => \{/)
-  assert.match(client, /unrememberForwarded = item => \{\n\s+const id = [^\n]+\n\s+if \(!id\) return\n\s+forgetForwardedItems\(id\)/)
-  assert.match(client, /onUnforwarded: unrememberForwarded/)
-  assert.match(client, /forgetForwardedItems = itemIds => \{[\s\S]*?forgetForwarded\(key, ids\)[\s\S]*?setForwardedIds\(/)
-  // Removing the mark never touches the checkbox: the row still toggles open/done only.
-  assert.match(client, /const toggleCheck = \(\) => onToggle\(item\)/)
+test('the insert action uses the product context-injection glyph', () => {
+  const primitives = read('src/client/ui/primitives.ts')
+  assert.match(primitives, /IconInsert = \(\) => h\(Glyph, \{ name: 'IconContextInjectionOutlineRegular', size: 14 \}\)/)
+  assert.doesNotMatch(primitives, /IconShareOutlineRegular/, 'the share arrow no longer stands for this action')
+  // Older shells lack the drag-handle glyph; the grip then falls back to the
+  // up/down chevrons rather than rendering an empty button.
+  assert.match(primitives, /icon\('IconDragHandleOutlineRegular'\) \? 'IconDragHandleOutlineRegular' : 'IconChevronsUpDownOutlineRegular'/)
 })
 
-test('clearing completed notes asks for a second confirmation', () => {
+test('putting a note into the chat archives it in the same step', () => {
+  const popover = read('src/client/ui/MemoPopover.ts')
+  const start = popover.indexOf('const insertItem = item => {')
+  assert.ok(start > 0, 'insert handler missing')
+  const handler = popover.slice(start, popover.indexOf('\n  }\n', start))
+  // The localized default is resolved at click time when nothing is customized.
+  assert.match(handler, /const prefix = forwardPrefix === null \? say\('forward\.prefix'\) : forwardPrefix/)
+  // No composer on screen: nothing changes and the note stays open.
+  assert.match(handler, /if \(!appendToConversation\(item\.text, prefix\)\) \{\n\s+report\('insertFailed'\)\n\s+return\n\s+\}/)
+  assert.match(handler, /if \(archive\(item\)\) report\('inserted'\)/)
+  assert.ok(handler.indexOf('appendToConversation') < handler.indexOf('archive(item)'), 'archive only after the text landed')
+  const actions = read('src/client/ui/useNoteActions.ts')
+  assert.match(actions, /if \(candidate\.id !== item\.id \|\| candidate\.done\) return candidate/, 'archiving is one-way')
+  assert.match(actions, /done: true, updatedAt: now, completedAt: now/)
+})
+
+test('moving a note reorders the open notes and leaves archived slots alone', () => {
+  const items = read('src/client/domain/items.ts')
+  const start = items.indexOf('export function moveOpenItem(')
+  assert.ok(start > 0, 'missing moveOpenItem')
+  const end = items.indexOf('\n}\n', start) + 3
+  const moveOpenItem = new Function(`${items.slice(start, end).replace('export ', '')}\nreturn moveOpenItem`)()
+  const list = [
+    { id: 'a', done: false },
+    { id: 'x', done: true },
+    { id: 'b', done: false },
+    { id: 'c', done: false },
+  ]
+  const ids = next => next.map(item => item.id)
+  assert.deepEqual(ids(moveOpenItem(list, 'a', 2)), ['b', 'x', 'c', 'a'], 'open notes flow around the archived slot')
+  assert.deepEqual(ids(moveOpenItem(list, 'c', 0)), ['c', 'x', 'a', 'b'])
+  assert.deepEqual(ids(moveOpenItem(list, 'b', 99)), ['a', 'x', 'c', 'b'], 'the target is clamped')
+  assert.equal(moveOpenItem(list, 'a', 0), list, 'a no-op move returns the same array')
+  assert.equal(moveOpenItem(list, 'x', 0), list, 'archived notes cannot be moved')
+  assert.equal(moveOpenItem(list, 'missing', 0), list)
+})
+
+test('clearing archived notes asks for a second confirmation', () => {
   const client = read('src/client/index.ts') + read('src/client/ui/ClearConfirm.ts') + read('src/client/ui/NoteList.ts') + read('src/client/ui/MemoPopover.ts') + read('src/client/ui/useClearConfirm.ts')
   assert.match(client, /const \[confirmClear, setConfirmClear\] = React\.useState\(false\)/)
   assert.match(client, /const clearConfirmTimerRef = React\.useRef\(0\)/)
@@ -1052,7 +1107,7 @@ test('the prefix prompt is explained under the field, without a visible title', 
   assert.doesNotMatch(readCss(), /dsh-an-settingItemLabel/, 'the unused title style is gone')
   const dict = readDict()
   assert.match(dict.zh['settings.forwardPrefixHint'], /当前语言的默认提示词/)
-  assert.match(dict.zh['settings.forwardPrefixHintCustom'], /留空则只转发记录内容$/)
+  assert.match(dict.zh['settings.forwardPrefixHintCustom'], /留空则只递便笺$/)
   assert.match(dict.en['settings.forwardPrefixHint'], /default prompt for the current language/)
   assert.match(dict.en['settings.forwardPrefixHintCustom'], /leave it empty/)
   assert.equal(dict.zh['settings.forwardPrefixReset'], '恢复默认提示词')
@@ -1067,8 +1122,7 @@ test('the forward prefix separates "not customized" from an empty custom value',
   const hook = read('src/client/ui/usePanelSettings.ts')
   assert.match(hook, /resetForwardPrefix = \(\) => \{\n\s+setForwardPrefix\(null\)\n\s+clearForwardPrefix\(\)/)
   const popover = read('src/client/ui/MemoPopover.ts')
-  assert.match(popover, /forwardPrefixFallback: \(\) => say\('forward\.prefix'\)/)
-  assert.match(popover, /forwardPrefix,\n\s+forwardPrefixFallback:/)
+  assert.match(popover, /const prefix = forwardPrefix === null \? say\('forward\.prefix'\) : forwardPrefix/)
   // The open panel follows a language switch instead of keeping the old copy.
   assert.match(popover, /React\.useSyncExternalStore\(subscribeLocale, readLocaleRevision/)
   assert.match(popover, /const localeId = typeof props\.getLocaleId === 'function'/)

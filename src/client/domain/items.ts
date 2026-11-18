@@ -52,9 +52,10 @@ export function ageLabel(time, say, localeId) {
 }
 
 /**
- * Best-known completion stamp for a done note. Newer records carry
- * `completedAt`; older ones only have `updatedAt`, so fall back in order
- * until a finite time is found. Returns 0 when the item has no usable stamp.
+ * Best-known archive stamp for an archived note (stored as `done` with
+ * `completedAt`, the on-disk names kept from the checkbox era). Older records
+ * only have `updatedAt`, so fall back in order until a finite time is found.
+ * Returns 0 when the item has no usable stamp.
  */
 export function completedStamp(item) {
   if (!item) return 0
@@ -65,7 +66,7 @@ export function completedStamp(item) {
   return 0
 }
 
-/** Newest completion first; updatedAt then createdAt keep equal stamps stable. */
+/** Newest archive first; updatedAt then createdAt keep equal stamps stable. */
 export function compareDoneItems(a, b) {
   const byCompletion = completedStamp(b) - completedStamp(a)
   if (byCompletion) return byCompletion
@@ -77,10 +78,41 @@ export function compareDoneItems(a, b) {
   return bCreated - aCreated
 }
 
-/** Done notes show creation and completion age; open ones show creation age only. */
+/**
+ * The age a row shows at rest: an open note counts from its creation, an
+ * archived one from the moment it was archived (the order of its section).
+ */
+export function rowAge(item, say, localeId) {
+  if (!item || item.done !== true) return ageLabel(item && item.createdAt, say, localeId)
+  return ageLabel(completedStamp(item) || item.createdAt, say, localeId)
+}
+
+/** Full stamp for the row's hover title: archived notes name both moments. */
 export function metaLabel(item, say, localeId) {
   const created = ageLabel(item && item.createdAt, say, localeId)
   if (!item || item.done !== true) return created
-  const completed = completedStamp(item) || (item ? item.createdAt : 0)
-  return say('time.createdDone', { created, completed: ageLabel(completed, say, localeId) })
+  const archived = completedStamp(item) || (item ? item.createdAt : 0)
+  return say('time.createdArchived', { created, completed: ageLabel(archived, say, localeId) })
+}
+
+/**
+ * Move one open note to `toIndex` among the open notes.
+ *
+ * Only open notes have an authored order; archived notes sort by archive time,
+ * so they keep their slots in the stored array and the open notes are poured
+ * back into the open slots in their new order. Returns the input untouched
+ * when the move is a no-op or names a note that is not open.
+ */
+export function moveOpenItem(items, itemId, toIndex) {
+  if (!Array.isArray(items)) return items
+  const open = items.filter(item => item && item.done !== true)
+  const from = open.findIndex(item => item.id === itemId)
+  if (from < 0) return items
+  const target = Math.max(0, Math.min(open.length - 1, Math.trunc(Number(toIndex) || 0)))
+  if (target === from) return items
+  const order = open.slice()
+  const [moved] = order.splice(from, 1)
+  order.splice(target, 0, moved)
+  let next = 0
+  return items.map(item => (item && item.done !== true ? order[next++] : item))
 }

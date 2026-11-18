@@ -1,24 +1,34 @@
-/** Row actions: toggle a note and take it back into the composer. */
-export function useNoteActions({ commit, report, forgetForwardedItems }) {
-  const toggle = item => {
+/** Row actions: archive a note, reorder the open ones, take one back into the composer. */
+import { moveOpenItem } from '../domain/items'
+
+export function useNoteActions({ commit, report }) {
+  /**
+   * Archive one note. There is no manual toggle: a note is archived when it
+   * has been put into the conversation, and only `takeBack` brings it back.
+   * The stored shape keeps `done` / `completedAt`, so existing lists read as-is.
+   */
+  const archive = item => {
     const ok = commit(currentItems => currentItems.map(candidate => {
-      if (candidate.id !== item.id) return candidate
+      if (candidate.id !== item.id || candidate.done) return candidate
       const now = Date.now()
-      return {
-        ...candidate,
-        done: !candidate.done,
-        updatedAt: now,
-        ...(candidate.done ? { completedAt: undefined } : { completedAt: now }),
-      }
+      return { ...candidate, done: true, updatedAt: now, completedAt: now }
     }))
     if (!ok) report('saveFailed')
+    return ok
+  }
+
+  /** Move an open note to `toIndex` among the open notes; archived ones keep their order. */
+  const move = (itemId, toIndex) => {
+    const ok = commit(currentItems => moveOpenItem(currentItems, itemId, toIndex))
+    if (!ok) report('saveFailed')
+    return ok
   }
 
   /**
    * Remove a note so its text can be recalled into the composer.
    *
-   * A failed write keeps the row, its text and its forward flag exactly as
-   * they were; the caller writes the recalled text only after this succeeds.
+   * A failed write keeps the row and its text exactly as they were; the
+   * caller writes the recalled text only after this succeeds.
    */
   const takeBack = item => {
     const ok = commit(currentItems => currentItems.filter(candidate => candidate.id !== item.id))
@@ -26,9 +36,8 @@ export function useNoteActions({ commit, report, forgetForwardedItems }) {
       report('saveFailed')
       return false
     }
-    forgetForwardedItems(item.id)
     return true
   }
 
-  return { toggle, takeBack }
+  return { archive, move, takeBack }
 }

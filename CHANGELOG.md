@@ -9,18 +9,32 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 ## next-released
 
 <!-- app-update-notes:en:start -->
+### Added
+- **Drag to reorder:** each open note now starts with a grip instead of a checkbox. Drag it to move the note, or focus it and press ↑ / ↓; Esc cancels a drag in flight. Archived notes stay in archive order.
+
 ### Changed
+- **Hand to chat archives the note:** the old forward action is now **Hand to chat**, with a new icon. It appends the note to the open conversation's composer as before and archives the note in the same step; when no composer is on screen nothing changes. Notes can no longer be checked off by hand, and the forwarded check badge is gone.
+- **Quiet archive wording:** the second section is **Archived**, its clear action **Clear archived**, and the note action **Hand to chat**; the Chinese panel reads 「待续 / 归档」 — short labels, with the explanations kept out of the panel.
+- **Lighter note rows:** notes sit directly on the panel without a card frame or dividers. At rest a row shows its text and age; on hover the age gives way to Rewind, Copy and Hand to chat. Archived notes are shown in secondary ink instead of struck through.
 - **Enter matches the main composer:** the add box now sends on Enter and inserts a line break on Shift+Enter, exactly like the conversation composer; an Enter that belongs to an IME candidate pick is left to the browser.
 
 ### Removed
+- **Forward marks:** the forward button no longer keeps a "forwarded" check; a previously stored `dsh.aside-note.forwarded` value is ignored.
 - **Send shortcut setting:** the Settings card no longer offers an Enter / ⌘+Enter choice. Enter always sends, and a previously stored `dsh.aside-note.send-shortcut` value is ignored.
 <!-- app-update-notes:en:end -->
 
 <!-- app-update-notes:zh:start -->
+### 新增
+- **拖动排序：** 待续便笺开头的勾选圈换成了拖动把手。按住拖动即可调整先后，键盘聚焦把手后用 ↑ / ↓ 逐条移动，拖动中按 Esc 取消；已归档按归档时间排列。
+
 ### 变更
+- **递入对话即归档：** 原来的「转发到会话」改为「递入对话」，并换了图标。它仍把便笺追加到当前会话输入框，同时直接把这条便笺归档；找不到输入框时什么都不改。不再手动打勾完成，转发后的勾选标识也已去掉。
+- **「归档」说得轻一点：** 第二个分区叫「归档」，清除按钮是「清空归档」，行操作是「递入对话」，第一个分区叫「待续」；主界面只留短标签，解释句子退回设置与提示。
+- **更轻的便笺行：** 便笺直接铺在面板上，去掉卡片外框与分隔线。静置时只显示正文与时间，悬停时时间让位给「退回 / 复制 / 递入对话」；归档改用次级墨色，不再划删除线。
 - **Enter 与主会话一致：** 录入框改为 Enter 发送、Shift+Enter 换行，与对话输入框完全一致；输入法选词时的 Enter 交给浏览器处理。
 
 ### 移除
+- **转发标识：** 不再在转发按钮上记录「已转发」勾选；之前保存的 `dsh.aside-note.forwarded` 会被忽略。
 - **发送快捷键设置：** 设置卡不再提供 Enter / ⌘+Enter 的选择，Enter 固定发送；之前保存的 `dsh.aside-note.send-shortcut` 会被忽略。
 <!-- app-update-notes:zh:end -->
 

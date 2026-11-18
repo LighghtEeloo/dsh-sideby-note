@@ -67,28 +67,35 @@ body{--an-space-1:4px;--an-space-2:8px;--an-space-3:12px;--an-space-4:16px;--an-
 .dsh-an-clearConfirmText{flex:1 1 auto;min-width:0;margin:0;font-size:var(--an-fs-caption);line-height:var(--an-lh-caption);color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
 .dsh-an-clearConfirmActions{display:flex;align-items:center;flex:none;gap:var(--an-space-1)}
 .dsh-an-doneRows{margin-top:var(--an-space-2)}
-.dsh-an-rows{list-style:none;margin:0;padding:0;border:0.5px solid var(--dsw-alias-settings-card-stroke);border-radius:var(--dsw-radius-lg);background:var(--dsw-alias-settings-card-fill);overflow:hidden}
-.dsh-an-row{display:flex;align-items:flex-start;gap:var(--an-space-2);padding:var(--an-space-2);border-top:0.5px solid var(--an-divider);transition:var(--an-transition)}
-.dsh-an-row:first-child{border-top:0}
+.dsh-an-rows{list-style:none;display:flex;flex-direction:column;gap:2px;margin:0;padding:0}
+/* A note is a bare line on the panel surface: no card, no divider. Grip, text and one trailing cell; the grip column keeps the text on the section label's edge. */
+.dsh-an-row{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr) auto;align-items:start;column-gap:var(--an-space-1);padding:var(--an-space-1);border-radius:var(--dsw-radius-sm);transition:var(--an-transition)}
 
-/* ── 6 一行便笺 · 勾选圈 14px，命中区 24px ─────────────────────────── */
-.dsh-an-check{display:flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;margin:-2px 0 0;padding:0;border:0;border-radius:var(--an-radius-pill);corner-shape:round;background:transparent;color:transparent;font:inherit;cursor:pointer;transition:var(--an-transition)}
-.dsh-an-checkCircle{display:flex;align-items:center;justify-content:center;width:14px;height:14px;box-sizing:border-box;border:0.5px solid var(--dsw-alias-label-tertiary);border-radius:var(--an-radius-pill);corner-shape:round;background:transparent;color:transparent;transition:border-color var(--an-dur-fast) var(--an-ease),background-color var(--an-dur-fast) var(--an-ease),color var(--an-dur-fast) var(--an-ease),transform var(--an-dur-fast) var(--an-ease)}
-.dsh-an-check:active .dsh-an-checkCircle{transform:scale(.9)}
-.dsh-an-check[aria-checked="true"] .dsh-an-checkCircle{border-color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
-.dsh-an-itemBody{display:flex;flex:1;flex-direction:column;gap:var(--an-space-1);min-width:0}
-.dsh-an-text{display:block;width:100%;margin:0;padding:0;border:0;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:var(--an-fs-row);line-height:var(--an-lh-row);text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
-.dsh-an-rowDone .dsh-an-text{color:var(--dsw-alias-label-secondary);text-decoration:line-through;text-decoration-thickness:1px;text-decoration-color:var(--dsw-alias-label-tertiary)}
-.dsh-an-rowFoot{display:flex;align-items:center;justify-content:space-between;gap:var(--an-space-2);min-height:24px}
-.dsh-an-meta{flex:0 1 auto;min-width:0;overflow:hidden;font-size:var(--an-fs-caption);line-height:var(--an-lh-caption);color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;white-space:nowrap;text-overflow:ellipsis}
+/* ── 6 一行便笺 · 把手 16 列，正文 13/20，尾格静置显示时间、悬停换成操作 ── */
+/* The grip is a drag handle and a keyboard control (↑/↓). Touch keeps it visible in the quiet non-text ink; pointer devices reveal it on hover. */
+.dsh-an-grip{display:flex;align-items:center;justify-content:center;width:16px;height:24px;margin:-2px 0 0;padding:0;border:0;border-radius:var(--dsw-radius-sm);background:transparent;color:var(--dsw-alias-label-tertiary);font:inherit;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;transition:var(--an-transition)}
+.dsh-an-gripSpacer{width:16px}
+.dsh-an-text{display:block;min-width:0;margin:0;padding:0;color:var(--dsw-alias-label-primary);font-size:var(--an-fs-row);line-height:var(--an-lh-row);white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
+.dsh-an-rowArchived .dsh-an-text{color:var(--dsw-alias-label-secondary)}
+/* Age and actions share one grid cell, so the swap never reflows the text. */
+.dsh-an-trail{display:grid;align-items:center;justify-items:end;min-height:24px;margin:-2px 0 0}
+.dsh-an-trail>*{grid-area:1/1}
+.dsh-an-meta{padding:0 var(--an-space-1);font-size:var(--an-fs-caption);line-height:var(--an-lh-caption);color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;white-space:nowrap;opacity:0;transition:opacity var(--an-dur-fast) var(--an-ease)}
 
 /* ── 7 行操作 · 图标按钮 H24/R8，触摸端常显 ────────────────────────── */
-.dsh-an-actions{display:flex;flex:none;gap:var(--an-space-1)}
+.dsh-an-actions{display:flex;flex:none;gap:2px;transition:opacity var(--an-dur-fast) var(--an-ease)}
 .dsh-an-iconBtn{position:relative;display:flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:0;border-radius:var(--dsw-radius-sm);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer;transition:var(--an-transition)}
 .dsh-an-iconBtn:active{background:var(--an-active);color:var(--dsw-alias-label-primary);transform:scale(.94)}
 .dsh-an-iconBtn:disabled,.dsh-an-iconBtn[disabled]{color:var(--dsw-alias-label-tertiary);cursor:not-allowed;pointer-events:none}
 .dsh-an-glyphFlip{transform:scaleX(-1)}
-.dsh-an-forwardMark{position:absolute;right:0;bottom:0;display:flex;align-items:center;justify-content:center;width:10px;height:10px;border-radius:var(--an-radius-pill);corner-shape:round;background:var(--dsw-alias-label-secondary);color:var(--dsw-alias-label-primary-foreground);pointer-events:none}
+
+/* ── 7b 拖拽排序 · 抬起的行跟手，其余行用 transform 让位 ─────────────── */
+.dsh-an-rows[data-dragging="true"],.dsh-an-rows[data-dragging="true"] .dsh-an-grip{cursor:grabbing}
+.dsh-an-row[data-dragging="true"]{z-index:1;background:var(--dsh-an-panelSurface);box-shadow:var(--dsw-elevation-prominent);transition:none}
+.dsh-an-row[data-dragging="true"] .dsh-an-grip{opacity:1;color:var(--dsw-alias-label-primary)}
+/* While a row is held the trail stays at rest: the age shows, the actions stay out of the way. */
+.dsh-an-rows[data-dragging="true"] .dsh-an-row .dsh-an-actions{opacity:0;pointer-events:none}
+.dsh-an-rows[data-dragging="true"] .dsh-an-row .dsh-an-meta{opacity:1}
 
 /* ── 8 紧凑文字按钮 · 清空确认 ─────────────────────────────────── */
 .dsh-an-mini{display:inline-flex;align-items:center;justify-content:center;flex:none;height:24px;padding:0 var(--an-space-2);border:0.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-sm);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:var(--an-fs-caption);line-height:var(--an-lh-caption);font-weight:500;cursor:pointer;transition:var(--an-transition)}
@@ -207,8 +214,13 @@ body{--an-space-1:4px;--an-space-2:8px;--an-space-3:12px;--an-space-4:16px;--an-
 /* ── 15 悬停 · 只在支持 hover 的设备上启用（触摸端常显操作） ────────── */
 @media (hover:hover){
 .dsh-an-row:hover{background:var(--an-hover)}
+.dsh-an-grip{opacity:0}
+.dsh-an-row:hover .dsh-an-grip,.dsh-an-grip:focus-visible{opacity:1;color:var(--dsw-alias-label-secondary)}
+.dsh-an-grip:hover{color:var(--dsw-alias-label-primary)}
+.dsh-an-meta{opacity:1}
 .dsh-an-actions{opacity:0;pointer-events:none}
 .dsh-an-row:hover .dsh-an-actions,.dsh-an-row:focus-within .dsh-an-actions{opacity:1;pointer-events:auto}
+.dsh-an-row:hover .dsh-an-meta,.dsh-an-row:focus-within .dsh-an-meta{opacity:0}
 .dsh-an-iconBtn:hover{background:var(--an-hover);color:var(--dsw-alias-label-primary)}
 .dsh-an-popClose:hover,.dsh-an-settingsBtn:hover{background:var(--an-hover);color:var(--dsw-alias-label-primary)}
 .dsh-an-scopeBtn:hover:not([data-active="true"]){background:var(--an-hover);color:var(--dsw-alias-label-primary)}
@@ -217,7 +229,6 @@ body{--an-space-1:4px;--an-space-2:8px;--an-space-3:12px;--an-space-4:16px;--an-
 .dsh-an-miniDanger:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover-danger);color:var(--dsw-alias-state-error-primary)}
 .dsh-an-clear:hover{background:var(--an-hover);color:var(--dsw-alias-label-primary)}
 .dsh-an-doneToggle:hover{background:var(--an-hover)}
-.dsh-an-check:hover .dsh-an-checkCircle{border-color:var(--dsw-alias-label-primary)}
 .dsh-an-settingLink:hover{text-decoration:underline;text-decoration-style:dotted;text-decoration-thickness:1px;text-underline-offset:3px}
 .dsh-an-settingReset:hover{text-decoration:underline;text-decoration-style:dotted;text-decoration-thickness:1px;text-underline-offset:3px}
 .dsh-an-updatePrimary:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}
@@ -228,7 +239,7 @@ body{--an-space-1:4px;--an-space-2:8px;--an-space-3:12px;--an-space-4:16px;--an-
 
 /* ── 16 动效 · 只动 opacity/transform，错峰出场封顶 ─────────────────── */
 @media (prefers-reduced-motion:no-preference){
-.dsh-an-rows>.dsh-an-row{animation:dsh-an-row-in var(--an-dur-base) var(--an-ease) both}
+.dsh-an-rows>.dsh-an-row{animation:dsh-an-row-in var(--an-dur-base) var(--an-ease) backwards}
 .dsh-an-rows>.dsh-an-row:nth-child(2){animation-delay:var(--an-space-1)}
 .dsh-an-rows>.dsh-an-row:nth-child(3){animation-delay:var(--an-space-2)}
 .dsh-an-rows>.dsh-an-row:nth-child(4){animation-delay:calc(var(--an-space-2) + var(--an-space-1))}
@@ -239,7 +250,7 @@ body{--an-space-1:4px;--an-space-2:8px;--an-space-3:12px;--an-space-4:16px;--an-
 @keyframes dsh-an-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){
 .dsh-an-popover,.dsh-an-rows>.dsh-an-row,.dsh-an-chevron,[data-loading="true"]::after{animation:none}
-.dsh-an-popover,.dsh-an-row,.dsh-an-actions,.dsh-an-iconBtn{transition-duration:1ms}
+.dsh-an-popover,.dsh-an-row,.dsh-an-grip,.dsh-an-meta,.dsh-an-actions,.dsh-an-iconBtn{transition-duration:1ms}
 }
 
 /* ── 17 窄视口 · 390 基准下收紧内边距，主操作全部可达 ──────────────── */

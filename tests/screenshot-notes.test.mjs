@@ -40,13 +40,13 @@ function ago(ms) {
 function stamp(note) {
   const created = ago(note.age)
   if (!note.done) return created
-  return `${created}创建，${ago(note.doneAge ?? note.age)}完成`
+  return `写于 ${created} · 归档于 ${ago(note.doneAge ?? note.age)}`
 }
 
 test('the SOP note table lists exactly the notes the capture types in', () => {
   const rows = sopNotes()
   assert.deepEqual(rows.map(row => row.text), NOTES.map(note => note.text))
-  assert.deepEqual(rows.map(row => row.state), NOTES.map(note => (note.done ? '已完成' : '未完成')))
+  assert.deepEqual(rows.map(row => row.state), NOTES.map(note => (note.done ? '归档' : '待续')))
   assert.equal(new Set(NOTES.map(note => note.text)).size, NOTES.length, 'note texts must stay unique')
 })
 

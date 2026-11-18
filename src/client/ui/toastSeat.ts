@@ -6,20 +6,19 @@ const h = React.createElement
 
 const TOAST_COPY = {
   copied: { key: 'toast.copied', tone: 'success' },
-  forwarded: { key: 'toast.forwarded', tone: 'success' },
-  unforwarded: { key: 'toast.unforwarded', tone: 'success' },
+  inserted: { key: 'toast.inserted', tone: 'success' },
   recalled: { key: 'toast.recalled', tone: 'success' },
   recallBlocked: { key: 'toast.recallBlocked' },
   cleared: { key: 'toast.cleared', tone: 'success' },
   copyFailed: { key: 'toast.copyFailed' },
-  forwardFailed: { key: 'toast.forwardFailed' },
+  insertFailed: { key: 'toast.insertFailed' },
   saveFailed: { key: 'toast.saveFailed' },
 }
 
 const WarningIcon = icon('IconWarningOutlineRegular')
 
 /**
- * Settled outcomes (copy, forward, recall, write failure) live in the frame,
+ * Settled outcomes (copy, insert, recall, write failure) live in the frame,
  * not inside the panel: the panel unmounts on close, the banner must not.
  */
 export function createToastSeat(tr) {

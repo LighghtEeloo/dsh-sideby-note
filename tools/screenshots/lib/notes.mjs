@@ -1,4 +1,4 @@
-// The demo notes: the only source of truth for their copy, state and ages.
+// The demo notes: the only source of truth for their copy, archive state and ages.
 //
 // bootstrap.mjs types them into the panel and anchors their stamps; capture.mjs
 // re-anchors them right before each theme so the light and dark shots agree on
@@ -38,9 +38,12 @@ export function anchorExpression(notes = NOTES) {
         for (const item of record.items || []) {
           const note = plan.find(n => n.text === item.text)
           if (!note) continue
+          // The panel has no checkbox: archived demo notes are set here, in the store.
+          item.done = note.done === true
           item.createdAt = now - note.age
           item.updatedAt = now - (note.doneAge ?? note.age)
           if (note.done) item.completedAt = now - (note.doneAge ?? note.age)
+          else delete item.completedAt
           matched++
         }
       }

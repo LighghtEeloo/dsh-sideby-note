@@ -8,7 +8,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { PANEL_DEFAULT_WIDTH, SCOPE_MODE_KEY } from '../constants'
-import { canUseSessionScope, draftKeyForSession, scopeForSession, scopeKey, scopeVersion, subscribeScope, workspaceScopeForSession } from '../scope'
+import { canUseSessionScope, draftKeyForSession, scopeForSession, scopeVersion, subscribeScope, workspaceScopeForSession } from '../scope'
 import { notifyTodoChange } from '../storage/events'
 import { readScopeMode, writeScopeMode } from '../storage/prefs'
 import { ensureWorkspaceRecord } from '../storage/workspace'
@@ -16,15 +16,16 @@ import { useMemoStore } from './useSessionMemoStore'
 import { usePanelGeometry } from './usePanelGeometry'
 
 import { useSections } from './useSections'
-import { useForwardMarks } from './useForwardMarks'
 import { usePanelSettings } from './usePanelSettings'
 import { useUpdateCenter } from './useUpdateCenter'
 import { useComposerDraft } from './useComposerDraft'
 import { useNoteActions } from './useNoteActions'
+import { useRowReorder } from './useRowReorder'
 import { useClearConfirm } from './useClearConfirm'
 import { useListEdge } from './useListEdge'
 import { useOutsideDismiss } from './useOutsideDismiss'
 import { compareDoneItems } from '../domain/items'
+import { appendToConversation } from '../domain/forward'
 
 import { TodoRow } from './TodoRow'
 import { PanelHead } from './PanelHead'
@@ -84,7 +85,6 @@ export function MemoPopover(props) {
   const report = typeof props.onToast === 'function' ? props.onToast : () => {}
   const { record, syncError, commit } = useMemoStore(scope)
   const { sectionsRef, showOpen, showDone, toggleOpen, toggleDone, applySections } = useSections()
-  const { forwardedIds, rememberForwarded, unrememberForwarded, forgetForwardedItems } = useForwardMarks(scopeKey(scope))
   const {
     showSettings,
     setShowSettings,
@@ -102,7 +102,7 @@ export function MemoPopover(props) {
     commit,
     report,
   })
-  const { toggle, takeBack } = useNoteActions({ commit, report, forgetForwardedItems })
+  const { archive, move, takeBack } = useNoteActions({ commit, report })
   const { confirmClear, askClearConfirm, dismissClearConfirm, confirmClearDone } = useClearConfirm({
     sessionId,
     showDone,
@@ -126,6 +126,7 @@ export function MemoPopover(props) {
   const openCount = openItems.length
   const total = items.length
   const { listRef, listHasMore, syncListEdge } = useListEdge({ items, showOpen, showDone })
+  const reorder = useRowReorder({ ids: openItems.map(item => item.id), scrollRef: listRef, onMove: move })
   useOutsideDismiss(panelRef, props.anchorRef, props.onClose)
 
   const chooseScope = next => {
@@ -147,16 +148,29 @@ export function MemoPopover(props) {
   }
 
   const clearDone = () => {
-    // Capture the completed items before the commit so their forward flags can be cleared.
-    const clearedItems = items.filter(item => item.done)
     const ok = commit(currentItems => currentItems.filter(item => !item.done))
     if (!ok) {
       report('saveFailed')
       return
     }
     report('cleared')
-    forgetForwardedItems(clearedItems.map(item => item.id))
     applySections({ open: sectionsRef.current.open, done: false })
+  }
+
+  /**
+   * 递入对话 is the one way a note gets archived: its text goes into the
+   * conversation composer and the row moves to the archive in the same step.
+   * When no composer is on screen nothing changes, so the note stays open.
+   */
+  const insertItem = item => {
+    // `null` = untouched: resolve the default in the active language at click
+    // time; any string, including "", is the user's own prefix choice.
+    const prefix = forwardPrefix === null ? say('forward.prefix') : forwardPrefix
+    if (!appendToConversation(item.text, prefix)) {
+      report('insertFailed')
+      return
+    }
+    if (archive(item)) report('inserted')
   }
 
   /**
@@ -177,19 +191,14 @@ export function MemoPopover(props) {
   const row = item => h(TodoRow, {
     key: item.id,
     item,
-    done: item.done,
+    archived: item.done === true,
     say,
     localeId,
     onToast: report,
-    onToggle: toggle,
+    onInsert: insertItem,
     onRecall: recallItem,
-    // `null` = untouched, so the row resolves the default in the active language
-    // at click time; any string, including "", is the user's own prefix choice.
-    forwardPrefix,
-    forwardPrefixFallback: () => say('forward.prefix'),
-    forwarded: forwardedIds[item.id] === true,
-    onForwarded: rememberForwarded,
-    onUnforwarded: unrememberForwarded,
+    // Archived notes sort by archive time, so only open rows carry a grip.
+    grip: item.done ? null : reorder.gripProps(item.id),
   })
 
   const content = h(
@@ -280,6 +289,7 @@ export function MemoPopover(props) {
       showOpen,
       toggleOpen,
       openItems,
+      openListRef: reorder.listRef,
       openCount,
       total,
       row,
