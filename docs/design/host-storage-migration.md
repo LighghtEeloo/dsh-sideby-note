@@ -643,6 +643,7 @@ boot:
 | `R-STORE-HOST-UNAVAILABLE` | `STORE-020/022/025` | 同上 |
 | `R-STORE-HOST-MERGE` | `STORE-023` | `tests/host-store.test.mjs` |
 | `R-STORE-CAPACITY` | `STORE-027`（宿主 401 条） | `tests/host-store.test.mjs` |
+| `R-STORE-HOST-PATH` | `STORE-028`（路径、拷贝、定位） | `tests/host-store.test.mjs`、`tests/host-bundle.test.mjs` |
 
 `STORE-001` 的验收语从「启动不写迁移标记」改为「宿主不可用时启动保留便笺且不切换」；宿主可用时的迁移由 `STORE-019` 承担。规则变更已通过 `design:review --approve --by reviewed-in-chat`，执行结果由 `test:run` 写入 `.test/runs/`。
 

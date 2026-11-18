@@ -35,7 +35,7 @@ src/client/
 host/                    # 宿主半边：
                          # route（两个更新端点）、apply-update（三级安装）、profile、versions、exec
                          # store-spec（aside_note 领域与 zod schema）、store（懒打开/快照/原子变更/迁移）、
-                         # store-route（GET/POST /dsh-aside-note/store）、normalize、http
+                         # store-route（GET/POST /dsh-aside-note/store、GET /store/location、POST /store/reveal）、normalize、http
 client/client.js         # tsdown 产物，入库，CI 校验与源码一致
 index.js                 # 宿主半侧：注册更新端点与便笺存储端点
 cordis.patch.yml         # profile 组合里的一行

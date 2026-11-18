@@ -428,3 +428,26 @@ cases:
         status: automated
     suites: [nightly, release]
     tags: [host, capacity, boundary]
+
+  - id: STORE-028
+    title: 设置中展示存储文件路径并支持拷贝与定位
+    priority: P1
+    class: A
+    rules: [R-STORE-HOST-PATH, R-STORE-HOST-FILE]
+    risk: ux
+    expected:
+      - 宿主模式设置页显示完整路径，而不是只有文件名
+      - 拷贝按钮把完整路径写入剪贴板
+      - 显示按钮请求宿主在文件管理器中定位该文件
+      - 后端无文件路径时说明不可定位，不猜路径
+    automation:
+      - type: unit
+        file: tests/host-store.test.mjs
+        test: STORE-028 存储文件路径可查看
+        status: automated
+      - type: integration
+        file: tests/host-bundle.test.mjs
+        test: STORE-028 设置中可拷贝存储路径
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [host, settings, path, clipboard]

@@ -6,9 +6,10 @@
  * real profile or file.
  */
 import assert from 'node:assert/strict'
+import path from 'node:path'
 import test from 'node:test'
 import { createStore, StoreError } from '../host/store.js'
-import { registerStoreRoutes, STORE_PATH } from '../host/store-route.js'
+import { LOCATION_PATH, REVEAL_PATH, registerStoreRoutes, revealCommand, resolveStoreFile, STORE_PATH } from '../host/store-route.js'
 import { createSpec, sessionSchema, workspaceSchema } from '../host/store-spec.js'
 import { fakeCtx, fakeDomain } from './fake-store.mjs'
 
@@ -275,4 +276,39 @@ test('STORE-027 宿主模式 400 条仍可新增', async () => {
   assert.equal(second.record.items.length, 401)
   const snapshot = await store.snapshot()
   assert.equal(snapshot.data.sessions.big.items.length, 401)
+})
+
+test('STORE-028 存储文件路径可查看', async () => {
+  const root = '/tmp/aside-note-location-test'
+  const backend = { root }
+  const ctx = {
+    get(name) {
+      if (name === 'storage') return { backend: { names: () => ['json'], get: () => backend } }
+      if (name === 'storageDomain') return { config: { routes: { aside_note: 'json' } } }
+      return undefined
+    },
+  }
+  const file = path.join(root, 'aside_note.json')
+  assert.deepEqual(resolveStoreFile(ctx), { path: file, backend: 'json' })
+
+  const server = fakeServer()
+  registerStoreRoutes(server, { ctx, store: {} })
+  const location = response()
+  await server.route(LOCATION_PATH).handler(request('GET'), location)
+  assert.equal(location.status, 200)
+  assert.equal(location.body.path, file)
+  assert.equal(location.body.exists, false)
+  assert.equal(location.body.backend, 'json')
+
+  assert.deepEqual(revealCommand(file, 'darwin', true), { command: 'open', args: ['-R', file] })
+  assert.deepEqual(revealCommand(file, 'win32', true), { command: 'explorer.exe', args: [`/select,${file}`] })
+  assert.deepEqual(revealCommand(file, 'linux', false), { command: 'xdg-open', args: [root] })
+
+  // A backend without a file path is reported, never guessed.
+  const emptyServer = fakeServer()
+  registerStoreRoutes(emptyServer, { ctx: { get: () => undefined }, store: {} })
+  const missing = response()
+  await emptyServer.route(REVEAL_PATH).handler(request('POST'), missing)
+  assert.equal(missing.status, 404)
+  assert.equal(missing.body.code, 'STORE_PATH_UNAVAILABLE')
 })

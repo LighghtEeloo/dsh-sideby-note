@@ -191,6 +191,18 @@ features:
         technique: [不变量]
         reviewed: { by: "reviewed-in-chat", at: '2026-11-18', hash: 'bb716c7275e76ac7' }
 
+      - id: R-STORE-HOST-PATH
+        statement: 设置页必须展示宿主存储文件的完整路径；用户可以拷贝该路径，或在宿主的文件管理器中定位文件；无法定位时必须说明原因，不得猜测。
+        failure: 想备份或排查却找不到文件，只能猜默认目录；或显示一个实际不存在的路径。
+        kind: presentation
+        branches:
+          - kind: valid
+            text: 后端有文件路径——展示完整路径，并可拷贝与在文件管理器中定位
+          - kind: invalid
+            text: 后端无路径或路径未知——说明不可定位，不展示猜测路径
+        technique: [等价类, 故障注入]
+        reviewed: { by: "reviewed-in-chat", at: '2026-11-18', hash: '17100762309354c1' }
+
       - id: R-STORE-HOST-SWITCH
         statement: 升级后首次启动探测宿主存储：可用时把浏览器旧数据迁移一次并写一次性模式标记，之后单向使用宿主；不可用时不切换、保留浏览器数据、提示并在下次启动重试；迁移中断后重启应补完且不重复。
         failure: 每次启动重复迁移产生重复条目；或不可用时假装切换，用户新写的便笺留在浏览器而宿主恢复后看不到。

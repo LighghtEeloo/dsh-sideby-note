@@ -90,7 +90,7 @@ Click a note's forward button to append it to the current chat input as a list i
 - **Completed history**: separate open and completed sections, with creation and completion times.
 - **Adjustable panel**: resize the width and height, with your preferences remembered.
 - **Fits into DSH**: follows the light/dark theme and all eight DSH-official languages (Chinese, English, Japanese, Spanish, French, German, Russian and Brazilian Portuguese).
-- **Host-file persistence**: notes live in `~/.dsh/storages/aside_note.json`, so page refreshes, DSH restarts and a different browser all keep them; tabs in the same browser stay in sync in real time, while other browsers on the same host refresh when they open the panel.
+- **Host-file persistence**: notes live in `~/.dsh/storages/aside_note.json`, so page refreshes, DSH restarts and a different browser all keep them; tabs in the same browser stay in sync in real time, while other browsers on the same host refresh when they open the panel. Settings › About shows the full path, with buttons to copy it or reveal the file in your file manager.
 
 > Notes are stored by the DSH host (not the browser) and shared by every browser on that host; they do not sync across machines. The first start after upgrading migrates them automatically — see [Where data lives](#where-data-lives).
 

@@ -19,6 +19,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const bundle = fs.readFileSync(path.join(root, 'client', 'client.js'), 'utf8')
 
 const STORE_PATH = '/dsh-aside-note/store'
+const LOCATION_PATH = `${STORE_PATH}/location`
+const REVEAL_PATH = `${STORE_PATH}/reveal`
 const SESSION_KEY = 'dsh.aside-note'
 const MODE_KEY = 'dsh.aside-note.storage-mode'
 
@@ -81,6 +83,19 @@ async function setup(options = {}) {
       }
       const result = await store.apply(JSON.parse(init.body))
       return json(200, { ok: true, ...result })
+    }
+    if (url === LOCATION_PATH) {
+      return json(200, {
+        ok: true,
+        path: options.storePath || null,
+        exists: options.storePath ? options.storePathExists !== false : false,
+        backend: options.storePath ? 'json' : null,
+      })
+    }
+    if (url === REVEAL_PATH) {
+      return options.revealDown
+        ? json(502, { ok: false, code: 'STORE_REVEAL_FAILED', message: 'no file manager' })
+        : json(200, { ok: true })
     }
     // The panel's update check must not reach the network in this realm.
     return json(404, {})
@@ -259,4 +274,34 @@ test('STORE-025 宿主文件打不开时不切换并提示', async t => {
   assert.deepEqual(legacy.sessions['session-1'].items.map(item => item.text), ['仍然本地', '旧便笺'])
   const snapshot = await ctx.store.snapshot()
   assert.deepEqual(snapshot.data.sessions, {}, 'no host write happened')
+})
+
+test('STORE-028 设置中可拷贝存储路径', async t => {
+  const file = '/Users/me/.dsh/storages/aside_note.json'
+  const ctx = await setup({ legacyNote: true, storePath: file })
+  t.after(() => ctx.window.close())
+  const copied = []
+  Object.defineProperty(ctx.window.navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText: async value => { copied.push(value) } },
+  })
+
+  const { button } = await ctx.openPanel()
+  await ctx.act(async () => { button.click() })
+  const popover = ctx.window.document.querySelector('.dsh-an-popover')
+  await ctx.act(async () => { popover.querySelector('.dsh-an-settingsBtn').click() })
+  await ctx.settle(60)
+
+  const pathElement = popover.querySelector('.dsh-an-storagePath')
+  assert.equal(pathElement.textContent, file)
+  const actions = [...popover.querySelectorAll('.dsh-an-storageAction')]
+  assert.equal(actions.length, 2)
+
+  await ctx.act(async () => { actions[0].click() })
+  await ctx.settle(10)
+  assert.deepEqual(copied, [file])
+
+  await ctx.act(async () => { actions[1].click() })
+  await ctx.settle(10)
+  assert.ok(ctx.calls.some(call => call.url === REVEAL_PATH && call.method === 'POST'))
 })

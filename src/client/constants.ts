@@ -67,6 +67,10 @@ export const PANEL_MIN_HEIGHT = 240
 export const MAX_TEXT = 280
 /** Same-origin host endpoint owned by this package (keep in sync with host/store-route.js). */
 export const HOST_STORE_PATH = '/dsh-aside-note/store'
+/** Absolute path of the host file, for Settings. */
+export const HOST_STORE_LOCATION_PATH = '/dsh-aside-note/store/location'
+/** Ask the host to reveal the store file in its file manager. */
+export const HOST_STORE_REVEAL_PATH = '/dsh-aside-note/store/reveal'
 /** Browser-side marker: written only after the one-way switch to host storage succeeded. */
 export const STORAGE_MODE_KEY = 'dsh.aside-note.storage-mode'
 /** Browser-side notice dedupe record: { code, at }. */

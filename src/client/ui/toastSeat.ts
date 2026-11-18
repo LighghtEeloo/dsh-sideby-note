@@ -6,11 +6,13 @@ const h = React.createElement
 
 const TOAST_COPY = {
   copied: { key: 'toast.copied', tone: 'success' },
+  pathCopied: { key: 'toast.pathCopied', tone: 'success' },
   forwarded: { key: 'toast.forwarded', tone: 'success' },
   unforwarded: { key: 'toast.unforwarded', tone: 'success' },
   deleted: { key: 'toast.deleted', tone: 'success' },
   cleared: { key: 'toast.cleared', tone: 'success' },
   copyFailed: { key: 'toast.copyFailed' },
+  revealFailed: { key: 'toast.revealFailed' },
   forwardFailed: { key: 'toast.forwardFailed' },
   saveFailed: { key: 'toast.saveFailed' },
 }
