@@ -12,6 +12,7 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 - **The switch is one-way and automatic:** the first start after upgrading checks host storage. If it is available, existing browser notes are migrated once and every later read/write uses the host; the old browser copy is kept untouched as a recovery source. If the host cannot store, notes stay in the browser, a notice explains why, and the next start retries.
 - **Two tabs no longer overwrite each other:** host writes send only the changed notes and the host merges them atomically; the browser fallback also reads the latest list and merges before saving.
 - **No note cap:** a list can now grow past 300 notes; the plugin no longer drops the 301st note silently.
+- **Storage details in Settings:** Settings now has a dedicated **Data storage** section above Privacy. It shows the full path of the host file and can copy it or reveal the file in the system file manager; About keeps only version, update and author details.
 - **Unchanged:** the Workspace/Session scope, one-time workspace merge, keyboard shortcuts, forward marks and the panel UI behave exactly as before. Device-local state (panel size, section expansion, analytics switch, drafts) still lives in the browser.
 
 ### Fixed
@@ -29,6 +30,7 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 - **切换一次完成、自动判断：** 升级后首次启动检查宿主存储。可用则把浏览器里已有的便笺一次性迁入，之后读写只走宿主；旧浏览器副本原样保留作恢复来源。宿主不可用则继续保存在浏览器、提示原因，下次启动重试。
 - **两个标签页不再互相覆盖：** 宿主模式只提交改动的条目、由宿主原子合并；本地回落模式也会先读回最新清单再合并保存。
 - **不再限制条目数：** 单份清单可以超过 300 条，不再静默丢弃第 301 条。
+- **设置新增独立的数据存储分组：** 位于「隐私」之上，显示宿主文件的完整路径，可拷贝路径或直接在文件管理器中定位；「关于」只保留版本、更新与作者信息。
 - **保持不变：** 工作区/会话范围、工作区首次合并、快捷键、转发标记与面板 UI 的行为都不变；面板宽高、分区展开、匿名统计开关、草稿等设备状态仍留在浏览器。
 
 ### 修复
