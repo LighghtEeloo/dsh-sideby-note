@@ -15,6 +15,8 @@
 
 ## next-released
 
+## 1.2.0-beta.1
+
 - **测试基建：** 引入测试案例目录 `tests/catalog/`（8 个业务域、64 个稳定 ID 的案例，全部自动化）与校验器 `tools/catalog/check.mjs`，CI 增加 `npm run catalog:check`；`tests/bundle.test.mjs` 的 4 个 jsdom 集成用例拆成按案例 ID 命名的 46 个子用例，单点失败不再掩盖后续场景，`npm test` 由 130 个用例增至 197 个。字段与 ID 规则见 [`tests/catalog/README.md`](./tests/catalog/README.md)，整体流程见 [`docs/testing.md`](./docs/testing.md)。
 - **有效性证据：** 新增 `npm run test:mutate`（`tools/catalog/mutate.mjs`）——对实现注入 13 个真实缺陷、重建并跑全套用例，记录哪些用例抓到变异，结果写入 [`docs/test-validity.md`](./docs/test-validity.md)。首轮 9/13，补掉两个测试盲区（存储侧超长文本、确认窗口常量被假时钟掩盖）后达到 13/13。
 - **执行记录：** 新增 `tools/catalog/run.mjs`（`npm run test:run` / `test:strict`）：按用例把测试结果落成 `run.json`（PASS/FAIL/SKIPPED/MISSING、逐用例耗时、commit、按域汇总），并生成 `report.md` / `report.html`；支持与上次运行对比、复核哈希（结果被改即失效）与发布门禁。CI 改用 `test:run` 并上传运行记录作为 artifact。

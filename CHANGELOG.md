@@ -6,6 +6,8 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 
 ## next-released
 
+## 1.2.0-beta.1
+
 <!-- app-update-notes:en:start -->
 ### Changed
 - **Notes live in a DSH host file:** notes are now stored in `$DSH_HOME/storages/aside_note.json` (DSH's official storage stack) instead of the browser's `localStorage`. Every browser on the same host reads the same notes, and clearing site data or switching browsers no longer loses them.
