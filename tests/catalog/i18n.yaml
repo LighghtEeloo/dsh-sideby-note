@@ -1,0 +1,42 @@
+# 语言与文案（I18N）
+#
+# 业务语义：界面跟随 DSH 当前语言，且未自定义的文案在点击时按语言解析。
+domain: i18n
+owner: i18n
+
+cases:
+  - id: I18N-001
+    title: 未自定义的转发前缀跟随当前语言
+    priority: P1
+    class: C
+    rules: [R-I18N-PREFIX, R-FWD-PREFIX]
+    risk: ux
+    expected:
+      - 面板打开时占位文案是当前语言的默认前缀
+      - 切换语言后占位文案立即跟随
+      - 点击转发时按当时的语言解析前缀，而不是写入存储
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: I18N-001 未自定义的转发前缀跟随当前语言
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [i18n, forward]
+
+  # —— 由 R-I18N-FALLBACK 推导，尚无实现 ——
+  - id: I18N-002
+    title: 未知语言回落英文
+    priority: P2
+    class: D
+    rules: [R-I18N-FALLBACK]
+    risk: ux
+    expected:
+      - 传入未知语言代码时界面显示英文
+      - 不显示字典 key，也不回落到中文
+    automation:
+      - type: integration
+        file: tests/resilience.test.mjs
+        test: I18N-002 未知语言回落英文
+        status: automated
+    suites: [nightly, release]
+    tags: [i18n, fallback]

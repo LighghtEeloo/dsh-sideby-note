@@ -1,0 +1,109 @@
+# 转发回输入框（FWD）
+#
+# 业务语义：把便笺送回当前会话的输入框，前缀按语言解析、可自定义、可清空。
+domain: forward
+owner: forward
+
+cases:
+  - id: FWD-001
+    title: 自定义转发前缀写入存储
+    priority: P1
+    class: B
+    rules: [R-FWD-PREFIX]
+    risk: ux
+    expected:
+      - 修改前缀后立即写入偏好键，之后的转发使用该值
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: FWD-001 自定义转发前缀写入存储
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [prefix, persistence]
+
+  - id: FWD-002
+    title: 转发只写当前可见会话且标记记在工作区
+    priority: P0
+    class: C
+    rules: [R-FWD-TARGET, R-FWD-MARK]
+    risk: data_loss
+    expected:
+      - 文本只进入当前可见会话的输入框
+      - 另一个会话的输入框保持为空
+      - 转发标记记在工作区清单上
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: FWD-002 转发只写当前可见会话且标记记在工作区
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [forward, workspace]
+
+  - id: FWD-003
+    title: 自定义前缀在所有语言下按原文使用
+    priority: P2
+    class: B
+    rules: [R-FWD-PREFIX]
+    risk: ux
+    expected:
+      - 自定义前缀原样写入，不随界面语言变化
+      - 转发结果形如「前缀 + 换行 + - 内容」
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: FWD-003 自定义前缀在所有语言下按原文使用
+        status: automated
+    suites: [nightly, release]
+    tags: [prefix, i18n]
+
+  - id: FWD-004
+    title: 清空自定义前缀表示不加前缀
+    priority: P2
+    class: C
+    rules: [R-FWD-PREFIX]
+    risk: ux
+    expected:
+      - 清空后存储空字符串而不是删除键
+      - 转发结果只有条目本身，输入框不显示默认占位
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: FWD-004 清空自定义前缀表示不加前缀
+        status: automated
+    suites: [nightly, release]
+    tags: [prefix]
+
+  - id: FWD-005
+    title: 重置回到本地化默认值
+    priority: P2
+    class: C
+    rules: [R-FWD-PREFIX]
+    risk: ux
+    expected:
+      - 重置删除自定义键而不是写入空值
+      - 占位文案回到当前语言的默认前缀
+      - 转发重新使用默认前缀
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: FWD-005 重置回到本地化默认值
+        status: automated
+    suites: [nightly, release]
+    tags: [prefix, i18n]
+
+  - id: FWD-006
+    title: 再次点击已转发的条目不重复转发
+    priority: P2
+    class: C
+    rules: [R-FWD-MARK]
+    risk: ux
+    expected:
+      - 第一次点击把条目写入输入框并在清单上打标记
+      - 再次点击只取消标记，输入框内容不再追加
+    automation:
+      - type: integration
+        file: tests/resilience.test.mjs
+        test: FWD-006 再次点击已转发的条目不重复转发
+        status: automated
+    suites: [nightly, release]
+    tags: [forward, toggle]

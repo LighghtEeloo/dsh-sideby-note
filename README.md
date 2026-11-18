@@ -243,8 +243,11 @@ npx dsh-aside-note install --version 1.0.0   # 固定版本，而不是 ^1.0.0
 
 ```bash
 npm install
-npm run check     # lint + typecheck + 测试 + 构建
-npm run build     # 只重新生成 client/client.js
+npm run check         # lint + typecheck + 测试 + 构建 + 案例目录校验
+npm run build         # 只重新生成 client/client.js
+npm run catalog:check # 只校验测试案例目录与测试是否对得上
+npm run test:run      # 逐用例执行记录 + report.html/md（.test/runs/）
+npm run test:mutate   # 变异测试：确认用例能抓到真实缺陷
 ```
 
 本地调试时把仓库 link 进 DSH profile（`<path-to-repo>` 换成克隆目录），再在 profile 目录执行 `pnpm install`：
@@ -283,7 +286,7 @@ window.__ModuleLoader__.load({ id: 'dsh-aside-note', factory: (require) => { …
 
 截图与预览图的产出流程见 [截图与预览图 SOP](./docs/screenshot-sop.md)：在隔离 profile 里造演示会话，一条命令重拍明暗两套；凭据默认不复制。
 
-代码结构、数据模型与构建约定见 [架构文档](./docs/architecture.md)。
+代码结构、数据模型与构建约定见 [架构文档](./docs/architecture.md)；测试工程（规则 / 用例 / 执行记录 / 门禁）见 [测试工程](./docs/testing.md)。
 
 分支模型、版本策略与发版步骤见 [发布与版本迭代](./docs/release.md)。
 
@@ -298,4 +301,5 @@ window.__ModuleLoader__.load({ id: 'dsh-aside-note', factory: (require) => { …
 - 刷新页面后记录仍在；面板头部可在工作区级与当前会话级清单之间切换；
 - 版本检查的 npmjs → npmmirror → GitHub Release 回退、1 小时缓存与版本比较由契约测试覆盖；发布说明的标记提取、中英文回退、上限与 Markdown 压平有独立测试；jsdom 集成测试会驱动面板显示更新卡片、展开说明并通过模拟市场完成一次更新。真实更新提示需先发布到 npm 或创建 GitHub Release。
 
-`npm run check` 通过：lint、类型检查、构建与 95 个测试（含 jsdom 里驱动完整面板流程的集成测试）。
+`npm run check` 通过：lint、类型检查、构建与 197 个测试（含 jsdom 里驱动完整面板流程的集成测试）；
+`npm run catalog:check` 把 64 个带稳定 ID 的业务案例与这些测试绑在一起，规则见 [测试案例目录](./tests/catalog/README.md)。

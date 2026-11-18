@@ -22,7 +22,8 @@ src/client/
 ├─ dsh.d.ts              # 宿主 ctx / locale / slots 的最小 ambient 类型
 ├─ i18n/                 # zh.ts（键的唯一来源）、其余 7 种 DSH 官方语言、index.ts（fill / makeSay）
 ├─ domain/               # id、clipboard、forward（写回输入框）、items（归一化/排序/时间）
-├─ storage/              # codec、events（同标签页总线）、session、workspace、drafts、forwarded、prefs
+├─ storage/              # codec、merge（并发合并）、events（同标签页总线）、session、workspace、
+│                        # drafts、forwarded、prefs
 ├─ ui/                   # 面板外壳与纯展示组件、hooks、primitives、定位
 │                        # 更新中心：useUpdateCenter（检查/说明/更新与命令兜底）、UpdateNotice
 ├─ update/               # latest（版本与 Release 探测）、releaseNotes（标记解析）、
@@ -34,7 +35,7 @@ host/                    # 宿主半边：route（两个更新端点）、apply-
 client/client.js         # tsdown 产物，入库，CI 校验与源码一致
 index.js                 # 宿主半侧：只注册更新端点，无状态
 cordis.patch.yml         # profile 组合里的一行
-tests/                   # contract.test.mjs（契约）+ bundle.test.mjs（jsdom 集成）
+tests/                   # catalog/（业务规则与用例）、*.test.mjs（契约 / 集成 / 韧性）、testkit/（jsdom 启动器）
 tools/screenshots/       # 截图流水线（见 screenshot-sop.md）
 docs/assets/             # README 截图（preview-* 与 features/）
 ```
@@ -48,7 +49,8 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | 文案 | `i18n/` | `zh.ts` 定义键集合与 `MessageKey`；其余 7 种 DSH 官方语言用 `Record<MessageKey, string>`，缺键编译失败；运行时未知语言或缺键一律回退英文 |
 | 领域 | `domain/items.ts` | `normalizeItems`（防御性清洗、去重、上限）、排序、相对时间文案 |
 | 领域 | `domain/forward.ts` | 把便笺写回**当前会话**的 Lexical contenteditable 或 textarea，保留光标与换行语义；按 `[data-conversation-session]` 限定输入框 |
-| 存储 | `storage/session.ts` | 会话便笺库（`sessions`）的读写；保持原 `dsh.aside-note` 的 v1 键与结构，写失败返回 `false`，由调用方保留 UI 原状并报 Toast |
+| 存储 | `storage/session.ts` | 会话便笺库（`sessions`）的读写；保持原 `dsh.aside-note` 的 v1 键与结构，写失败返回 `false`，由调用方保留 UI 原状并报 Toast；写入前与最新记录合并 |
+| 存储 | `storage/merge.ts` | 按 id 合并两份清单：双方新增都保留，同一条目取较新的 `updatedAt`，本页相对上次读取删除的条目不再复活 |
 | 存储 | `storage/workspace.ts` | 工作区清单（`dsh.aside-note.workspaces`）读写；首次见到工作区时把成员会话的旧便笺一次性并入，`seededSessionIds` 防重复 |
 | 范围 | `scope.ts` | 记录 dock 当前会话的归属；按保存的「工作区 / 会话」选择解析清单，工作区外始终回落到会话 |
 | 更新 | `update/latest.ts` | npm → npmmirror → GitHub Release 的版本探测（1 小时缓存），按版本读取 Release 正文 |
@@ -79,10 +81,17 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | `dsh.aside-note.panel-width` / `panel-height` | 数字；高度 `0` 表示内容自适应 |
 | `dsh.aside-note.send-shortcut` | `enter` 或 `ctrl-enter` |
 | `dsh.aside-note.forward-prefix` | 最长 80 字符的转发前缀；键不存在时使用当前语言的默认提示词，空字符串表示不加前缀 |
+| `dsh.aside-note.corrupt` 等 `<键>.corrupt` | `{ at, raw }`：读到无法解析的内容时，原始字符串原样留在这里，随后该键按空清单继续工作 |
+
+`dsh.aside-note`、`dsh.aside-note.workspaces`、`dsh.aside-note.drafts` 三个键在读取时先校验：解析失败或字段类型不对，原始字符串先写到 `<键>.corrupt`（同一个键只保留最后一份损坏内容，重复读取不会重写），再把该键当作空清单继续。这样一次坏数据不会因为下一次写入而被静默覆盖。
+
+写入不是整份覆盖：`writeSessionRecord` / `writeWorkspaceRecord` 先读回最新记录，再与本次写入按 id 合并（`storage/merge.ts`）。两个标签页同时记便笺时两边的条目都会保留；同一条目冲突时 `updatedAt` 较新的一方胜出。删除以本标签页上次读取的清单为基准识别，本页删掉的条目不会被另一侧的并发写入复活；反过来，另一个标签页删除的条目在本页并发写入时可能重新出现——在没有墓碑记录的前提下，宁可复活一条，也不丢一条。
+
+存储按浏览器 origin 隔离：桌面端窗口加载的是自定义协议 `app://app`，数据落在 Electron profile 的 `Local Storage/leveldb`；用浏览器打开 `http://127.0.0.1:<port>` 是**另一个 origin、另一份数据**。所以换端口不会让桌面端的便笺消失，但「桌面端记的便笺在浏览器标签页里看不到」是预期行为，不是同步故障。真正会走到 `storage()` 返回 `null` 的，是整站存储被拒绝（策略禁用、被嵌入无 `allow-same-origin` 的 iframe）；Electron 下更常见的是写失败（配额、磁盘满、profile 只读、LevelDB 错误），表现为 `setItem` 抛错、写入返回 `false`。
 
 草稿按 `draftKey` 存放：会话属于工作区时，整个工作区共用一份新增/编辑草稿，切换会话或在「工作区 / 会话」之间切换都不丢字；没有工作区的会话按会话保存。提交草稿时仍按当前选中的范围写入 `dsh.aside-note.workspaces` 或 `dsh.aside-note`，草稿本身不区分范围。升级后首次打开工作区，会把当前会话的旧草稿并入共享键并清理成员会话的旧副本。
 
-`Note` 形如 `{ id, text, done, createdAt, updatedAt, completedAt? }`；`text` 上限 280，单份清单上限 300 条。会话数据继续使用 `dsh.aside-note` 的 v1 结构，工作区数据单独放在 `dsh.aside-note.workspaces`，因此新增范围不会改写旧键；首次进入工作区会把成员会话里已有的便笺合入一次，`seededSessionIds` 记住已合入的会话，之后删除不会因再次合并而复活。键名不带版本后缀，前缀与包名 `dsh-aside-note` 对齐。
+`Note` 形如 `{ id, text, done, createdAt, updatedAt, completedAt? }`；`text` 上限 280，清单条数不设上限。会话数据继续使用 `dsh.aside-note` 的 v1 结构，工作区数据单独放在 `dsh.aside-note.workspaces`，因此新增范围不会改写旧键；首次进入工作区会把成员会话里已有的便笺合入一次，`seededSessionIds` 记住已合入的会话，之后删除不会因再次合并而复活。键名不带版本后缀，前缀与包名 `dsh-aside-note` 对齐。
 
 ## 5. 构建与产物
 
@@ -96,7 +105,11 @@ docs/assets/             # README 截图（preview-* 与 features/）
 
 | 文件 | 覆盖 |
 | --- | --- |
+| `tests/catalog/design.yaml` | 业务规则与不变量（用例的唯一设计来源），字段见 [测试工程](./testing.md) |
+| `tests/catalog/*.yaml` | 测试用例目录：稳定 ID、优先级、规则引用、自动化指针 |
 | `tests/contract.test.mjs` | 清单与 patch 形状、工具链约定、样式令牌、无障碍与交互规则、字典完整性 |
+| `tests/resilience.test.mjs` | 排序与取消完成、无工作区/空白会话范围、存储读写失败、跨标签页刷新、宽度钳制、确认失效、未知语言回落、大清单 |
+| `tests/testkit/bundle.mjs` | 在 jsdom 里启动构建产物的测试装置：可注入存储故障、压缩定时器、locale 与 slot props |
 | `tests/bundle.test.mjs` | 在 jsdom 里执行**构建产物**：模块表、slot 注册、样式注入、入口注入，并驱动完整面板流程（添加、设置、完成、清除确认、编辑、缩放、删除、分区记忆）；另有工作区测试，验证两个会话共享清单、旧便笺只合入一次、工作区/会话切换与持久化、转发只写入当前会话输入框；还有空白新会话测试，验证入口落在 header corner、只有工作区清单，以及首轮对话后入口移到 utilities 并解锁会话清单 |
 
 契约测试按模块读取源码（需要时读 bundle 或 CSS），断言的是约束而不是实现细节；集成测试提供行为兜底。

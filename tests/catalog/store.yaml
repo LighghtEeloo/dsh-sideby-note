@@ -1,0 +1,267 @@
+# 存储与草稿（STORE）
+#
+# 业务语义：数据放在哪、能不能丢、写失败怎么办。localStorage 是本插件唯一的数据源。
+domain: store
+owner: store
+
+cases:
+  - id: STORE-001
+    title: 启动时保留既有便笺且不写迁移标记
+    priority: P0
+    class: B
+    rules: [R-STORE-V1, R-STORE-READ-FAIL]
+    risk: data_loss
+    expected:
+      - 启动后既有清单与偏好原样保留
+      - 不写入任何迁移标记键
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: STORE-001 启动时保留既有便笺且不写迁移标记
+        status: automated
+    suites: [smoke, pr, nightly, release]
+    tags: [persistence, boot]
+
+  - id: STORE-002
+    title: 会话草稿并入工作区键并退役旧副本
+    priority: P0
+    class: B
+    rules: [R-DRAFT-MIGRATE]
+    risk: data_loss
+    expected:
+      - 首次打开时把成员会话草稿并入工作区键
+      - 旧会话副本被移除，不会再次出现
+      - 打开后输入框直接带出旧草稿文本
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: STORE-002 会话草稿并入工作区键并退役旧副本
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [draft, migration]
+
+  - id: STORE-003
+    title: 草稿在范围切换后保留
+    priority: P1
+    class: B
+    rules: [R-DRAFT-SCOPE]
+    risk: ux
+    expected:
+      - 在一种范围里输入的草稿写入工作区键
+      - 切到另一种范围再切回来，草稿仍在
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: STORE-003 草稿在范围切换后保留
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [draft, scope-switch]
+
+  - id: STORE-004
+    title: 编辑草稿在范围切换后保留
+    priority: P2
+    class: B
+    rules: [R-DRAFT-SCOPE]
+    risk: ux
+    expected:
+      - 行内编辑的未提交文本在切换范围后不丢
+      - 重新打开编辑器时恢复该草稿
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: STORE-004 编辑草稿在范围切换后保留
+        status: automated
+    suites: [nightly, release]
+    tags: [draft, edit]
+
+  - id: STORE-005
+    title: 未提交草稿留在工作区缓冲
+    priority: P2
+    class: B
+    rules: [R-DRAFT-SCOPE]
+    risk: ux
+    expected:
+      - 未提交文本写入工作区草稿键
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: STORE-005 未提交草稿留在工作区缓冲
+        status: automated
+    suites: [nightly, release]
+    tags: [draft]
+
+  - id: STORE-006
+    title: 草稿跨会话与跨范围可见
+    priority: P1
+    class: B
+    rules: [R-DRAFT-SCOPE]
+    risk: ux
+    expected:
+      - 一个会话里输入的草稿，另一个会话打开同一工作区时可见
+      - 两种范围下都能看到同一份草稿
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: STORE-006 草稿跨会话与跨范围可见
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [draft, workspace]
+
+  - id: STORE-007
+    title: 损坏的存储先备份再继续
+    priority: P0
+    class: D
+    rules: [R-STORE-CORRUPT]
+    risk: data_loss
+    expected:
+      - 读到无法解析的存储时，原始内容原样写到 <键>.corrupt
+      - 面板仍能打开，并按空清单继续工作
+      - 后续写入不会覆盖这份备份
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: STORE-007 损坏的存储先备份再继续
+        status: automated
+    suites: [smoke, pr, nightly, release]
+    tags: [corruption, backup]
+
+  - id: STORE-013
+    title: 另一个标签页新增的便笺不会被覆盖
+    priority: P0
+    class: F
+    rules: [R-STORE-MERGE]
+    risk: data_loss
+    expected:
+      - 本页写入前先读回最新记录并合并
+      - 另一标签页新增的条目与本页新增的条目都保留
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: STORE-013 另一个标签页新增的便笺不会被覆盖
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [concurrency, merge]
+
+  - id: STORE-014
+    title: 同一条目两端并发修改取较新版本
+    priority: P1
+    class: F
+    rules: [R-STORE-MERGE]
+    risk: data_loss
+    expected:
+      - 同一条目在两端被改时按 updatedAt 取较新的一方
+      - 面板显示实际落盘的内容，而不是本页以为的内容
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: STORE-014 同一条目两端并发修改取较新版本
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [concurrency, merge]
+
+  - id: STORE-015
+    title: 本页删除不会被并发写入复活
+    priority: P1
+    class: F
+    rules: [R-STORE-MERGE]
+    risk: data_loss
+    expected:
+      - 合并时以本页上次看到的清单为基准识别删除
+      - 本页删除的条目保持删除，另一侧的并发新增仍然保留
+    automation:
+      - type: integration
+        file: tests/bundle.test.mjs
+        test: STORE-015 本页删除不会被并发写入复活
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [concurrency, merge, delete]
+
+  # —— 由 R-STORE-READ-FAIL / R-STORE-WRITE-FAIL / R-STORE-SYNC 推导 ——
+  - id: STORE-011
+    title: 存储读不到时按空继续且不丢输入
+    priority: P1
+    class: E
+    rules: [R-STORE-READ-FAIL, R-STORE-WRITE-FAIL]
+    risk: data_loss
+    expected:
+      - 读取按空处理，面板仍能打开
+      - 提交失败时输入内容留在输入框，并明确提示保存失败
+      - 界面不显示一条实际没存进去的便笺
+    automation:
+      - type: integration
+        file: tests/resilience.test.mjs
+        test: STORE-011 存储读不到时按空继续且不丢输入
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [failure-injection, storage]
+
+  - id: STORE-012
+    title: 写入失败时读取不降级且保留输入
+    priority: P0
+    class: E
+    rules: [R-STORE-WRITE-FAIL, R-NOTE-PERSIST]
+    risk: data_loss
+    waiver: 计划在批 2 实现。
+    expected:
+      - setItem 抛错（浏览器配额/磁盘/只读）时写入返回失败，但读取仍照常显示已保存的便笺
+      - 便笺行不被删除，输入框不被清空，出现失败提示
+      - 恢复存储后重载，不会出现半条记录
+    automation:
+      - type: integration
+        file: tests/resilience.test.mjs
+        test: STORE-012 写入失败时读取不降级且保留输入
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [failure-injection, quota, disk]
+
+  - id: STORE-016
+    title: 另一个标签页写入后本页视图同步
+    priority: P1
+    class: F
+    rules: [R-STORE-SYNC]
+    risk: ux
+    expected:
+      - 另一标签页新增或删除后，本页入口角标与已打开面板自行刷新
+      - 不需要用户重开面板或刷新页面
+    automation:
+      - type: integration
+        file: tests/resilience.test.mjs
+        test: STORE-016 另一个标签页写入后本页视图同步
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [concurrency, sync]
+
+  - id: STORE-017
+    title: 畸形记录被清洗而不是渲染成乱码
+    priority: P1
+    class: D
+    rules: [R-STORE-SANITIZE]
+    risk: data_loss
+    expected:
+      - 非对象与空文本条目被丢弃，列表不出现 undefined
+      - 重复 id 被重新分配，非布尔 done 读作 false
+      - 清洗后的记录写回存储，同一条不会变成两条
+    automation:
+      - type: integration
+        file: tests/resilience.test.mjs
+        test: STORE-017 畸形记录被清洗而不是渲染成乱码
+        status: automated
+    suites: [pr, nightly, release]
+    tags: [sanitize, legacy]
+
+  - id: STORE-018
+    title: 大清单仍可展示与新增
+    priority: P2
+    class: C
+    rules: [R-STORE-CAPACITY]
+    risk: ux
+    expected:
+      - 400 条时全部渲染
+      - 新增不受条数限制，写入后为 401 条
+    automation:
+      - type: integration
+        file: tests/resilience.test.mjs
+        test: STORE-018 大清单仍可展示与新增
+        status: automated
+    suites: [nightly, release]
+    tags: [capacity, boundary]
