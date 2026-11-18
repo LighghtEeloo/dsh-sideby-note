@@ -765,9 +765,29 @@ test('transient outcomes go to the frame-wide toast seat', () => {
 
 test('a failed write keeps the row and says so', () => {
   const client = read('src/client/index.ts') + read('src/client/ui/useSessionMemoStore.ts') + read('src/client/ui/MemoPopover.ts') + read('src/client/ui/useNoteActions.ts') + read('src/client/ui/useComposerDraft.ts')
-  assert.match(client, /if \(!ok\) return false/)
+  // The store writer returns a promise now; a rejection becomes `false`, and
+  // only a successful durable write may replace the rendered record.
+  assert.match(client, /if \(!ok\) \{\n\s+setSyncError\(true\)\n\s+return false/)
   assert.match(client, /if \(!ok\) \{\n\s+report\('saveFailed'\)/)
   assert.match(client, /A failed delete keeps the row/)
+})
+
+test('notes stay behind one host-owned domain file', () => {
+  const constants = read('src/client/constants.ts')
+  const route = read('host/store-route.js')
+  const spec = read('host/store-spec.js')
+  const identity = read('host/constants.js')
+  assert.match(constants, /HOST_STORE_PATH = '\/dsh-aside-note\/store'/)
+  assert.match(route, /STORE_PATH = '\/dsh-aside-note\/store'/, 'both halves must name the same endpoint')
+  assert.match(identity, /DOMAIN_NAME = 'aside_note'/, 'the unit name also names the JSON file')
+  assert.match(identity, /DOMAIN_VERSION = 1/)
+  assert.match(spec, /layout: 'single'/)
+  for (const table of ['sessions', 'workspaces', 'forwarded']) {
+    assert.match(identity, new RegExp(`${table}: '${table}'`), `missing table ${table}`)
+  }
+  // The browser bundle must not reach into the host side or its schema library.
+  const built = fs.readFileSync(path.join(root, 'client', 'client.js'), 'utf8')
+  assert.doesNotMatch(built, /storageDomain|store-spec|zod/, 'host storage code must not ship in the browser bundle')
 })
 
 test('icon-only controls use the shared tooltip', () => {

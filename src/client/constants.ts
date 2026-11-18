@@ -67,3 +67,16 @@ export const PANEL_MIN_HEIGHT = 240
 export const MAX_TEXT = 280
 /** Defensive cap so a corrupted store cannot freeze the panel. */
 export const MAX_ITEMS = 300
+
+/** Same-origin host endpoint owned by this package (keep in sync with host/store-route.js). */
+export const HOST_STORE_PATH = '/dsh-aside-note/store'
+/** Browser-side marker: written only after the one-way switch to host storage succeeded. */
+export const STORAGE_MODE_KEY = 'dsh.aside-note.storage-mode'
+/** Browser-side notice dedupe record: { code, at }. */
+export const STORAGE_NOTICE_KEY = 'dsh.aside-note.storage-notice'
+/** Hydration/notice dedupe window for repeated failures. */
+export const STORAGE_NOTICE_MS = 24 * 60 * 60 * 1000
+/** A snapshot is small; anything slower than this is a broken host, not a busy disk. */
+export const HOST_READ_TIMEOUT_MS = 4000
+/** A durable write includes fsync; allow a slow disk but never hang the panel. */
+export const HOST_WRITE_TIMEOUT_MS = 10000

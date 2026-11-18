@@ -90,15 +90,15 @@ Click a note's forward button to append it to the current chat input as a list i
 - **Completed history**: separate open and completed sections, with creation and completion times.
 - **Adjustable panel**: resize the width and height, with your preferences remembered.
 - **Fits into DSH**: follows the light/dark theme and all eight DSH-official languages (Chinese, English, Japanese, Spanish, French, German, Russian and Brazilian Portuguese).
-- **Browser-local persistence**: records survive page refreshes and DSH restarts, with updates synced across tabs in the same browser.
+- **Host-file persistence**: notes live in `~/.dsh/storages/aside_note.json`, so page refreshes, DSH restarts and a different browser all keep them; tabs in the same browser stay in sync in real time, while other browsers on the same host refresh when they open the panel.
 
-> Notes are stored in the current browser and do not sync across devices or browsers. Clearing site data removes them. See [Where data lives](#where-data-lives).
+> Notes are stored by the DSH host (not the browser) and shared by every browser on that host; they do not sync across machines. The first start after upgrading migrates them automatically — see [Where data lives](#where-data-lives).
 
 [Quick install](#quick-install) · [Feedback and issues](https://github.com/Rayle8/dsh-aside-note/issues)
 
 ## Features
 
-- **Workspace-level notes**: one list is shared by every session in a workspace by default, so switching conversations keeps it in view; the panel header switches between **Workspace** and **Session**, and sessions outside a workspace only have the session scope. Tabs in the same browser stay in sync.
+- **Workspace-level notes**: one list is shared by every session in a workspace by default, so switching conversations keeps it in view; the panel header switches between **Workspace** and **Session**, and sessions outside a workspace only have the session scope. Browsers and tabs on the same host share one list, with live sync across tabs in one browser.
 - **Entry and panel**: an icon button at the top right badges the open count; a blank new session shows it in the corner with the workspace list only until the first message, without the session option; clicking it opens a fixed panel aligned to the entry, which shifts left of the DSH right sidebar and closes when you switch sessions.
 - **Note actions**: add, complete, copy, edit by double-click or pencil, and delete; clearing completed notes asks for confirmation, and completed notes expand for review.
 - **One-click forward**: each note is appended to the **currently open conversation's** composer as a `-` item, with the customizable prefix written only when the composer is empty — nothing is sent automatically. The forward button gains a check per list, and clicking it again removes the mark.
@@ -174,47 +174,49 @@ Feedback reuses product surfaces too: copy, forward, delete, clear-completed, an
 
 ## Where data lives
 
-Session notes live in the browser's `localStorage` under `dsh.aside-note`, in the original v1 shape:
+Notes live in a **DSH host** file, not in the browser:
+
+```text
+$DSH_HOME/storages/aside_note.json      # ~/.dsh/storages/aside_note.json by default
+```
+
+The file is owned by DSH's storage stack (`ctx.storageDomain` plus the JSON backend) and every write replaces it atomically. Its shape:
 
 ```json
 {
-  "version": 1,
-  "sessions": {
-    "session-…": {
-      "sessionId": "session-…",
-      "updatedAt": 0,
-      "items": []
-    }
+  "unit": { "name": "aside_note", "version": 1 },
+  "global": { "version": 1, "scopeMode": "workspace", "sendShortcut": "enter" },
+  "tables": {
+    "sessions": {
+      "session-…": { "sessionId": "session-…", "updatedAt": 0, "items": [] }
+    },
+    "workspaces": {
+      "workspace-…": {
+        "workspaceId": "workspace-…",
+        "updatedAt": 0,
+        "items": [],
+        "seededSessionIds": ["session-…"]
+      }
+    },
+    "forwarded": { "ws:workspace-…": { "note-…": true } }
   }
 }
 ```
 
-The list shared by one workspace lives separately under `dsh.aside-note.workspaces`:
+- `sessions` holds each conversation's own list; `workspaces` holds the list shared by one workspace, with `seededSessionIds` remembering which member sessions were already folded in so notes are merged once and never resurrect after a delete; `forwarded` holds the forward marks; `global` holds the scope choice, send shortcut, forward prefix and the migration marker.
+- Session and workspace lists are **two sibling tables**, not a parent/child tree. Which workspace a session belongs to comes from DSH's workspace registry and is not duplicated here.
+- Every browser and tab on the same host reads the same notes; page refreshes, DSH restarts, a different browser and clearing site data no longer lose them.
+- Different hosts or machines do not sync; copy this file (or back up the DSH home) to move notes.
+- Uninstalling the plugin does not delete the file; back it up before deleting it yourself.
 
-```json
-{
-  "version": 1,
-  "workspaces": {
-    "workspace-…": {
-      "workspaceId": "workspace-…",
-      "updatedAt": 0,
-      "items": [],
-      "seededSessionIds": ["session-…"]
-    }
-  }
-}
-```
+**The switch after upgrading.** The first start checks whether host storage is available.
 
-`workspaces` holds the list shared by one workspace; `seededSessionIds` remembers which member sessions were already folded in, so notes are merged once and never resurrect after a delete. Session data stays under the original `dsh.aside-note` key and workspace data is never written back into it; sessions without a workspace only use their `sessions` record. The panel header's scope choice lives separately under `dsh.aside-note.scope-mode` (`workspace` or `session`, default `workspace`).
+- Available: existing browser notes are migrated once when the host is empty, and every later read/write uses the host. The old `localStorage` copy is kept untouched as a recovery source and is **never switched back to automatically**.
+- Unavailable (older host, a profile without storage, a damaged file): this page keeps using browser storage and says so, then retries on the next start; notes written meanwhile are migrated once the host works.
 
-Unsaved add/edit drafts live under `dsh.aside-note.drafts`: sessions in one workspace share a single workspace draft, so switching conversations or the scope never loses text; the submitted note goes to the workspace list or the session list according to the scope selected at that moment. Sessions outside a workspace keep their own draft. The first time a workspace is opened after upgrading, the current session's old draft is folded into the shared one.
+State that stays in browser `localStorage`: panel width/height, section expansion, the anonymous-statistics switch, the RUM visitor id, the first-open marker, and unsaved drafts (shared per workspace/session, so drafts do not cross browsers).
 
-Therefore:
-
-- Refreshing, restarting DSH, or switching sessions keeps the records.
-- Nothing is written into the project or synced to another machine/browser.
-- Clearing site data clears the notes.
-- Reading old data never rewrites the shape of `dsh.aside-note`; workspace lists are read from `dsh.aside-note.workspaces`, and the first visit to a workspace folds its member-session notes in once. Keys like `dsh.aside-notes.*` from earlier builds are not read. If your data still sits under the old `dsh.aside-notes.*.v2` keys, rename them to the matching `dsh.aside-note.*` keys and reload.
+Known limits: two DSH processes sharing one `$DSH_HOME` have no cross-process write lock, so the last writer wins; a damaged or unsupported file surfaces an error instead of being rebuilt automatically — back it up before repairing. Keys from much older builds (`dsh.aside-notes.*`) are not read; rename them to the matching `dsh.aside-note.*` keys before upgrading.
 
 ### Anonymous feature statistics
 

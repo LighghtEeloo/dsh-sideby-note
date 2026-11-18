@@ -1,13 +1,15 @@
-/** Per-session forwarded marks behind the forward button. */
+/** Per-list forwarded marks behind the forward button. */
 import { FORWARDED_STORAGE_KEY } from '../constants'
 import { storage } from './codec'
+import { setForward } from './ops'
+import { hostAuthoritative, hostRecord, storageMode } from './state'
 
-/** Empty forwarded-flag store; shape is { version, sessions: { [sessionId]: { [itemId]: true } } }. */
+/** Empty forwarded-flag store; shape is { version, sessions: { [listKey]: { [itemId]: true } } }. */
 export function emptyForwardedStore() {
-  return { version: 1, sessions: {} }
+  return { version: 1, sessions: {} as Record<string, any> }
 }
 
-/** Read the forwarded-flag store; corrupt or unavailable reads as empty. */
+/** Read the browser forwarded store; corrupt or unavailable reads as empty. */
 export function readForwardedStore() {
   const ls = storage()
   if (!ls) return emptyForwardedStore()
@@ -45,10 +47,11 @@ export function normalizeForwardedRecord(record) {
   return next
 }
 
-/** Forwarded item ids of one session, as an id -> true map. */
+/** Forwarded item ids of one list, as an id -> true map. */
 export function readForwardedIds(sessionId) {
   const key = sessionId ? String(sessionId) : ''
   if (!key) return {}
+  if (hostAuthoritative()) return normalizeForwardedRecord(hostRecord('forwarded', key))
   return normalizeForwardedRecord(readForwardedStore().sessions[key])
 }
 
@@ -57,6 +60,8 @@ export function markForwarded(sessionId, itemId) {
   const key = sessionId ? String(sessionId) : ''
   const id = itemId ? String(itemId) : ''
   if (!key || !id) return false
+  if (storageMode() === 'error') return false
+  if (storageMode() === 'host') return setForward(key, id, true)
   const store = readForwardedStore()
   store.sessions[key] = { ...normalizeForwardedRecord(store.sessions[key]), [id]: true }
   return writeForwardedStore(store)
@@ -67,6 +72,18 @@ export function forgetForwarded(sessionId, itemIds) {
   const key = sessionId ? String(sessionId) : ''
   if (!key) return false
   const ids = Array.isArray(itemIds) ? itemIds : [itemIds]
+  if (storageMode() === 'error') return false
+  if (storageMode() === 'host') {
+    let changed = false
+    for (const rawId of ids) {
+      const id = rawId ? String(rawId) : ''
+      if (!id) continue
+      if (!hostRecord('forwarded', key)?.[id]) continue
+      setForward(key, id, false)
+      changed = true
+    }
+    return changed
+  }
   const store = readForwardedStore()
   const record = normalizeForwardedRecord(store.sessions[key])
   let changed = false

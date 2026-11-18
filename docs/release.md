@@ -180,6 +180,8 @@ gh release upload v1.0.0 dist/dsh-aside-note-1.0.0.tgz --clobber
 - `GET /dsh-aside-note/update/probe`：报告 profile、安装方式与当前版本。
 - `POST /dsh-aside-note/update/apply`（body `{ target }`）：就地覆盖安装，装完回读版本。
 
+另有一个与更新无关的便笺端点 `GET|POST /dsh-aside-note/store`，由宿主用 DSH 存储领域读写 `$DSH_HOME/storages/aside_note.json`；它不属于更新流程，排查更新问题时可以忽略。
+
 宿主没有这条路由（旧宿主、headless，或安装后尚未重启）时，卡片直接给出手动命令。命令由宿主生成，带目标版本和 profile 目录：
 
 ```bash

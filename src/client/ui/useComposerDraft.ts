@@ -36,11 +36,11 @@ export function useComposerDraft({ draftKey, commit, report, sendShortcut, scope
     }
   }, [])
 
-  const add = () => {
+  const add = async () => {
     const text = draft.trim().slice(0, MAX_TEXT)
     if (!text) return
     const now = Date.now()
-    const ok = commit(currentItems => [{ id: uid(), text, done: false, createdAt: now, updatedAt: now }, ...currentItems])
+    const ok = await commit(currentItems => [{ id: uid(), text, done: false, createdAt: now, updatedAt: now }, ...currentItems])
     // The draft is only cleared once the note is actually stored.
     if (!ok) {
       report('saveFailed')
@@ -90,7 +90,7 @@ export function useComposerDraft({ draftKey, commit, report, sendShortcut, scope
       : platformModifier
     if (shouldSend) {
       event.preventDefault()
-      add()
+      void add()
       return
     }
     if (sendShortcut === 'enter' && (chord || event.shiftKey)) {

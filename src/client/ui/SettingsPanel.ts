@@ -7,6 +7,9 @@ import {
   PLUGIN_REPO_URL,
   PLUGIN_VERSION,
 } from '../constants'
+import { currentStorageMode, retryStorage } from '../storage/boot'
+import { STORE_READY_LISTENERS } from '../storage/events'
+import { storageFailure } from '../storage/state'
 import { UpdateNotice } from './UpdateNotice'
 
 const h = React.createElement
@@ -24,6 +27,17 @@ export function SettingsPanel(props) {
     onToggleAnalytics,
     update,
   } = props
+  // The switch decision can change after this card mounts (retry, or a probe
+  // finishing late); refresh on the same ready channel the entry uses.
+  const [storage, setStorage] = React.useState(() => ({
+    mode: currentStorageMode(),
+    failure: storageFailure(),
+  }))
+  React.useEffect(() => {
+    const onReady = () => setStorage({ mode: currentStorageMode(), failure: storageFailure() })
+    STORE_READY_LISTENERS.add(onReady)
+    return () => { STORE_READY_LISTENERS.delete(onReady) }
+  }, [])
   return h(
             'div',
             { className: 'dsh-an-settings' },
@@ -192,6 +206,33 @@ export function SettingsPanel(props) {
                       onCopyPrompt: update.copyPrompt,
                       onToast: props.onToast,
                     })
+                  : null,
+                h(
+                  'div',
+                  { className: 'dsh-an-settingMetaRow' },
+                  h('span', null, say('storage.settingsLabel')),
+                  h('span', { className: 'dsh-an-settingDot', 'aria-hidden': true }, '·'),
+                  h('span', null, storage.mode === 'host'
+                    ? say('storage.modeHost')
+                    : storage.mode === 'local'
+                      ? say('storage.modeLocal')
+                      : storage.mode === 'probing'
+                        ? say('storage.loading')
+                        : say('storage.hostError')),
+                  storage.mode === 'error'
+                    ? h('button', {
+                        type: 'button',
+                        className: 'dsh-an-updateCheck',
+                        onClick: () => { void retryStorage() },
+                      }, say('storage.retry'))
+                    : null,
+                ),
+                storage.failure
+                  ? h(
+                      'div',
+                      { className: 'dsh-an-settingHint' },
+                      say('storage.failure').replace('{code}', storage.failure.code),
+                    )
                   : null,
                 h(
                   'div',

@@ -6,6 +6,28 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 
 ## next-released
 
+<!-- app-update-notes:en:start -->
+### Changed
+- **Notes live in a DSH host file:** notes are now stored in `$DSH_HOME/storages/aside_note.json` (DSH's official storage stack) instead of the browser's `localStorage`. Every browser on the same host reads the same notes, and clearing site data or switching browsers no longer loses them.
+- **The switch is one-way and automatic:** the first start after upgrading checks host storage. If it is available, existing browser notes are migrated once and every later read/write uses the host; the old browser copy is kept untouched as a recovery source. If the host cannot store, notes stay in the browser, a notice explains why, and the next start retries.
+- **Unchanged:** the Workspace/Session scope, one-time workspace merge, keyboard shortcuts, forward marks and the panel UI behave exactly as before. Device-local state (panel size, section expansion, analytics switch, drafts) still lives in the browser.
+
+### Limitations
+- Different hosts or machines do not sync; copy the JSON file or back up the DSH home to move notes.
+- A damaged or unsupported file surfaces an error instead of being rebuilt automatically.
+<!-- app-update-notes:en:end -->
+
+<!-- app-update-notes:zh:start -->
+### 变更
+- **便笺改为保存在 DSH 宿主的本地文件：** 便笺不再放在浏览器 `localStorage`，而是由 DSH 官方存储写入 `$DSH_HOME/storages/aside_note.json`。同一 Host 的所有浏览器共享同一份便笺，清站点数据或换浏览器都不再丢。
+- **切换一次完成、自动判断：** 升级后首次启动检查宿主存储。可用则把浏览器里已有的便笺一次性迁入，之后读写只走宿主；旧浏览器副本原样保留作恢复来源。宿主不可用则继续保存在浏览器、提示原因，下次启动重试。
+- **保持不变：** 工作区/会话范围、工作区首次合并、快捷键、转发标记与面板 UI 的行为都不变；面板宽高、分区展开、匿名统计开关、草稿等设备状态仍留在浏览器。
+
+### 限制
+- 不同 Host / 不同机器之间不同步；要迁移请拷贝该 JSON 文件或备份 DSH home。
+- 文件损坏或版本不支持时面板显示错误，不会自动重建。
+<!-- app-update-notes:zh:end -->
+
 ## 1.1.4
 
 <!-- app-update-notes:en:start -->

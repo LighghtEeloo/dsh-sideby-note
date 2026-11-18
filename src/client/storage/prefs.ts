@@ -1,4 +1,4 @@
-/** Panel geometry, list scope, send shortcut, forward prefix and section state. */
+/** Panel geometry, list scope/shortcut/prefix, and device-local UI state. */
 import {
   PANEL_DEFAULT_WIDTH,
   PANEL_HEIGHT_KEY,
@@ -16,6 +16,8 @@ import {
   PANEL_OPENED_KEY,
 } from '../constants'
 import { storage } from './codec'
+import { setPrefs } from './ops'
+import { hostAuthoritative, hostPrefs, storageMode } from './state'
 
 /** Read the persisted right-panel width, clamped for the current viewport. */
 export function readPanelWidth() {
@@ -67,6 +69,9 @@ export function writePanelHeight(height) {
 
 /** Read the last chosen list scope; "workspace" is the default. */
 export function readScopeMode(): 'workspace' | 'session' {
+  if (hostAuthoritative()) {
+    return hostPrefs().scopeMode === 'session' ? 'session' : SCOPE_MODE_DEFAULT
+  }
   try {
     const saved = storage() && storage().getItem(SCOPE_MODE_KEY)
     return saved === 'session' ? 'session' : SCOPE_MODE_DEFAULT
@@ -76,6 +81,11 @@ export function readScopeMode(): 'workspace' | 'session' {
 }
 
 export function writeScopeMode(mode) {
+  if (storageMode() === 'error') return
+  if (storageMode() === 'host') {
+    setPrefs({ scopeMode: mode === 'session' ? 'session' : 'workspace' })
+    return
+  }
   try {
     const ls = storage()
     if (ls) ls.setItem(SCOPE_MODE_KEY, mode === 'session' ? 'session' : 'workspace')
@@ -86,6 +96,10 @@ export function writeScopeMode(mode) {
 
 /** Read the Enter-to-send preference. */
 export function readSendShortcut() {
+  if (hostAuthoritative()) {
+    const saved = hostPrefs().sendShortcut
+    return saved === 'enter' || saved === 'ctrl-enter' ? saved : SEND_SHORTCUT_DEFAULT
+  }
   try {
     const saved = storage() && storage().getItem(SEND_SHORTCUT_KEY)
     return saved === 'enter' || saved === 'ctrl-enter' ? saved : SEND_SHORTCUT_DEFAULT
@@ -95,6 +109,11 @@ export function readSendShortcut() {
 }
 
 export function writeSendShortcut(value) {
+  if (storageMode() === 'error') return
+  if (storageMode() === 'host') {
+    setPrefs({ sendShortcut: value === 'enter' ? 'enter' : 'ctrl-enter' })
+    return
+  }
   try {
     const ls = storage()
     if (ls) ls.setItem(SEND_SHORTCUT_KEY, value === 'enter' ? 'enter' : 'ctrl-enter')
@@ -110,6 +129,10 @@ export function writeSendShortcut(value) {
  * default; a string (including the empty string) is the user's own choice.
  */
 export function readForwardPrefix(): string | null {
+  if (hostAuthoritative()) {
+    const raw = hostPrefs().forwardPrefix
+    return typeof raw === 'string' ? raw.slice(0, 80) : null
+  }
   try {
     const raw = storage() && storage().getItem(FORWARD_PREFIX_STORAGE_KEY)
     return typeof raw === 'string' ? raw.slice(0, 80) : null
@@ -120,6 +143,11 @@ export function readForwardPrefix(): string | null {
 
 /** Persist the user's own lead-in; an empty string deliberately means no prefix. */
 export function writeForwardPrefix(value) {
+  if (storageMode() === 'error') return
+  if (storageMode() === 'host') {
+    setPrefs({ forwardPrefix: String(value || '').slice(0, 80) })
+    return
+  }
   try {
     const ls = storage()
     if (ls) ls.setItem(FORWARD_PREFIX_STORAGE_KEY, String(value || '').slice(0, 80))
@@ -130,6 +158,11 @@ export function writeForwardPrefix(value) {
 
 /** Drop the customization so the localized default applies again. */
 export function clearForwardPrefix() {
+  if (storageMode() === 'error') return
+  if (storageMode() === 'host') {
+    setPrefs({ forwardPrefix: null })
+    return
+  }
   try {
     const ls = storage()
     if (ls) ls.removeItem(FORWARD_PREFIX_STORAGE_KEY)
@@ -138,7 +171,7 @@ export function clearForwardPrefix() {
   }
 }
 
-/** Remembered section state; corrupt or missing storage falls back to defaults. */
+/** Remembered section state; device-local view state, not user content. */
 export function readSectionState() {
   const fallback = { open: SECTION_STATE_DEFAULT.open, done: SECTION_STATE_DEFAULT.done }
   const ls = storage()

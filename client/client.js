@@ -4283,6 +4283,18 @@ const CLEAR_CONFIRM_MS = 5e3;
 const PANEL_WIDTH_KEY = "dsh.aside-note.panel-width";
 /** Persisted height of the experimental right-side panel; 0 means content-sized. */
 const PANEL_HEIGHT_KEY = "dsh.aside-note.panel-height";
+/** Same-origin host endpoint owned by this package (keep in sync with host/store-route.js). */
+const HOST_STORE_PATH = "/dsh-aside-note/store";
+/** Browser-side marker: written only after the one-way switch to host storage succeeded. */
+const STORAGE_MODE_KEY = "dsh.aside-note.storage-mode";
+/** Browser-side notice dedupe record: { code, at }. */
+const STORAGE_NOTICE_KEY = "dsh.aside-note.storage-notice";
+/** Hydration/notice dedupe window for repeated failures. */
+const STORAGE_NOTICE_MS = 864e5;
+/** A snapshot is small; anything slower than this is a broken host, not a busy disk. */
+const HOST_READ_TIMEOUT_MS = 4e3;
+/** A durable write includes fsync; allow a slow disk but never hang the panel. */
+const HOST_WRITE_TIMEOUT_MS = 1e4;
 
 // src/client/storage/codec.ts
 /** The browser store, or null when storage is blocked. */
@@ -4295,8 +4307,480 @@ function storage() {
 	}
 }
 
+// src/client/storage/host-client.ts
+/**
+* The host store as the browser sees it.
+*
+* One same-origin endpoint, two calls: GET hydrates, POST applies a mutation.
+* Nothing here throws a raw network error to the UI: every branch becomes a
+* `HostRequestError` carrying the stable `code` the route documented, so the
+* boot logic can distinguish "this host cannot store" from "this write failed".
+*/
+/** A storage request that did not succeed, with the route's stable code. */
+var HostRequestError = class extends Error {
+	code;
+	status;
+	retryable;
+	constructor(code, message, status = 0, retryable = false) {
+		super(message);
+		this.name = "HostRequestError";
+		this.code = code;
+		this.status = status;
+		this.retryable = retryable;
+	}
+};
+const RETRY_MS = 250;
+const sleep$1 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+function abortSignal(timeoutMs) {
+	if (typeof AbortController !== "function") return { done: () => {} };
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), timeoutMs);
+	return {
+		signal: controller.signal,
+		done: () => clearTimeout(timer)
+	};
+}
+function failureOf$1(response, body) {
+	const code = typeof body?.code === "string" ? body.code : "";
+	const message = typeof body?.message === "string" ? body.message : `host answered ${response.status}`;
+	if (response.status === 404) return new HostRequestError("STORE_ROUTE_MISSING", "this host has no note-store route", 404);
+	if (response.status === 403) return new HostRequestError("STORE_FORBIDDEN", "the host refused this page", 403);
+	if (response.status === 405) return new HostRequestError("STORE_METHOD", "the host rejected the method", 405);
+	if (response.status === 413) return new HostRequestError("STORE_TOO_LARGE", message, 413);
+	if (response.status === 400) return new HostRequestError(code || "STORE_BAD_REQUEST", message, 400);
+	if (response.status === 503) return new HostRequestError(code || "STORE_UNAVAILABLE", message, 503, true);
+	return new HostRequestError(code || "STORE_FAILED", message, response.status, response.status >= 500);
+}
+async function readJson(response) {
+	try {
+		return await response.json();
+	} catch {
+		return;
+	}
+}
+async function request(path, init, options) {
+	let last;
+	for (let attempt = 0; attempt < options.attempts; attempt += 1) {
+		const abort = abortSignal(options.timeoutMs);
+		let response;
+		try {
+			response = await fetch(path, {
+				...init,
+				...abort.signal === void 0 ? {} : { signal: abort.signal }
+			});
+		} catch (error) {
+			abort.done();
+			last = new HostRequestError(error?.name === "AbortError" ? "STORE_TIMEOUT" : "STORE_UNREACHABLE", error instanceof Error ? error.message : "the host did not answer", 0, true);
+			if (attempt + 1 < options.attempts) {
+				await sleep$1(RETRY_MS);
+				continue;
+			}
+			throw last;
+		} finally {
+			abort.done();
+		}
+		const body = await readJson(response);
+		if (response.ok && body?.ok === true) return body;
+		if (response.ok) throw new HostRequestError("STORE_FAILED", "the host returned an unexpected body", response.status);
+		last = failureOf$1(response, body);
+		if (!last.retryable || attempt + 1 >= options.attempts) throw last;
+		await sleep$1(RETRY_MS);
+	}
+	throw last ?? new HostRequestError("STORE_FAILED", "the host did not answer");
+}
+/** Read the authoritative snapshot; retries one transient failure. */
+async function fetchSnapshot() {
+	const body = await request(HOST_STORE_PATH, {
+		method: "GET",
+		headers: { accept: "application/json" }
+	}, {
+		timeoutMs: HOST_READ_TIMEOUT_MS,
+		attempts: 2
+	});
+	const data = body?.data;
+	if (!data || typeof data !== "object") throw new HostRequestError("STORE_FAILED", "the host snapshot has no data", 200);
+	return {
+		rev: Number.isFinite(body.rev) ? body.rev : 0,
+		empty: body.empty === true,
+		data: {
+			sessions: data.sessions && typeof data.sessions === "object" ? data.sessions : {},
+			workspaces: data.workspaces && typeof data.workspaces === "object" ? data.workspaces : {},
+			forwarded: data.forwarded && typeof data.forwarded === "object" ? data.forwarded : {},
+			prefs: data.prefs && typeof data.prefs === "object" ? data.prefs : {}
+		}
+	};
+}
+/** Apply one mutation; retries once because every operation is idempotent. */
+async function postOp(op) {
+	return request(HOST_STORE_PATH, {
+		method: "POST",
+		headers: {
+			"content-type": "application/json",
+			accept: "application/json"
+		},
+		body: JSON.stringify(op)
+	}, {
+		timeoutMs: HOST_WRITE_TIMEOUT_MS,
+		attempts: 2
+	});
+}
+
+// src/client/storage/events.ts
+/**
+* Same-tab change bus plus storage lifecycle notifications.
+*
+* The `storage` event only crosses tabs, so a write here wakes the readers in
+* this tab — the header count and an open panel. Host-backed storage has no
+* `storage` event at all, so the host cache notifies through the same bus and
+* adds two lifecycle channels: "the mode is decided / data hydrated" and
+* "a storage operation failed".
+*/
+/** Same-tab subscribers, so the composer dock's count follows panel edits. */
+const TODO_LISTENERS = /* @__PURE__ */ new Set();
+/** Listeners told once the storage mode is decided (host hydrated, or local chosen). */
+const STORE_READY_LISTENERS = /* @__PURE__ */ new Set();
+/** Listeners told about a failed host read or write worth surfacing as a Toast. */
+const STORE_ERROR_LISTENERS = /* @__PURE__ */ new Set();
+/** Listeners told about a completed or refused switch (translated by the UI). */
+const STORE_NOTICE_LISTENERS = /* @__PURE__ */ new Set();
+/** Notify same-tab readers after a successful write (storage events only cross tabs). */
+function notifyTodoChange() {
+	for (const listener of TODO_LISTENERS) try {
+		listener();
+	} catch (error) {
+		console.error("dsh-aside-note: listener failed", error);
+	}
+}
+/** Announce that the storage mode is decided and the cache is usable. */
+function notifyStoreReady() {
+	for (const listener of STORE_READY_LISTENERS) try {
+		listener();
+	} catch (error) {
+		console.error("dsh-aside-note: ready listener failed", error);
+	}
+}
+/** Announce a switch outcome; the panel turns it into a Toast. */
+function notifyStoreNotice(notice) {
+	for (const listener of STORE_NOTICE_LISTENERS) try {
+		listener(notice);
+	} catch (error) {
+		console.error("dsh-aside-note: notice listener failed", error);
+	}
+}
+/** Announce a failed storage operation; the panel turns it into a Toast. */
+function notifyStoreError(failure) {
+	for (const listener of STORE_ERROR_LISTENERS) try {
+		listener(failure);
+	} catch (error) {
+		console.error("dsh-aside-note: error listener failed", error);
+	}
+}
+
+// src/client/storage/state.ts
+/**
+* Browser-side storage state shared by the facade modules.
+*
+* Two sources coexist by design: `localStorage` (the device-local state and
+* the pre-switch fallback) and the in-memory host snapshot. Reads stay
+* synchronous, so the UI keeps its current shape; this module is the single
+* place that answers "which one is authoritative right now".
+*/
+let mode = "probing";
+let data = null;
+let revision = 0;
+let failure = null;
+const pending = /* @__PURE__ */ new Map();
+let channel = null;
+let listening = false;
+/** Current mode; `probing` means boot has not decided yet. */
+function storageMode() {
+	return mode;
+}
+/** True while the host is (or must be) the only source: `host` and the error state after it. */
+function hostAuthoritative() {
+	return mode === "host" || mode === "error";
+}
+function setStorageMode(next) {
+	mode = next;
+}
+/** The last host failure, for the settings surface. */
+function storageFailure() {
+	return failure;
+}
+function setStorageFailure(next) {
+	failure = next;
+}
+/** Replace the cache with a fresh host snapshot. */
+function hydrateHost(next, rev) {
+	data = next;
+	if (Number.isFinite(rev) && rev > revision) revision = rev;
+}
+/** One host table, or an empty map. */
+function hostTable(name) {
+	return data?.[name] ?? {};
+}
+/** One host record, or undefined. */
+function hostRecord(name, key) {
+	if (!key) return void 0;
+	return hostTable(name)[key];
+}
+/** Host preferences (user intent that travels with the notes). */
+function hostPrefs() {
+	return data?.prefs ?? {};
+}
+function bumpHostRevision(rev) {
+	if (typeof rev === "number" && Number.isFinite(rev) && rev > revision) revision = rev;
+}
+/** Merge one record into the cache and wake same-tab readers. */
+function applyHostRecord(name, key, value) {
+	if (!data || !key) return;
+	if (value === void 0) delete data[name][key];
+	else data[name][key] = value;
+	notifyTodoChange();
+}
+/** Replace cached preferences and wake readers. */
+function applyHostPrefs(prefs) {
+	if (!data) return;
+	data.prefs = prefs && typeof prefs === "object" ? prefs : {};
+	notifyTodoChange();
+}
+/** Mark one key busy so a remote broadcast cannot stomp an in-flight write. */
+function beginPending(key) {
+	pending.set(key, (pending.get(key) ?? 0) + 1);
+}
+function endPending(key) {
+	const count = (pending.get(key) ?? 0) - 1;
+	if (count > 0) pending.set(key, count);
+	else pending.delete(key);
+}
+function isPending(key) {
+	return (pending.get(key) ?? 0) > 0;
+}
+function ensureChannel() {
+	if (channel) return channel;
+	if (typeof BroadcastChannel !== "function") return null;
+	try {
+		channel = new BroadcastChannel("dsh-aside-note");
+	} catch {
+		channel = null;
+	}
+	return channel;
+}
+/** Tell other tabs of this browser about one already-durable change. */
+function broadcastRecord(name, key, value, rev) {
+	ensureChannel()?.postMessage({
+		kind: "record",
+		name,
+		key,
+		value,
+		rev
+	});
+}
+function broadcastPrefs(prefs, rev) {
+	ensureChannel()?.postMessage({
+		kind: "prefs",
+		prefs,
+		rev
+	});
+}
+/**
+* Listen for same-browser tab updates once. BroadcastChannel is optional (jsdom
+* and older runtimes), so a missing implementation only loses that nicety.
+*/
+function startCrossTabSync() {
+	if (listening) return;
+	const bus = ensureChannel();
+	if (!bus) return;
+	listening = true;
+	bus.onmessage = (event) => {
+		const message = event?.data;
+		if (!message || typeof message !== "object" || mode !== "host") return;
+		bumpHostRevision(message.rev);
+		if (message.kind === "prefs") {
+			if (!isPending("prefs")) applyHostPrefs(message.prefs);
+			return;
+		}
+		if (message.kind === "record" && typeof message.name === "string" && typeof message.key === "string") {
+			const table = message.name;
+			if (![
+				"sessions",
+				"workspaces",
+				"forwarded"
+			].includes(table)) return;
+			if (isPending(`${table}:${message.key}`)) return;
+			applyHostRecord(table, message.key, message.value);
+		}
+	};
+}
+
+// src/client/storage/ops.ts
+/**
+* Host mutations.
+*
+* Notes are written as a diff (`order` + changed `upserts` + removed ids) and
+* the host applies it atomically, so two tabs editing different rows merge
+* instead of replacing each other's whole list. Preferences and forward marks
+* are optimistic — they are presentation state and a failed write only costs a
+* toast, never the user's text.
+*/
+const chains = /* @__PURE__ */ new Map();
+function serialize(key, task) {
+	const run = (chains.get(key) ?? Promise.resolve()).then(task, task);
+	chains.set(key, run.then(() => void 0, () => void 0));
+	beginPending(key);
+	return run.finally(() => endPending(key));
+}
+function report(error) {
+	const failure = {
+		code: typeof error?.code === "string" ? error.code : "STORE_FAILED",
+		message: error instanceof Error ? error.message : String(error)
+	};
+	setStorageFailure({
+		...failure,
+		status: error?.status
+	});
+	notifyStoreError(failure);
+}
+function tableFor(kind) {
+	return kind === "workspace" ? "workspaces" : "sessions";
+}
+function sameJson(a, b) {
+	return JSON.stringify(a) === JSON.stringify(b);
+}
+function toItems(record) {
+	return record && Array.isArray(record.items) ? record.items : [];
+}
+/**
+* Persist the next ordered list for one scope.
+* @returns true when the host accepted (or nothing changed)
+*/
+async function commitList(kind, listKey, nextItems) {
+	if (!listKey) return false;
+	const table = tableFor(kind);
+	const base = toItems(hostRecord(table, listKey));
+	const baseById = new Map(base.map((item) => [item.id, item]));
+	const nextById = new Map(nextItems.map((item) => [item.id, item]));
+	const upserts = nextItems.filter((item) => {
+		const previous = baseById.get(item.id);
+		return previous === void 0 || !sameJson(previous, item);
+	});
+	const deletes = [...baseById.keys()].filter((id) => !nextById.has(id));
+	const order = nextItems.map((item) => item.id);
+	if (upserts.length === 0 && deletes.length === 0) return true;
+	try {
+		const result = await serialize(`${table}:${listKey}`, () => postOp({
+			op: "list.patch",
+			kind,
+			listKey,
+			order,
+			upserts,
+			deletes
+		}));
+		applyHostRecord(table, listKey, result.record);
+		bumpHostRevision(result.rev);
+		broadcastRecord(table, listKey, result.record, result.rev);
+		return true;
+	} catch (error) {
+		const failure = {
+			code: typeof error?.code === "string" ? error.code : "STORE_FAILED",
+			message: error instanceof Error ? error.message : String(error)
+		};
+		setStorageFailure({
+			...failure,
+			status: error?.status
+		});
+		return false;
+	}
+}
+/** Fold member sessions into a workspace list once, on the host. */
+async function ensureWorkspace(workspaceId, sessionIds) {
+	if (!workspaceId) return false;
+	const current = hostRecord("workspaces", workspaceId);
+	const seeded = new Set(Array.isArray(current?.seededSessionIds) ? current.seededSessionIds : []);
+	const pendingMembers = (Array.isArray(sessionIds) ? sessionIds : []).filter((id) => id && !seeded.has(id));
+	if (current && pendingMembers.length === 0) return true;
+	try {
+		const result = await serialize(`workspaces:${workspaceId}`, () => postOp({
+			op: "list.ensure",
+			workspaceId,
+			sessionIds: Array.isArray(sessionIds) ? sessionIds : []
+		}));
+		applyHostRecord("workspaces", workspaceId, result.record);
+		bumpHostRevision(result.rev);
+		broadcastRecord("workspaces", workspaceId, result.record, result.rev);
+		return true;
+	} catch (error) {
+		report(error);
+		return false;
+	}
+}
+/**
+* Toggle one forwarded mark. Optimistic: the check appears immediately and is
+* rolled back only when the write fails and nobody else changed it meanwhile.
+*/
+function setForward(listKey, itemId, on) {
+	if (!listKey || !itemId) return false;
+	const previous = hostRecord("forwarded", listKey) ?? {};
+	if (Boolean(previous[itemId]) === on) return true;
+	const next = { ...previous };
+	if (on) next[itemId] = true;
+	else delete next[itemId];
+	applyHostRecord("forwarded", listKey, Object.keys(next).length ? next : void 0);
+	serialize(`forwarded:${listKey}`, () => postOp({
+		op: "forward.set",
+		listKey,
+		itemId,
+		on
+	})).then((result) => {
+		applyHostRecord("forwarded", listKey, result.record);
+		bumpHostRevision(result.rev);
+		broadcastRecord("forwarded", listKey, result.record, result.rev);
+	}).catch((error) => {
+		if (sameJson(hostRecord("forwarded", listKey), Object.keys(next).length ? next : void 0)) applyHostRecord("forwarded", listKey, Object.keys(previous).length ? previous : void 0);
+		report(error);
+	});
+	return true;
+}
+/** Merge user preferences on the host; optimistic with the same rollback rule. */
+function setPrefs(patch) {
+	const previous = hostPrefs();
+	const next = {
+		...previous,
+		version: 1
+	};
+	if ("scopeMode" in patch) next.scopeMode = patch.scopeMode;
+	if ("sendShortcut" in patch) next.sendShortcut = patch.sendShortcut;
+	if ("forwardPrefix" in patch) {
+		if (patch.forwardPrefix === null) delete next.forwardPrefix;
+		else next.forwardPrefix = String(patch.forwardPrefix).slice(0, 80);
+	}
+	applyHostPrefs(next);
+	serialize("prefs", () => postOp({
+		op: "prefs.set",
+		patch
+	})).then((result) => {
+		applyHostPrefs(result.prefs);
+		bumpHostRevision(result.rev);
+		broadcastPrefs(result.prefs, result.rev);
+	}).catch((error) => {
+		if (sameJson(hostPrefs(), next)) applyHostPrefs(previous);
+		report(error);
+	});
+	return true;
+}
+/** Upload the pre-switch browser store; safe to re-run after an interruption. */
+async function migrate(snapshot) {
+	const result = await postOp({
+		op: "migrate",
+		snapshot,
+		source: "localStorage"
+	});
+	bumpHostRevision(result.rev);
+	return { migrated: Number.isFinite(result.migrated) ? Number(result.migrated) : 0 };
+}
+
 // src/client/storage/prefs.ts
-/** Panel geometry, list scope, send shortcut, forward prefix and section state. */
+/** Panel geometry, list scope/shortcut/prefix, and device-local UI state. */
 /** Read the persisted right-panel width, clamped for the current viewport. */
 function readPanelWidth() {
 	const ls = storage();
@@ -4335,6 +4819,7 @@ function writePanelHeight(height) {
 }
 /** Read the last chosen list scope; "workspace" is the default. */
 function readScopeMode() {
+	if (hostAuthoritative()) return hostPrefs().scopeMode === "session" ? "session" : SCOPE_MODE_DEFAULT;
 	try {
 		return (storage() && storage().getItem("dsh.aside-note.scope-mode")) === "session" ? "session" : SCOPE_MODE_DEFAULT;
 	} catch {
@@ -4342,6 +4827,11 @@ function readScopeMode() {
 	}
 }
 function writeScopeMode(mode) {
+	if (storageMode() === "error") return;
+	if (storageMode() === "host") {
+		setPrefs({ scopeMode: mode === "session" ? "session" : "workspace" });
+		return;
+	}
 	try {
 		const ls = storage();
 		if (ls) ls.setItem(SCOPE_MODE_KEY, mode === "session" ? "session" : "workspace");
@@ -4349,6 +4839,10 @@ function writeScopeMode(mode) {
 }
 /** Read the Enter-to-send preference. */
 function readSendShortcut() {
+	if (hostAuthoritative()) {
+		const saved = hostPrefs().sendShortcut;
+		return saved === "enter" || saved === "ctrl-enter" ? saved : SEND_SHORTCUT_DEFAULT;
+	}
 	try {
 		const saved = storage() && storage().getItem("dsh.aside-note.send-shortcut");
 		return saved === "enter" || saved === "ctrl-enter" ? saved : SEND_SHORTCUT_DEFAULT;
@@ -4357,6 +4851,11 @@ function readSendShortcut() {
 	}
 }
 function writeSendShortcut(value) {
+	if (storageMode() === "error") return;
+	if (storageMode() === "host") {
+		setPrefs({ sendShortcut: value === "enter" ? "enter" : "ctrl-enter" });
+		return;
+	}
 	try {
 		const ls = storage();
 		if (ls) ls.setItem(SEND_SHORTCUT_KEY, value === "enter" ? "enter" : "ctrl-enter");
@@ -4369,6 +4868,10 @@ function writeSendShortcut(value) {
 * default; a string (including the empty string) is the user's own choice.
 */
 function readForwardPrefix() {
+	if (hostAuthoritative()) {
+		const raw = hostPrefs().forwardPrefix;
+		return typeof raw === "string" ? raw.slice(0, 80) : null;
+	}
 	try {
 		const raw = storage() && storage().getItem("dsh.aside-note.forward-prefix");
 		return typeof raw === "string" ? raw.slice(0, 80) : null;
@@ -4378,6 +4881,11 @@ function readForwardPrefix() {
 }
 /** Persist the user's own lead-in; an empty string deliberately means no prefix. */
 function writeForwardPrefix(value) {
+	if (storageMode() === "error") return;
+	if (storageMode() === "host") {
+		setPrefs({ forwardPrefix: String(value || "").slice(0, 80) });
+		return;
+	}
 	try {
 		const ls = storage();
 		if (ls) ls.setItem(FORWARD_PREFIX_STORAGE_KEY, String(value || "").slice(0, 80));
@@ -4385,12 +4893,17 @@ function writeForwardPrefix(value) {
 }
 /** Drop the customization so the localized default applies again. */
 function clearForwardPrefix() {
+	if (storageMode() === "error") return;
+	if (storageMode() === "host") {
+		setPrefs({ forwardPrefix: null });
+		return;
+	}
 	try {
 		const ls = storage();
 		if (ls) ls.removeItem(FORWARD_PREFIX_STORAGE_KEY);
 	} catch {}
 }
-/** Remembered section state; corrupt or missing storage falls back to defaults. */
+/** Remembered section state; device-local view state, not user content. */
 function readSectionState() {
 	const fallback = {
 		open: SECTION_STATE_DEFAULT.open,
@@ -4648,6 +5161,16 @@ const de = {
 	"time.days": "vor {n} T.",
 	"time.createdDone": "Erstellt {created} · Erledigt {completed}",
 	"storage.failed": "Lokaler Speicher ist nicht verfügbar; Änderungen werden möglicherweise nicht gespeichert",
+	"storage.whereHost": "Notizen werden in einer lokalen DSH-Datei gespeichert",
+	"storage.loading": "Notizen werden gelesen…",
+	"storage.modeHost": "Lokale DSH-Datei (aside_note.json)",
+	"storage.modeLocal": "Dieser Browser (localStorage)",
+	"storage.settingsLabel": "Speicher",
+	"storage.failure": "Letzter Fehler: {code}",
+	"storage.migrated": "{n} Notizen aus diesem Browser in die lokale DSH-Datei verschoben",
+	"storage.keptLocal": "Host-Notizen werden verwendet; ältere Notizen dieses Browsers wurden nicht zusammengeführt",
+	"storage.notSwitched": "Host-Speicher ist nicht verfügbar; Notizen bleiben in diesem Browser und werden beim nächsten Start erneut versucht",
+	"storage.hostError": "Notizspeicher ist nicht verfügbar",
 	"forward.prefix": "Diese Aufgabe erledigen:",
 	"resize.width": "Breite von AsideNote ändern",
 	"resize.height": "Höhe von AsideNote ändern",
@@ -4771,6 +5294,16 @@ const en = {
 	"time.days": "{n} d ago",
 	"time.createdDone": "Created {created} · Completed {completed}",
 	"storage.failed": "Local storage is unavailable; changes may not persist",
+	"storage.whereHost": "Notes are saved in a DSH local file",
+	"storage.loading": "Reading notes…",
+	"storage.modeHost": "DSH local file (aside_note.json)",
+	"storage.modeLocal": "This browser (localStorage)",
+	"storage.settingsLabel": "Storage",
+	"storage.failure": "Last failure: {code}",
+	"storage.migrated": "Moved {n} notes from this browser into the DSH local file",
+	"storage.keptLocal": "Using host notes; this browser's older notes were left unmerged",
+	"storage.notSwitched": "Host storage is unavailable, so notes stay in this browser and will be retried on next start",
+	"storage.hostError": "Notes storage is unavailable",
 	"forward.prefix": "Complete this task:",
 	"resize.width": "Resize AsideNote width",
 	"resize.height": "Resize AsideNote height",
@@ -4894,6 +5427,16 @@ const es = {
 	"time.days": "hace {n} d",
 	"time.createdDone": "Creada {created} · Completada {completed}",
 	"storage.failed": "El almacenamiento local no está disponible; es posible que los cambios no se guarden",
+	"storage.whereHost": "Las notas se guardan en un archivo local de DSH",
+	"storage.loading": "Leyendo notas…",
+	"storage.modeHost": "Archivo local de DSH (aside_note.json)",
+	"storage.modeLocal": "Este navegador (localStorage)",
+	"storage.settingsLabel": "Almacenamiento",
+	"storage.failure": "Último fallo: {code}",
+	"storage.migrated": "Se movieron {n} notas de este navegador al archivo local de DSH",
+	"storage.keptLocal": "Se usan las notas del host; las notas antiguas de este navegador quedaron sin combinar",
+	"storage.notSwitched": "El almacenamiento del host no está disponible; las notas siguen en este navegador y se reintentará al iniciar",
+	"storage.hostError": "El almacenamiento de notas no está disponible",
 	"forward.prefix": "Completa esta tarea:",
 	"resize.width": "Cambiar el ancho de AsideNote",
 	"resize.height": "Cambiar la altura de AsideNote",
@@ -5017,6 +5560,16 @@ const fr = {
 	"time.days": "il y a {n} j",
 	"time.createdDone": "Créée {created} · Terminée {completed}",
 	"storage.failed": "Le stockage local n'est pas disponible ; les modifications peuvent ne pas être conservées",
+	"storage.whereHost": "Les notes sont enregistrées dans un fichier local DSH",
+	"storage.loading": "Lecture des notes…",
+	"storage.modeHost": "Fichier local DSH (aside_note.json)",
+	"storage.modeLocal": "Ce navigateur (localStorage)",
+	"storage.settingsLabel": "Stockage",
+	"storage.failure": "Dernier échec : {code}",
+	"storage.migrated": "{n} notes de ce navigateur ont été déplacées vers le fichier local DSH",
+	"storage.keptLocal": "Notes de l'hôte utilisées ; les anciennes notes de ce navigateur n'ont pas été fusionnées",
+	"storage.notSwitched": "Le stockage de l'hôte est indisponible ; les notes restent dans ce navigateur et seront réessayées au prochain démarrage",
+	"storage.hostError": "Le stockage des notes est indisponible",
 	"forward.prefix": "Terminez cette tâche :",
 	"resize.width": "Redimensionner la largeur d'AsideNote",
 	"resize.height": "Redimensionner la hauteur d'AsideNote",
@@ -5140,6 +5693,16 @@ const ja = {
 	"time.days": "{n} 日前",
 	"time.createdDone": "作成 {created} · 完了 {completed}",
 	"storage.failed": "ローカルストレージを利用できません。変更は保存されない可能性があります",
+	"storage.whereHost": "メモは DSH のローカルファイルに保存されます",
+	"storage.loading": "メモを読み込み中…",
+	"storage.modeHost": "DSH ローカルファイル（aside_note.json）",
+	"storage.modeLocal": "このブラウザ（localStorage）",
+	"storage.settingsLabel": "保存先",
+	"storage.failure": "前回の失敗：{code}",
+	"storage.migrated": "このブラウザのメモ {n} 件を DSH ローカルファイルに移行しました",
+	"storage.keptLocal": "ホストのメモを使用中です。このブラウザの古いメモは統合していません",
+	"storage.notSwitched": "ホストのストレージを利用できないため、メモはこのブラウザに保存され、次回起動時に再試行します",
+	"storage.hostError": "メモのストレージを利用できません",
 	"forward.prefix": "このタスクを完了してください：",
 	"resize.width": "AsideNote の幅を変更",
 	"resize.height": "AsideNote の高さを変更",
@@ -5263,6 +5826,16 @@ const pt = {
 	"time.days": "há {n} d",
 	"time.createdDone": "Criada {created} · Concluída {completed}",
 	"storage.failed": "O armazenamento local não está disponível; as alterações podem não ser salvas",
+	"storage.whereHost": "As notas são salvas em um arquivo local do DSH",
+	"storage.loading": "Lendo notas…",
+	"storage.modeHost": "Arquivo local do DSH (aside_note.json)",
+	"storage.modeLocal": "Este navegador (localStorage)",
+	"storage.settingsLabel": "Armazenamento",
+	"storage.failure": "Última falha: {code}",
+	"storage.migrated": "{n} notas deste navegador foram movidas para o arquivo local do DSH",
+	"storage.keptLocal": "Usando as notas do host; as notas antigas deste navegador não foram mescladas",
+	"storage.notSwitched": "O armazenamento do host está indisponível; as notas ficam neste navegador e serão tentadas novamente na próxima inicialização",
+	"storage.hostError": "O armazenamento de notas está indisponível",
 	"forward.prefix": "Conclua esta tarefa:",
 	"resize.width": "Redimensionar a largura do AsideNote",
 	"resize.height": "Redimensionar a altura do AsideNote",
@@ -5386,6 +5959,16 @@ const ru = {
 	"time.days": "{n} дн. назад",
 	"time.createdDone": "Создано {created} · Выполнено {completed}",
 	"storage.failed": "Локальное хранилище недоступно; изменения могут не сохраниться",
+	"storage.whereHost": "Заметки сохраняются в локальном файле DSH",
+	"storage.loading": "Чтение заметок…",
+	"storage.modeHost": "Локальный файл DSH (aside_note.json)",
+	"storage.modeLocal": "Этот браузер (localStorage)",
+	"storage.settingsLabel": "Хранилище",
+	"storage.failure": "Последняя ошибка: {code}",
+	"storage.migrated": "Заметки этого браузера ({n}) перенесены в локальный файл DSH",
+	"storage.keptLocal": "Используются заметки хоста; старые заметки этого браузера не объединены",
+	"storage.notSwitched": "Хранилище хоста недоступно; заметки остаются в этом браузере, повтор при следующем запуске",
+	"storage.hostError": "Хранилище заметок недоступно",
 	"forward.prefix": "Выполните эту задачу:",
 	"resize.width": "Изменить ширину AsideNote",
 	"resize.height": "Изменить высоту AsideNote",
@@ -5509,6 +6092,16 @@ const zh = {
 	"time.days": "{n} 天前",
 	"time.createdDone": "{created}创建，{completed}完成",
 	"storage.failed": "本地存储不可用，改动不会保留",
+	"storage.whereHost": "便笺保存在 DSH 本地文件",
+	"storage.loading": "正在读取便笺…",
+	"storage.modeHost": "DSH 本地文件（aside_note.json）",
+	"storage.modeLocal": "当前浏览器（localStorage）",
+	"storage.settingsLabel": "存储",
+	"storage.failure": "最近失败：{code}",
+	"storage.migrated": "已把本浏览器的 {n} 条便笺迁入 DSH 本地文件",
+	"storage.keptLocal": "已使用宿主便笺；本浏览器的旧便笺未合并",
+	"storage.notSwitched": "宿主存储暂不可用，便笺仍保存在本浏览器，下次启动会重试",
+	"storage.hostError": "便笺存储暂不可用",
 	"forward.prefix": "完成以下任务：",
 	"resize.width": "调整旁边记宽度",
 	"resize.height": "调整旁边记高度",
@@ -5776,6 +6369,206 @@ function appendToConversation(text, prefix = "") {
 	}
 }
 
+// src/client/storage/legacy.ts
+/**
+* The pre-switch browser store: migration payload and mode markers.
+*
+* Once the switch succeeds this data is never read as authority again; it is
+* kept untouched as the recovery source. The parser mirrors the old modules so
+* a hand-edited or older shape migrates as far as it can instead of failing.
+*/
+const bucket$2 = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+function parse(raw) {
+	if (!raw) return void 0;
+	try {
+		return JSON.parse(raw);
+	} catch {
+		return;
+	}
+}
+function readItem(key) {
+	const ls = storage();
+	if (!ls) return null;
+	try {
+		return ls.getItem(key);
+	} catch {
+		return null;
+	}
+}
+function writeItem(key, value) {
+	const ls = storage();
+	if (!ls) return false;
+	try {
+		ls.setItem(key, value);
+		return true;
+	} catch {
+		return false;
+	}
+}
+/** Read everything a one-time migration needs, in the old on-disk shapes. */
+function readLegacySnapshot() {
+	const sessionStore = parse(readItem(SESSION_STORAGE_KEY));
+	const workspaceStore = parse(readItem(WORKSPACE_STORAGE_KEY));
+	const forwardedStore = parse(readItem(FORWARDED_STORAGE_KEY));
+	const prefs = {};
+	const scope = readItem(SCOPE_MODE_KEY);
+	if (scope === "workspace" || scope === "session") prefs.scopeMode = scope;
+	const shortcut = readItem(SEND_SHORTCUT_KEY);
+	if (shortcut === "enter" || shortcut === "ctrl-enter") prefs.sendShortcut = shortcut;
+	const prefix = readItem(FORWARD_PREFIX_STORAGE_KEY);
+	if (typeof prefix === "string") prefs.forwardPrefix = prefix.slice(0, 80);
+	return {
+		sessions: bucket$2(sessionStore?.sessions),
+		workspaces: bucket$2(workspaceStore?.workspaces),
+		forwarded: bucket$2(forwardedStore?.sessions),
+		prefs
+	};
+}
+/** Number of notes the migration would carry, for the success notice. */
+function legacyNoteCount(snapshot) {
+	let count = 0;
+	for (const record of Object.values(snapshot.sessions)) if (Array.isArray(record?.items)) count += record.items.length;
+	for (const record of Object.values(snapshot.workspaces)) if (Array.isArray(record?.items)) count += record.items.length;
+	return count;
+}
+/** True when the browser holds anything worth migrating. */
+function hasLegacyData(snapshot) {
+	return legacyNoteCount(snapshot) > 0 || Object.keys(snapshot.forwarded).length > 0 || Object.keys(snapshot.prefs).length > 0;
+}
+/** Whether this browser already switched to host storage. */
+function hostModeMarked() {
+	return readItem(STORAGE_MODE_KEY) === "host";
+}
+/** Remember the one-way switch. Best effort: clearing site data loses it. */
+function markHostMode() {
+	return writeItem(STORAGE_MODE_KEY, "host");
+}
+/**
+* Whether a failure notice should surface now. The same reason is throttled to
+* once per day so a broken host does not toast on every reload.
+*/
+function shouldNoticeStorage(code) {
+	const saved = parse(readItem(STORAGE_NOTICE_KEY));
+	if (!saved || typeof saved !== "object") return true;
+	if (saved.code !== code) return true;
+	const at = Number(saved.at);
+	return !Number.isFinite(at) || Date.now() - at >= 864e5;
+}
+function rememberStorageNotice(code) {
+	writeItem(STORAGE_NOTICE_KEY, JSON.stringify({
+		code,
+		at: Date.now()
+	}));
+}
+
+// src/client/storage/boot.ts
+/**
+* The one-time decision: switch this browser's notes to host storage or stay
+* on localStorage.
+*
+* Rules (docs/design/host-storage-migration.md §7.1/§7.5):
+* - probe before deciding; an unavailable host means "don't switch", keep
+*   working locally, notify, and retry on the next load;
+* - migrate only after a successful open, and write the one-way marker only
+*   after the data is durable;
+* - after the switch the host is authoritative: a later outage is an error
+*   state, never a silent fallback that would fork the data.
+*/
+let booting = null;
+function failureOf(error) {
+	return {
+		code: typeof error?.code === "string" ? error.code : "STORE_FAILED",
+		message: error instanceof Error ? error.message : String(error),
+		status: error?.status
+	};
+}
+function refuse(failure) {
+	setStorageFailure(failure);
+	setStorageMode("local");
+	notifyStoreReady();
+	if (shouldNoticeStorage(failure.code)) {
+		rememberStorageNotice(failure.code);
+		notifyStoreNotice({
+			kind: "notSwitched",
+			code: failure.code
+		});
+	}
+	return "local";
+}
+async function runBoot() {
+	startCrossTabSync();
+	if (hostModeMarked()) try {
+		const snapshot = await fetchSnapshot();
+		hydrateHost(snapshot.data, snapshot.rev);
+		setStorageFailure(null);
+		setStorageMode("host");
+		notifyStoreReady();
+		return "host";
+	} catch (error) {
+		const failure = failureOf(error);
+		setStorageFailure(failure);
+		setStorageMode("error");
+		notifyStoreReady();
+		if (shouldNoticeStorage(failure.code)) {
+			rememberStorageNotice(failure.code);
+			notifyStoreError({
+				code: failure.code,
+				message: failure.message
+			});
+		}
+		return "error";
+	}
+	let snapshot;
+	try {
+		snapshot = await fetchSnapshot();
+	} catch (error) {
+		return refuse(failureOf(error));
+	}
+	const legacy = readLegacySnapshot();
+	const incomplete = snapshot.data.prefs?.migration?.complete === false;
+	let migrated = 0;
+	try {
+		if (incomplete) {
+			if (hasLegacyData(legacy)) {
+				migrated = (await migrate(legacy)).migrated;
+				snapshot = await fetchSnapshot();
+			}
+		} else if (snapshot.empty) {
+			if (hasLegacyData(legacy)) {
+				migrated = (await migrate(legacy)).migrated;
+				snapshot = await fetchSnapshot();
+				const count = legacyNoteCount(legacy) || migrated;
+				if (count > 0) notifyStoreNotice({
+					kind: "migrated",
+					count
+				});
+			}
+		} else if (legacyNoteCount(legacy) > 0) notifyStoreNotice({ kind: "keptLocal" });
+	} catch (error) {
+		return refuse(failureOf(error));
+	}
+	hydrateHost(snapshot.data, snapshot.rev);
+	markHostMode();
+	setStorageFailure(null);
+	setStorageMode("host");
+	notifyStoreReady();
+	return "host";
+}
+/** Decide once per page load; later callers share the same promise. */
+function bootStorage() {
+	if (!booting) booting = runBoot().catch((error) => refuse(failureOf(error)));
+	return booting;
+}
+/** Force a new probe (settings retry button). */
+function retryStorage() {
+	booting = runBoot().catch((error) => refuse(failureOf(error)));
+	return booting;
+}
+/** Current mode without waiting. */
+function currentStorageMode() {
+	return storageMode();
+}
+
 // src/client/storage/drafts.ts
 /**
 * Unsaved add/edit drafts, so closing the panel never loses text.
@@ -6015,31 +6808,15 @@ function metaLabel(item, say, localeId) {
 	});
 }
 
-// src/client/storage/events.ts
-/**
-* Same-tab change bus.
-*
-* The `storage` event only crosses tabs, so a write here wakes the readers in
-* this tab — the header count and an open panel.
-*/
-/** Same-tab subscribers, so the composer dock's count follows panel edits. */
-const TODO_LISTENERS = /* @__PURE__ */ new Set();
-/** Notify same-tab readers after a successful write (storage events only cross tabs). */
-function notifyTodoChange() {
-	for (const listener of TODO_LISTENERS) try {
-		listener();
-	} catch (error) {
-		console.error("dsh-aside-note: listener failed", error);
-	}
-}
-
 // src/client/storage/session.ts
 /**
-* Session-scoped notes in one localStorage record.
+* Session-scoped notes.
 *
-* The shape stays at v1: workspace notes now live under
-* `WORKSPACE_STORAGE_KEY`, so the session key existing users already have is
-* never rewritten into a new schema.
+* Two media, one shape: while this browser is still on `localStorage` the
+* record lives under `SESSION_STORAGE_KEY`; after the one-way switch the same
+* record lives in the host snapshot's `sessions` table and writes go through
+* the host route. The workspace key is separate, so existing per-session data
+* is never rewritten into a new schema.
 */
 /** Empty note store. */
 function emptySessionStore() {
@@ -6049,8 +6826,8 @@ function emptySessionStore() {
 	};
 }
 const bucket$1 = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
-/** Read the whole note store; corrupt or unavailable reads as empty. */
-function readSessionStore() {
+/** Read the browser store; corrupt or unavailable reads as empty. */
+function readLocalStore$1() {
 	const ls = storage();
 	if (!ls) return emptySessionStore();
 	try {
@@ -6066,7 +6843,15 @@ function readSessionStore() {
 		return emptySessionStore();
 	}
 }
-/** Persist the whole session store; the single writer for this key. */
+/** Read the whole note store from whichever medium is authoritative now. */
+function readSessionStore() {
+	if (hostAuthoritative()) return {
+		version: 1,
+		sessions: { ...hostTable("sessions") }
+	};
+	return readLocalStore$1();
+}
+/** Persist the whole browser store; the single writer for the legacy key. */
 function writeSessionStore(store) {
 	const ls = storage();
 	if (!ls) return false;
@@ -6088,17 +6873,29 @@ function readSessionRecord(sessionId) {
 		items: [],
 		updatedAt: 0
 	};
-	const record = readSessionStore().sessions[key];
+	if (hostAuthoritative()) {
+		const record = hostRecord("sessions", key);
+		return {
+			items: normalizeItems(record && record.items),
+			updatedAt: record && Number.isFinite(record.updatedAt) ? record.updatedAt : 0
+		};
+	}
+	const record = readLocalStore$1().sessions[key];
 	return {
 		items: normalizeItems(record && record.items),
 		updatedAt: record && Number.isFinite(record.updatedAt) ? record.updatedAt : 0
 	};
 }
-/** Persist one session's memo record. */
-function writeSessionRecord(sessionId, record) {
+/**
+* Persist one session's memo record.
+* @returns resolution with whether the write was accepted/durable
+*/
+async function writeSessionRecord(sessionId, record) {
 	const key = sessionId ? String(sessionId) : "";
 	if (!key) return false;
-	const store = readSessionStore();
+	if (storageMode() === "error") return false;
+	if (storageMode() === "host") return commitList("session", key, normalizeItems(record && record.items));
+	const store = readLocalStore$1();
 	store.sessions[key] = {
 		sessionId: key,
 		updatedAt: record.updatedAt || Date.now(),
@@ -6111,12 +6908,11 @@ function writeSessionRecord(sessionId, record) {
 /**
 * Workspace-scoped notes.
 *
-* Stored under `WORKSPACE_STORAGE_KEY`, beside the session key, so adding
-* workspace lists never changes the shape of existing per-session data. One
-* list is shared by every session of a workspace. The first time a workspace
-* is seen, notes already written per session are folded in once;
-* `seededSessionIds` records that so a later delete is not undone by the merge
-* running again.
+* One list is shared by every session of a workspace. The first time a
+* workspace is seen, notes already written per session are folded in once;
+* `seededSessionIds` records that so a later delete is not undone. After the
+* switch to host storage the fold runs on the host (`list.ensure`), where it is
+* atomic; before the switch it stays in the browser exactly as it was.
 */
 const text$1 = (value) => value ? String(value) : "";
 const bucket = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -6140,8 +6936,8 @@ function emptyWorkspaceStore() {
 		workspaces: {}
 	};
 }
-/** Read the workspace-note store; corrupt or unavailable reads as empty. */
-function readWorkspaceStore() {
+/** Read the browser workspace store; corrupt or unavailable reads as empty. */
+function readLocalStore() {
 	const ls = storage();
 	if (!ls) return emptyWorkspaceStore();
 	try {
@@ -6157,7 +6953,7 @@ function readWorkspaceStore() {
 		return emptyWorkspaceStore();
 	}
 }
-/** Persist the whole workspace-note store. */
+/** Persist the whole browser workspace store. */
 function writeWorkspaceStore(store) {
 	const ls = storage();
 	if (!ls) return false;
@@ -6180,7 +6976,15 @@ function readWorkspaceRecord(workspaceId) {
 		updatedAt: 0,
 		seededSessionIds: []
 	};
-	const record = readWorkspaceStore().workspaces[key];
+	if (hostAuthoritative()) {
+		const record = hostRecord("workspaces", key);
+		return {
+			items: normalizeItems(record && record.items),
+			updatedAt: record && Number.isFinite(record.updatedAt) ? record.updatedAt : 0,
+			seededSessionIds: seededOf(record)
+		};
+	}
+	const record = readLocalStore().workspaces[key];
 	return {
 		items: normalizeItems(record && record.items),
 		updatedAt: record && Number.isFinite(record.updatedAt) ? record.updatedAt : 0,
@@ -6188,10 +6992,12 @@ function readWorkspaceRecord(workspaceId) {
 	};
 }
 /** Persist one workspace's memo record. */
-function writeWorkspaceRecord(workspaceId, record) {
+async function writeWorkspaceRecord(workspaceId, record) {
 	const key = text$1(workspaceId);
 	if (!key) return false;
-	const store = readWorkspaceStore();
+	if (storageMode() === "error") return false;
+	if (storageMode() === "host") return commitList("workspace", key, normalizeItems(record && record.items));
+	const store = readLocalStore();
 	const previous = store.workspaces[key];
 	const seededSource = Array.isArray(record.seededSessionIds) ? record : previous;
 	store.workspaces[key] = {
@@ -6204,12 +7010,14 @@ function writeWorkspaceRecord(workspaceId, record) {
 }
 /**
 * Fold the member sessions' existing notes into the workspace list once.
-* Returns whether the store changed; repeated calls are cheap and idempotent.
+* @returns resolution with whether the store changed / was accepted
 */
-function ensureWorkspaceRecord(workspaceId, sessionIds) {
+async function ensureWorkspaceRecord(workspaceId, sessionIds) {
 	const key = text$1(workspaceId);
 	if (!key) return false;
-	const previous = readWorkspaceStore().workspaces[key];
+	if (storageMode() === "error") return false;
+	if (storageMode() === "host") return ensureWorkspace(key, Array.isArray(sessionIds) ? sessionIds : []);
+	const previous = readLocalStore().workspaces[key];
 	const seeded = new Set(seededOf(previous));
 	const items = normalizeItems(previous && previous.items);
 	const seen = new Set(items.map((item) => item.id));
@@ -6372,6 +7180,15 @@ function createToastSeat(tr) {
 					sequence
 				});
 			},
+			/** Localized text chosen at call time (storage notices carry variables). */
+			showText(text, tone = "success") {
+				sequence += 1;
+				publish({
+					text,
+					tone,
+					sequence
+				});
+			},
 			dismiss() {
 				publish(null);
 			}
@@ -6381,9 +7198,9 @@ function createToastSeat(tr) {
 	function ToastHost(props) {
 		const notice = react.default.useSyncExternalStore(source.hooks.notice.subscribe, source.hooks.notice.getSnapshot);
 		if (!notice || !Toast) return null;
-		const copy = TOAST_COPY[notice.kind] || TOAST_COPY.saveFailed;
-		const bound = props && typeof props.t === "function" ? props.t(copy.key) : "";
-		const text = bound && bound !== copy.key ? bound : tr(copy.key);
+		const copy = notice.text ? { tone: notice.tone } : TOAST_COPY[notice.kind] || TOAST_COPY.saveFailed;
+		const bound = !notice.text && props && typeof props.t === "function" ? props.t(copy.key) : "";
+		const text = notice.text || (bound && bound !== copy.key ? bound : tr(copy.key));
 		return h$11(Toast, {
 			key: notice.sequence,
 			text,
@@ -6394,6 +7211,7 @@ function createToastSeat(tr) {
 	}
 	return {
 		show: source.show,
+		showText: source.showText,
 		ToastHost
 	};
 }
@@ -6502,7 +7320,7 @@ function createHeaderEntry({ getSessionId, getActiveAnchor, getLocaleId, tr, onO
 }
 
 // src/client/ui/useSessionMemoStore.ts
-/** Notes for the active scope plus a synchronous writer that never invents state. */
+/** Notes for the active scope plus its writer, serialized per mounted panel. */
 /** Read the record the current scope renders. */
 function readScope(scope) {
 	return scope.kind === "workspace" ? readWorkspaceRecord(scope.id) : readSessionRecord(scope.id);
@@ -6527,6 +7345,7 @@ function useMemoStore(scope) {
 	const [syncError, setSyncError] = react.default.useState(false);
 	const recordRef = react.default.useRef(record);
 	recordRef.current = record;
+	const chainRef = react.default.useRef(Promise.resolve());
 	react.default.useEffect(() => {
 		setRecord(readScope(scopeRef.current));
 		setSyncError(false);
@@ -6548,22 +7367,28 @@ function useMemoStore(scope) {
 		record,
 		syncError,
 		commit: react.default.useCallback((updater) => {
-			const current = recordRef.current || {
-				items: [],
-				updatedAt: 0
-			};
-			const nextItems = normalizeItems(updater(current.items || []));
-			const next = {
-				...current,
-				items: nextItems,
-				updatedAt: Date.now()
-			};
-			const ok = writeScope(scopeRef.current, next);
-			setSyncError(!ok);
-			if (!ok) return false;
-			recordRef.current = next;
-			setRecord(next);
-			return true;
+			const run = chainRef.current.then(async () => {
+				const current = recordRef.current || {
+					items: [],
+					updatedAt: 0
+				};
+				const nextItems = normalizeItems(updater(current.items || []));
+				const next = {
+					...current,
+					items: nextItems,
+					updatedAt: Date.now()
+				};
+				if (!await writeScope(scopeRef.current, next)) {
+					setSyncError(true);
+					return false;
+				}
+				setSyncError(false);
+				recordRef.current = next;
+				setRecord(next);
+				return true;
+			});
+			chainRef.current = run.then(() => void 0, () => void 0);
+			return run;
 		}, [])
 	};
 }
@@ -6827,15 +7652,15 @@ function useSections() {
 }
 
 // src/client/storage/forwarded.ts
-/** Per-session forwarded marks behind the forward button. */
-/** Empty forwarded-flag store; shape is { version, sessions: { [sessionId]: { [itemId]: true } } }. */
+/** Per-list forwarded marks behind the forward button. */
+/** Empty forwarded-flag store; shape is { version, sessions: { [listKey]: { [itemId]: true } } }. */
 function emptyForwardedStore() {
 	return {
 		version: 1,
 		sessions: {}
 	};
 }
-/** Read the forwarded-flag store; corrupt or unavailable reads as empty. */
+/** Read the browser forwarded store; corrupt or unavailable reads as empty. */
 function readForwardedStore() {
 	const ls = storage();
 	if (!ls) return emptyForwardedStore();
@@ -6871,10 +7696,11 @@ function normalizeForwardedRecord(record) {
 	for (const [itemId, flag] of Object.entries(record)) if (itemId && flag === true) next[itemId] = true;
 	return next;
 }
-/** Forwarded item ids of one session, as an id -> true map. */
+/** Forwarded item ids of one list, as an id -> true map. */
 function readForwardedIds(sessionId) {
 	const key = sessionId ? String(sessionId) : "";
 	if (!key) return {};
+	if (hostAuthoritative()) return normalizeForwardedRecord(hostRecord("forwarded", key));
 	return normalizeForwardedRecord(readForwardedStore().sessions[key]);
 }
 /** Remember that one note was forwarded; best effort, never blocks the send. */
@@ -6882,6 +7708,8 @@ function markForwarded(sessionId, itemId) {
 	const key = sessionId ? String(sessionId) : "";
 	const id = itemId ? String(itemId) : "";
 	if (!key || !id) return false;
+	if (storageMode() === "error") return false;
+	if (storageMode() === "host") return setForward(key, id, true);
 	const store = readForwardedStore();
 	store.sessions[key] = {
 		...normalizeForwardedRecord(store.sessions[key]),
@@ -6894,6 +7722,18 @@ function forgetForwarded(sessionId, itemIds) {
 	const key = sessionId ? String(sessionId) : "";
 	if (!key) return false;
 	const ids = Array.isArray(itemIds) ? itemIds : [itemIds];
+	if (storageMode() === "error") return false;
+	if (storageMode() === "host") {
+		let changed = false;
+		for (const rawId of ids) {
+			const id = rawId ? String(rawId) : "";
+			if (!id) continue;
+			if (!hostRecord("forwarded", key)?.[id]) continue;
+			setForward(key, id, false);
+			changed = true;
+		}
+		return changed;
+	}
 	const store = readForwardedStore();
 	const record = normalizeForwardedRecord(store.sessions[key]);
 	let changed = false;
@@ -7848,11 +8688,11 @@ function useComposerDraft({ draftKey, commit, report, sendShortcut, scopeKind })
 			node.setSelectionRange(end, end);
 		} catch {}
 	}, []);
-	const add = () => {
+	const add = async () => {
 		const text = draft.trim().slice(0, 280);
 		if (!text) return;
 		const now = Date.now();
-		if (!commit((currentItems) => [{
+		if (!await commit((currentItems) => [{
 			id: uid(),
 			text,
 			done: false,
@@ -7936,8 +8776,8 @@ function useNoteActions({ draftKey, commit, report, forgetForwardedItems, scopeK
 		setEditingId(null);
 		setEditDraft("");
 	};
-	const toggle = (item) => {
-		if (!commit((currentItems) => currentItems.map((candidate) => {
+	const toggle = async (item) => {
+		if (!await commit((currentItems) => currentItems.map((candidate) => {
 			if (candidate.id !== item.id) return candidate;
 			const now = Date.now();
 			return {
@@ -7960,8 +8800,8 @@ function useNoteActions({ draftKey, commit, report, forgetForwardedItems, scopeK
 			clearEditDraft(key, item.id);
 		}
 	};
-	const remove = (item) => {
-		if (!commit((currentItems) => currentItems.filter((candidate) => candidate.id !== item.id))) {
+	const remove = async (item) => {
+		if (!await commit((currentItems) => currentItems.filter((candidate) => candidate.id !== item.id))) {
 			report("saveFailed");
 			return;
 		}
@@ -7977,7 +8817,7 @@ function useNoteActions({ draftKey, commit, report, forgetForwardedItems, scopeK
 		setEditingId(item.id);
 		setEditDraft(saved === null ? item.text : saved);
 	};
-	const finishEdit = (item) => {
+	const finishEdit = async (item) => {
 		if (cancelEditRef.current) {
 			cancelEditRef.current = false;
 			return;
@@ -7985,7 +8825,7 @@ function useNoteActions({ draftKey, commit, report, forgetForwardedItems, scopeK
 		if (!editingId) return;
 		const text = editDraft.trim().slice(0, 280);
 		if (text && text !== item.text) {
-			if (!commit((currentItems) => currentItems.map((candidate) => {
+			if (!await commit((currentItems) => currentItems.map((candidate) => {
 				if (candidate.id !== item.id) return candidate;
 				return {
 					...candidate,
@@ -8567,6 +9407,20 @@ function UpdateNotice(props) {
 const h$6 = react.default.createElement;
 function SettingsPanel(props) {
 	const { say, sendShortcut, chooseShortcut, forwardPrefix, changeForwardPrefix, resetForwardPrefix, prefixRef, analyticsEnabled, onToggleAnalytics, update } = props;
+	const [storage, setStorage] = react.default.useState(() => ({
+		mode: currentStorageMode(),
+		failure: storageFailure()
+	}));
+	react.default.useEffect(() => {
+		const onReady = () => setStorage({
+			mode: currentStorageMode(),
+			failure: storageFailure()
+		});
+		STORE_READY_LISTENERS.add(onReady);
+		return () => {
+			STORE_READY_LISTENERS.delete(onReady);
+		};
+	}, []);
 	return h$6("div", { className: "dsh-an-settings" }, h$6("div", { className: "dsh-an-settingsHead" }, say("settings.title")), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.shortcut")), h$6("div", { className: "dsh-an-settingBody" }, h$6("div", { className: "dsh-an-settingChoices" }, h$6("label", { className: "dsh-an-settingChoice" }, h$6("input", {
 		type: "radio",
 		name: "dsh-an-send-shortcut",
@@ -8635,7 +9489,16 @@ function SettingsPanel(props) {
 		onRefresh: update.refreshPage,
 		onCopyPrompt: update.copyPrompt,
 		onToast: props.onToast
-	}) : null, h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("settings.author")), h$6("span", {
+	}) : null, h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("storage.settingsLabel")), h$6("span", {
+		className: "dsh-an-settingDot",
+		"aria-hidden": true
+	}, "·"), h$6("span", null, storage.mode === "host" ? say("storage.modeHost") : storage.mode === "local" ? say("storage.modeLocal") : storage.mode === "probing" ? say("storage.loading") : say("storage.hostError")), storage.mode === "error" ? h$6("button", {
+		type: "button",
+		className: "dsh-an-updateCheck",
+		onClick: () => {
+			retryStorage();
+		}
+	}, say("storage.retry")) : null), storage.failure ? h$6("div", { className: "dsh-an-settingHint" }, say("storage.failure").replace("{code}", storage.failure.code)) : null, h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("settings.author")), h$6("span", {
 		className: "dsh-an-settingDot",
 		"aria-hidden": true
 	}, "·"), h$6("span", null, PLUGIN_AUTHOR)), h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("settings.project")), h$6("span", {
@@ -8847,9 +9710,9 @@ function MemoPopover(props) {
 		notifyTodoChange();
 		reportEvent("note_scope_changed", { ext1: next });
 	};
-	const clearDone = () => {
+	const clearDone = async () => {
 		const clearedItems = items.filter((item) => item.done);
-		if (!commit((currentItems) => currentItems.filter((item) => !item.done))) {
+		if (!await commit((currentItems) => currentItems.filter((item) => !item.done))) {
 			report("saveFailed");
 			return;
 		}
@@ -8982,7 +9845,7 @@ function MemoPopover(props) {
 	}), h$1("div", {
 		className: "dsh-an-popFoot",
 		role: "status"
-	}, h$1("span", { className: syncError ? "dsh-an-error" : void 0 }, say(syncError ? "storage.failed" : "popover.local"))));
+	}, h$1("span", { className: syncError || storageMode() === "error" ? "dsh-an-error" : void 0 }, say(syncError ? "storage.failed" : storageMode() === "error" ? "storage.hostError" : storageMode() === "host" ? "storage.whereHost" : storageMode() === "probing" ? "storage.loading" : "popover.local"))));
 	return react_dom.default.createPortal(content, document.body);
 }
 
@@ -9036,6 +9899,23 @@ function apply(ctx) {
 	let activeSessionId = "";
 	const toastSeat = createToastSeat(tr);
 	let refreshHeaderEntry = () => {};
+	ctx.effect(() => {
+		const onNotice = (notice) => {
+			if (notice.kind === "migrated") toastSeat.showText(tr("storage.migrated", { n: notice.count }));
+			else if (notice.kind === "keptLocal") toastSeat.showText(tr("storage.keptLocal"));
+			else toastSeat.showText(tr("storage.notSwitched"));
+		};
+		const onError = (failure) => {
+			const hostDown = failure.code === "STORE_UNREACHABLE" || failure.code === "STORE_TIMEOUT" || failure.code === "STORE_UNAVAILABLE" || failure.code === "STORE_OPEN_FAILED" || failure.code === "STORE_FORBIDDEN";
+			toastSeat.showText(tr(hostDown ? "storage.hostError" : "toast.saveFailed"));
+		};
+		STORE_NOTICE_LISTENERS.add(onNotice);
+		STORE_ERROR_LISTENERS.add(onError);
+		return () => {
+			STORE_NOTICE_LISTENERS.delete(onNotice);
+			STORE_ERROR_LISTENERS.delete(onError);
+		};
+	}, "dsh-aside-note: storage notices");
 	const closeMemoPopover = () => {
 		const current = activePopover;
 		activePopover = null;
@@ -9141,6 +10021,17 @@ function apply(ctx) {
 		]);
 		return null;
 	}
+	ctx.effect(() => {
+		const onReady = () => {
+			refreshHeaderEntry();
+			notifyTodoChange();
+		};
+		STORE_READY_LISTENERS.add(onReady);
+		bootStorage();
+		return () => {
+			STORE_READY_LISTENERS.delete(onReady);
+		};
+	}, "dsh-aside-note: storage boot");
 	ctx.slots.inject("conversation.composer.dock", () => ctx.slots.register({
 		name: "conversation.composer.dock",
 		id: PANEL_ID,

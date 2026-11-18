@@ -13,6 +13,9 @@ import { UpdateError, applyUpdate, manualCommand } from './apply-update.js'
 import { runProcess } from './exec.js'
 import { PACKAGE, dependencySpec, installMode, installedVersion, isProfileDir, profileDirOf } from './profile.js'
 import { compareVersions, isExactVersion, isPrerelease } from './versions.js'
+import { sameOrigin, sendJson } from './http.js'
+
+export { sameOrigin }
 
 export const PROBE_PATH = '/dsh-aside-note/update/probe'
 export const APPLY_PATH = '/dsh-aside-note/update/apply'
@@ -84,36 +87,6 @@ export async function fetchLatestVersion(current) {
     if (best !== undefined) return best
   }
   return undefined
-}
-
-/**
- * @param {import('node:http').ServerResponse} response
- * @param {number} status
- * @param {unknown} body
- */
-function sendJson(response, status, body) {
-  response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
-  response.end(JSON.stringify(body))
-}
-
-/**
- * Reject requests that a page other than this host's could have made.
- *
- * Same rule the plugin market applies: a cross-site hint is refused outright, a
- * present Origin must name this Host, and an absent Origin is allowed because
- * the Desktop shell's proxy strips it (#648).
- * @param {import('node:http').IncomingMessage} request
- * @returns {boolean}
- */
-export function sameOrigin(request) {
-  if (request.headers['sec-fetch-site'] === 'cross-site') return false
-  const origin = request.headers.origin
-  if (origin === undefined) return true
-  try {
-    return new URL(origin).host === request.headers.host
-  } catch {
-    return false
-  }
 }
 
 /**

@@ -1,0 +1,209 @@
+/**
+ * Browser-half integration for the host switch: the built bundle boots against
+ * a fake `/dsh-aside-note/store` endpoint backed by the real host store code.
+ *
+ * These cover the three states that matter: migrate-and-switch, refuse-to-switch
+ * (stay on localStorage), and already-switched-but-unavailable (error state,
+ * no writes anywhere).
+ */
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+import test from 'node:test'
+import { fileURLToPath } from 'node:url'
+import { JSDOM } from 'jsdom'
+import { createStore } from '../host/store.js'
+import { fakeCtx, fakeDomain } from './fake-store.mjs'
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const bundle = fs.readFileSync(path.join(root, 'client', 'client.js'), 'utf8')
+
+const STORE_PATH = '/dsh-aside-note/store'
+const SESSION_KEY = 'dsh.aside-note'
+const MODE_KEY = 'dsh.aside-note.storage-mode'
+
+const json = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
+
+/** Boot the built bundle in a fresh jsdom realm. */
+async function setup(options = {}) {
+  const dom = new JSDOM(
+    '<!doctype html><html><body><div class="_headerUtilities"></div></body></html>',
+    { url: 'https://example.test/', pretendToBeVisual: true, runScripts: 'outside-only' },
+  )
+  const { window } = dom
+  globalThis.window = window
+  globalThis.document = window.document
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
+
+  if (options.legacyNote) {
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify({
+      version: 1,
+      sessions: {
+        'session-1': {
+          sessionId: 'session-1',
+          updatedAt: 1,
+          items: [{ id: 'seed', text: '旧便笺', done: false, createdAt: 1, updatedAt: 1 }],
+        },
+      },
+    }))
+  }
+  if (options.markedHost) window.localStorage.setItem(MODE_KEY, 'host')
+
+  const domain = fakeDomain()
+  const store = createStore(fakeCtx(domain))
+  const calls = []
+  window.fetch = async (input, init = {}) => {
+    const url = String(input)
+    const method = init.method || 'GET'
+    calls.push({ url, method })
+    if (url === STORE_PATH) {
+      if (options.storeDown) return json(503, { ok: false, code: 'STORE_UNAVAILABLE', message: 'storage is not mounted' })
+      if (method === 'GET') {
+        const snapshot = await store.snapshot()
+        return json(200, { ok: true, ...snapshot })
+      }
+      const result = await store.apply(JSON.parse(init.body))
+      return json(200, { ok: true, ...result })
+    }
+    // The panel's update check must not reach the network in this realm.
+    return json(404, {})
+  }
+
+  let loaded = null
+  window.__ModuleLoader__ = { load: spec => { loaded = spec } }
+  window.eval(bundle)
+  const React = await import('react')
+  const ReactDOM = await import('react-dom')
+  const ReactDOMClient = await import('react-dom/client')
+  const { act } = React
+  const moduleTable = {
+    react: React,
+    'react-dom': ReactDOM,
+    'react-dom/client': ReactDOMClient,
+    '@deepseek-ai/dsh-client-ui-primitives': {},
+  }
+  const requireShim = id => {
+    if (!(id in moduleTable)) throw new Error(`module table cannot answer ${id}`)
+    return moduleTable[id]
+  }
+  const exported = loaded.factory(requireShim)
+
+  const registered = []
+  const locale = {
+    bind: () => key => key,
+    register: () => {},
+    getLocale: () => ({ id: 'zh' }),
+  }
+  const ctx = {
+    get: name => (name === 'locale' ? locale : undefined),
+    effect: fn => {
+      const dispose = fn()
+      if (typeof dispose === 'function') dispose()
+    },
+    slots: {
+      inject: (name, factory) => factory(),
+      register: (meta, component) => {
+        registered.push({ meta, component })
+        return () => {}
+      },
+    },
+  }
+
+  await act(async () => { exported.apply(ctx) })
+  // Let the boot probe, migration and ready notification settle.
+  await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 60)) })
+
+  const settle = async (ms = 40) => {
+    await act(async () => { await new Promise(resolve => window.setTimeout(resolve, ms)) })
+  }
+
+  const openPanel = async () => {
+    const capture = registered.find(entry => entry.meta.name === 'conversation.composer.dock').component
+    const container = window.document.createElement('div')
+    window.document.body.appendChild(container)
+    const reactRoot = ReactDOMClient.createRoot(container)
+    await act(async () => {
+      reactRoot.render(React.createElement(capture, { sessionId: 'session-1' }))
+    })
+    const button = window.document.querySelector('._headerUtilities > .dsh-an-headerBtn')
+    return { button, reactRoot, settle }
+  }
+
+  const addNote = async text => {
+    const popover = window.document.querySelector('.dsh-an-popover')
+    const field = popover.querySelector('.dsh-an-input')
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+    await act(async () => {
+      setter.call(field, text)
+      field.dispatchEvent(new window.Event('input', { bubbles: true }))
+    })
+    await act(async () => { popover.querySelector('.dsh-an-addBtn').click() })
+    await settle(40)
+    return popover
+  }
+
+  return { window, dom, domain, store, calls, openPanel, addNote, settle, act }
+}
+
+test('first boot migrates browser notes, then reads and writes only the host', async t => {
+  const ctx = await setup({ legacyNote: true })
+  t.after(() => ctx.window.close())
+
+  assert.equal(ctx.window.localStorage.getItem(MODE_KEY), 'host', 'a successful switch writes the one-way marker')
+  assert.ok(ctx.calls.some(call => call.method === 'POST'), 'the empty host receives the migrated snapshot')
+  let snapshot = await ctx.store.snapshot()
+  assert.equal(snapshot.data.sessions['session-1'].items[0].text, '旧便笺')
+
+  const { button } = await ctx.openPanel()
+  assert.equal(button.querySelector('.dsh-an-headerCount').textContent, '1', 'the badge reads the migrated note')
+  await ctx.act(async () => { button.click() })
+  const popover = await ctx.addNote('宿主新条目')
+
+  snapshot = await ctx.store.snapshot()
+  assert.deepEqual(snapshot.data.sessions['session-1'].items.map(item => item.text), ['宿主新条目', '旧便笺'])
+  const legacy = JSON.parse(ctx.window.localStorage.getItem(SESSION_KEY))
+  assert.equal(legacy.sessions['session-1'].items.length, 1, 'host mode never writes the legacy browser store')
+  assert.match(popover.querySelector('.dsh-an-popFoot').textContent, /DSH 本地文件/)
+})
+
+test('an unavailable host means "do not switch": notes stay in the browser', async t => {
+  const ctx = await setup({ legacyNote: true, storeDown: true })
+  t.after(() => ctx.window.close())
+  // The probe retries once with a 250 ms pause before refusing the switch.
+  await ctx.settle(400)
+
+  assert.equal(ctx.window.localStorage.getItem(MODE_KEY), null, 'no marker is written when the host refuses')
+  const { button } = await ctx.openPanel()
+  assert.equal(button.querySelector('.dsh-an-headerCount').textContent, '1')
+  await ctx.act(async () => { button.click() })
+  await ctx.addNote('仍然本地')
+
+  const legacy = JSON.parse(ctx.window.localStorage.getItem(SESSION_KEY))
+  assert.deepEqual(legacy.sessions['session-1'].items.map(item => item.text), ['仍然本地', '旧便笺'])
+  const snapshot = await ctx.store.snapshot()
+  assert.deepEqual(snapshot.data.sessions, {}, 'no host write happened before the switch')
+})
+
+test('after switching, an unavailable host is an error state, not a fallback', async t => {
+  const ctx = await setup({ legacyNote: true, markedHost: true, storeDown: true })
+  t.after(() => ctx.window.close())
+  await ctx.settle(400)
+
+  const { button } = await ctx.openPanel()
+  assert.equal(button.querySelector('.dsh-an-headerCount'), null, 'legacy notes are not shown once the host is authoritative')
+  await ctx.act(async () => { button.click() })
+  const popover = ctx.window.document.querySelector('.dsh-an-popover')
+  assert.match(popover.querySelector('.dsh-an-popFoot').textContent, /便笺存储暂不可用/)
+
+  const field = popover.querySelector('.dsh-an-input')
+  const setter = Object.getOwnPropertyDescriptor(ctx.window.HTMLTextAreaElement.prototype, 'value').set
+  await ctx.act(async () => {
+    setter.call(field, '不应写入')
+    field.dispatchEvent(new ctx.window.Event('input', { bubbles: true }))
+  })
+  await ctx.act(async () => { popover.querySelector('.dsh-an-addBtn').click() })
+  await ctx.settle(40)
+
+  const legacy = JSON.parse(ctx.window.localStorage.getItem(SESSION_KEY))
+  assert.equal(legacy.sessions['session-1'].items.length, 1, 'a failed host mode does not spill into localStorage')
+})

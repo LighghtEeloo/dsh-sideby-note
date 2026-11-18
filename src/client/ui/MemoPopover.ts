@@ -12,6 +12,7 @@ import { canUseSessionScope, draftKeyForSession, scopeForSession, scopeKey, scop
 import { notifyTodoChange } from '../storage/events'
 import { readScopeMode, writeScopeMode } from '../storage/prefs'
 import { ensureWorkspaceRecord } from '../storage/workspace'
+import { storageMode } from '../storage/state'
 import { useMemoStore } from './useSessionMemoStore'
 import { usePanelGeometry } from './usePanelGeometry'
 
@@ -150,7 +151,7 @@ export function MemoPopover(props) {
     // session list was selected; fold member notes in before reading it.
     if (next === 'workspace') {
       const workspace = scopeForSession(sessionId, 'workspace')
-      if (workspace.kind === 'workspace') ensureWorkspaceRecord(workspace.id, workspace.sessionIds)
+      if (workspace.kind === 'workspace') void ensureWorkspaceRecord(workspace.id, workspace.sessionIds)
     }
     // Leaving a list abandons its inline editors and pending clear confirmation.
     writeScopeMode(next)
@@ -163,10 +164,10 @@ export function MemoPopover(props) {
     reportEvent('note_scope_changed', { ext1: next })
   }
 
-  const clearDone = () => {
+  const clearDone = async () => {
     // Capture the completed items before the commit so their forward flags can be cleared.
     const clearedItems = items.filter(item => item.done)
-    const ok = commit(currentItems => currentItems.filter(item => !item.done))
+    const ok = await commit(currentItems => currentItems.filter(item => !item.done))
     if (!ok) {
       report('saveFailed')
       return
@@ -315,9 +316,15 @@ export function MemoPopover(props) {
     h(
       'div',
       { className: 'dsh-an-popFoot', role: 'status' },
-      h('span', { className: syncError ? 'dsh-an-error' : undefined }, say(syncError
+      h('span', { className: syncError || storageMode() === 'error' ? 'dsh-an-error' : undefined }, say(syncError
         ? 'storage.failed'
-        : 'popover.local')),
+        : storageMode() === 'error'
+          ? 'storage.hostError'
+          : storageMode() === 'host'
+            ? 'storage.whereHost'
+            : storageMode() === 'probing'
+              ? 'storage.loading'
+              : 'popover.local')),
     ),
   )
 

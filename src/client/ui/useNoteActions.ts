@@ -23,8 +23,8 @@ export function useNoteActions({ draftKey, commit, report, forgetForwardedItems,
     setEditDraft('')
   }
 
-  const toggle = item => {
-    const ok = commit(currentItems => currentItems.map(candidate => {
+  const toggle = async item => {
+    const ok = await commit(currentItems => currentItems.map(candidate => {
       if (candidate.id !== item.id) return candidate
       const now = Date.now()
       return {
@@ -46,8 +46,8 @@ export function useNoteActions({ draftKey, commit, report, forgetForwardedItems,
     }
   }
 
-  const remove = item => {
-    const ok = commit(currentItems => currentItems.filter(candidate => candidate.id !== item.id))
+  const remove = async item => {
+    const ok = await commit(currentItems => currentItems.filter(candidate => candidate.id !== item.id))
     // A failed delete keeps the row, its draft and its forward flag exactly
     // as they were, and the toast carries the failure.
     if (!ok) {
@@ -68,7 +68,7 @@ export function useNoteActions({ draftKey, commit, report, forgetForwardedItems,
     setEditDraft(saved === null ? item.text : saved)
   }
 
-  const finishEdit = item => {
+  const finishEdit = async item => {
     if (cancelEditRef.current) {
       cancelEditRef.current = false
       return
@@ -76,7 +76,7 @@ export function useNoteActions({ draftKey, commit, report, forgetForwardedItems,
     if (!editingId) return
     const text = editDraft.trim().slice(0, MAX_TEXT)
     if (text && text !== item.text) {
-      const ok = commit(currentItems => currentItems.map(candidate => {
+      const ok = await commit(currentItems => currentItems.map(candidate => {
         if (candidate.id !== item.id) return candidate
         return { ...candidate, text, updatedAt: Date.now() }
       }))

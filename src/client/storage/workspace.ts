@@ -1,17 +1,18 @@
 /**
  * Workspace-scoped notes.
  *
- * Stored under `WORKSPACE_STORAGE_KEY`, beside the session key, so adding
- * workspace lists never changes the shape of existing per-session data. One
- * list is shared by every session of a workspace. The first time a workspace
- * is seen, notes already written per session are folded in once;
- * `seededSessionIds` records that so a later delete is not undone by the merge
- * running again.
+ * One list is shared by every session of a workspace. The first time a
+ * workspace is seen, notes already written per session are folded in once;
+ * `seededSessionIds` records that so a later delete is not undone. After the
+ * switch to host storage the fold runs on the host (`list.ensure`), where it is
+ * atomic; before the switch it stays in the browser exactly as it was.
  */
 import { WORKSPACE_STORAGE_KEY } from '../constants'
 import { normalizeItems } from '../domain/items'
 import { storage } from './codec'
 import { notifyTodoChange } from './events'
+import { commitList, ensureWorkspace } from './ops'
+import { hostAuthoritative, hostRecord, hostTable, storageMode } from './state'
 import { readSessionStore } from './session'
 
 const text = value => (value ? String(value) : '')
@@ -33,11 +34,11 @@ function seededOf(record) {
 
 /** Empty workspace-note store. */
 export function emptyWorkspaceStore() {
-  return { version: 1, workspaces: {} }
+  return { version: 1, workspaces: {} as Record<string, any> }
 }
 
-/** Read the workspace-note store; corrupt or unavailable reads as empty. */
-export function readWorkspaceStore() {
+/** Read the browser workspace store; corrupt or unavailable reads as empty. */
+function readLocalStore() {
   const ls = storage()
   if (!ls) return emptyWorkspaceStore()
   try {
@@ -51,7 +52,13 @@ export function readWorkspaceStore() {
   }
 }
 
-/** Persist the whole workspace-note store. */
+/** Read the workspace-note store from the authoritative medium. */
+export function readWorkspaceStore() {
+  if (hostAuthoritative()) return { version: 1, workspaces: { ...hostTable('workspaces') } }
+  return readLocalStore()
+}
+
+/** Persist the whole browser workspace store. */
 export function writeWorkspaceStore(store) {
   const ls = storage()
   if (!ls) return false
@@ -71,7 +78,15 @@ export function writeWorkspaceStore(store) {
 export function readWorkspaceRecord(workspaceId) {
   const key = text(workspaceId)
   if (!key) return { items: [], updatedAt: 0, seededSessionIds: [] }
-  const record = readWorkspaceStore().workspaces[key]
+  if (hostAuthoritative()) {
+    const record = hostRecord('workspaces', key)
+    return {
+      items: normalizeItems(record && record.items),
+      updatedAt: record && Number.isFinite(record.updatedAt) ? record.updatedAt : 0,
+      seededSessionIds: seededOf(record),
+    }
+  }
+  const record = readLocalStore().workspaces[key]
   return {
     items: normalizeItems(record && record.items),
     updatedAt: record && Number.isFinite(record.updatedAt) ? record.updatedAt : 0,
@@ -80,10 +95,14 @@ export function readWorkspaceRecord(workspaceId) {
 }
 
 /** Persist one workspace's memo record. */
-export function writeWorkspaceRecord(workspaceId, record) {
+export async function writeWorkspaceRecord(workspaceId, record) {
   const key = text(workspaceId)
   if (!key) return false
-  const store = readWorkspaceStore()
+  if (storageMode() === 'error') return false
+  if (storageMode() === 'host') {
+    return commitList('workspace', key, normalizeItems(record && record.items))
+  }
+  const store = readLocalStore()
   const previous = store.workspaces[key]
   const seededSource = Array.isArray(record.seededSessionIds) ? record : previous
   store.workspaces[key] = {
@@ -97,12 +116,15 @@ export function writeWorkspaceRecord(workspaceId, record) {
 
 /**
  * Fold the member sessions' existing notes into the workspace list once.
- * Returns whether the store changed; repeated calls are cheap and idempotent.
+ * @returns resolution with whether the store changed / was accepted
  */
-export function ensureWorkspaceRecord(workspaceId, sessionIds) {
+export async function ensureWorkspaceRecord(workspaceId, sessionIds) {
   const key = text(workspaceId)
   if (!key) return false
-  const workspaceStore = readWorkspaceStore()
+  if (storageMode() === 'error') return false
+  if (storageMode() === 'host') return ensureWorkspace(key, Array.isArray(sessionIds) ? sessionIds : [])
+
+  const workspaceStore = readLocalStore()
   const previous = workspaceStore.workspaces[key]
   const seeded = new Set(seededOf(previous))
   const items = normalizeItems(previous && previous.items)
