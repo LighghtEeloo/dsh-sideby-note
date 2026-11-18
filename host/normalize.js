@@ -8,8 +8,6 @@
  */
 import { randomUUID } from 'node:crypto'
 
-/** Per-list note ceiling; a corrupted store must not freeze the panel. */
-export const MAX_ITEMS = 300
 /** A note is meant to stay brief. */
 export const MAX_TEXT = 280
 /** How many member sessions one workspace may remember as merged. */
@@ -48,7 +46,6 @@ export function normalizeItems(items) {
       updatedAt,
       ...(done && Number.isFinite(raw.completedAt) ? { completedAt: raw.completedAt } : {}),
     })
-    if (normalized.length >= MAX_ITEMS) break
   }
   return normalized
 }

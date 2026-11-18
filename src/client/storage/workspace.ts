@@ -5,12 +5,13 @@
  * workspace is seen, notes already written per session are folded in once;
  * `seededSessionIds` records that so a later delete is not undone. After the
  * switch to host storage the fold runs on the host (`list.ensure`), where it is
- * atomic; before the switch it stays in the browser exactly as it was.
+ * atomic; before the switch it stays in the browser and merges before writing.
  */
 import { WORKSPACE_STORAGE_KEY } from '../constants'
 import { normalizeItems } from '../domain/items'
-import { storage } from './codec'
+import { setAsideUnreadable, storage } from './codec'
 import { notifyTodoChange } from './events'
+import { mergeItems } from './merge'
 import { commitList, ensureWorkspace } from './ops'
 import { hostAuthoritative, hostRecord, hostTable, storageMode } from './state'
 import { readSessionStore } from './session'
@@ -37,19 +38,35 @@ export function emptyWorkspaceStore() {
   return { version: 1, workspaces: {} as Record<string, any> }
 }
 
-/** Read the browser workspace store; corrupt or unavailable reads as empty. */
+/**
+ * Read the browser workspace store; corrupt or unavailable reads as empty.
+ * An unreadable payload is parked under `<key>.corrupt` before any write.
+ */
 function readLocalStore() {
   const ls = storage()
   if (!ls) return emptyWorkspaceStore()
+  let raw
   try {
-    const raw = ls.getItem(WORKSPACE_STORAGE_KEY)
-    if (!raw) return emptyWorkspaceStore()
-    const parsed = JSON.parse(raw)
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return emptyWorkspaceStore()
-    return { version: 1, workspaces: bucket(parsed.workspaces) }
+    raw = ls.getItem(WORKSPACE_STORAGE_KEY)
   } catch {
     return emptyWorkspaceStore()
   }
+  if (!raw) return emptyWorkspaceStore()
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    setAsideUnreadable(WORKSPACE_STORAGE_KEY, raw)
+    return emptyWorkspaceStore()
+  }
+  const workspaces = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed.workspaces : undefined
+  const broken = !parsed || typeof parsed !== 'object' || Array.isArray(parsed)
+    || (workspaces !== undefined && (!workspaces || typeof workspaces !== 'object' || Array.isArray(workspaces)))
+  if (broken) {
+    setAsideUnreadable(WORKSPACE_STORAGE_KEY, raw)
+    return emptyWorkspaceStore()
+  }
+  return { version: 1, workspaces: bucket(workspaces) }
 }
 
 /** Read the workspace-note store from the authoritative medium. */
@@ -94,8 +111,16 @@ export function readWorkspaceRecord(workspaceId) {
   }
 }
 
-/** Persist one workspace's memo record. */
-export async function writeWorkspaceRecord(workspaceId, record) {
+/**
+ * Persist one workspace's memo record.
+ *
+ * Host mode sends only the changed notes; the host merges them atomically.
+ * Local mode reads the latest stored record and merges by id, keeping this
+ * tab's deletions (`base`) from being resurrected by a concurrent writer.
+ *
+ * @returns resolution with whether the write was accepted/durable
+ */
+export async function writeWorkspaceRecord(workspaceId, record, base = null) {
   const key = text(workspaceId)
   if (!key) return false
   if (storageMode() === 'error') return false
@@ -107,8 +132,11 @@ export async function writeWorkspaceRecord(workspaceId, record) {
   const seededSource = Array.isArray(record.seededSessionIds) ? record : previous
   store.workspaces[key] = {
     workspaceId: key,
-    updatedAt: record.updatedAt || Date.now(),
-    items: normalizeItems(record.items),
+    updatedAt: Math.max(
+      record.updatedAt || 0,
+      previous && Number.isFinite(previous.updatedAt) ? previous.updatedAt : 0,
+    ) || Date.now(),
+    items: mergeItems(normalizeItems(previous && previous.items), normalizeItems(record.items), base),
     seededSessionIds: seededOf(seededSource),
   }
   return writeWorkspaceStore(store)

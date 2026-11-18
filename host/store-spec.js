@@ -12,7 +12,6 @@
  */
 import { z } from 'zod'
 import {
-  MAX_ITEMS,
   MAX_SEEDED_SESSIONS,
   MAX_TEXT,
 } from './normalize.js'
@@ -34,13 +33,13 @@ export const noteSchema = z.object({
 export const sessionSchema = z.object({
   sessionId: z.string().min(1).optional(),
   updatedAt: z.number(),
-  items: z.array(noteSchema).max(MAX_ITEMS),
+  items: z.array(noteSchema),
 })
 
 export const workspaceSchema = z.object({
   workspaceId: z.string().min(1).optional(),
   updatedAt: z.number(),
-  items: z.array(noteSchema).max(MAX_ITEMS),
+  items: z.array(noteSchema),
   seededSessionIds: z.array(z.string().min(1)).max(MAX_SEEDED_SESSIONS),
 })
 

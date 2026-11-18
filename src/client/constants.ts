@@ -65,9 +65,6 @@ export const PANEL_HEIGHT_KEY = 'dsh.aside-note.panel-height'
 export const PANEL_MIN_HEIGHT = 240
 /** A note is meant to stay brief; this is the hard cap. */
 export const MAX_TEXT = 280
-/** Defensive cap so a corrupted store cannot freeze the panel. */
-export const MAX_ITEMS = 300
-
 /** Same-origin host endpoint owned by this package (keep in sync with host/store-route.js). */
 export const HOST_STORE_PATH = '/dsh-aside-note/store'
 /** Browser-side marker: written only after the one-way switch to host storage succeeded. */

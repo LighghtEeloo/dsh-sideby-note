@@ -632,6 +632,20 @@ boot:
 8. 两个标签同时勾选不同条目 → 都不丢；同一条目 → 后写覆盖（可接受）；
 9. 首页 → 打开面板期间无闪烁/报错；更新卡片仍正常。
 
+### 9.5 测试体系落点
+
+按仓库的规则 → 用例 → 测试三层补齐宿主存储：
+
+| 规则 | 用例 | 测试 |
+| --- | --- | --- |
+| `R-STORE-HOST-FILE` | `STORE-019`、`STORE-026` | `tests/host-bundle.test.mjs`、`tests/host-store.test.mjs` |
+| `R-STORE-HOST-SWITCH` | `STORE-019/020/021/024` | 同上 |
+| `R-STORE-HOST-UNAVAILABLE` | `STORE-020/022/025` | 同上 |
+| `R-STORE-HOST-MERGE` | `STORE-023` | `tests/host-store.test.mjs` |
+| `R-STORE-CAPACITY` | `STORE-027`（宿主 401 条） | `tests/host-store.test.mjs` |
+
+`STORE-001` 的验收语从「启动不写迁移标记」改为「宿主不可用时启动保留便笺且不切换」；宿主可用时的迁移由 `STORE-019` 承担。规则变更已通过 `design:review --approve --by reviewed-in-chat`，执行结果由 `test:run` 写入 `.test/runs/`。
+
 ---
 
 ## 10. 文档与发布

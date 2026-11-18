@@ -245,8 +245,11 @@ The browser half lives in `src/client/` and tsdown bundles it into a single `cli
 
 ```bash
 npm install
-npm run check     # lint + typecheck + tests + build
-npm run build     # regenerate client/client.js only
+npm run check         # lint + typecheck + tests + build + catalog check
+npm run build         # regenerate client/client.js only
+npm run catalog:check # validate the test catalog against the tests
+npm run test:run      # per-case run record + report.html/md (.test/runs/)
+npm run test:mutate   # mutation check: do the cases catch real defects?
 ```
 
 To run the checkout inside DSH, link it into a profile (replace `<path-to-repo>`) and run `pnpm install` in the profile directory:
@@ -285,7 +288,7 @@ Run `npm run build` after source changes; the dev client HMR swaps the new bundl
 
 The screenshot and preview pipeline lives in the [screenshot SOP](./docs/screenshot-sop.md): one command re-shoots both themes from an isolated profile, and credentials are not copied unless `COPY_CREDENTIALS=1`.
 
-Code structure, data model and build conventions: [architecture](./docs/architecture.md).
+Code structure, data model and build conventions: [architecture](./docs/architecture.md); the test system (rules, cases, run records, gates): [testing](./docs/testing.md).
 
 Branching, versioning and the release checklist: [release and versioning](./docs/release.md) (Chinese).
 
@@ -300,4 +303,5 @@ Loaded in an isolated DSH profile and driven through headless Chrome:
 - records survive a refresh, and the panel header switches between the workspace list and the current session's list;
 - the npmjs → npmmirror → GitHub Release fallback, the one-hour cache, and the version comparison are covered by the contract tests, and the jsdom test drives the visible update notice; the live notice needs a published npm package or a GitHub Release.
 
-`npm run check` passes: lint, typecheck, build, and 95 tests, including jsdom integration tests that drive the whole panel, expand the release notes, run an update through a mocked market, and check the busy/no-market fallback.
+`npm run check` passes: lint, typecheck, build, and 197 tests, including jsdom integration tests that drive the whole panel, expand the release notes, run an update through a mocked market, and check the busy/no-market fallback.
+`npm run catalog:check` binds 64 stable case ids to those tests; see [the test catalog](./tests/catalog/README.md).

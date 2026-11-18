@@ -4298,12 +4298,42 @@ const HOST_WRITE_TIMEOUT_MS = 1e4;
 
 // src/client/storage/codec.ts
 /** The browser store, or null when storage is blocked. */
-/** The browser store, or null when storage is blocked. */
 function storage() {
 	try {
 		return window.localStorage;
 	} catch {
 		return null;
+	}
+}
+/** Suffix appended to a store key when its payload could not be read. */
+const CORRUPT_SUFFIX = ".corrupt";
+/**
+* Keep an unreadable payload beside its key before anything overwrites it.
+*
+* Notes only exist in this browser, so a bad parse must not be allowed to turn
+* into silent data loss: the raw string is parked under `<key>.corrupt` and the
+* store continues from empty. Best effort — when storage itself is blocked or
+* full there is nowhere to keep the copy.
+*
+* Repeated reads of the same damage do not rewrite the backup.
+*/
+function setAsideUnreadable(key, raw) {
+	const ls = storage();
+	if (!ls) return false;
+	try {
+		const backupKey = `${key}${CORRUPT_SUFFIX}`;
+		const previous = ls.getItem(backupKey);
+		if (previous) try {
+			const parsed = JSON.parse(previous);
+			if (parsed && parsed.raw === raw) return true;
+		} catch {}
+		ls.setItem(backupKey, JSON.stringify({
+			at: Date.now(),
+			raw
+		}));
+		return true;
+	} catch {
+		return false;
 	}
 }
 
@@ -6608,24 +6638,41 @@ function emptyDraftStore() {
 		sessions: {}
 	};
 }
-/** Read the unsaved add/edit drafts; corrupt or unavailable reads as empty. */
+/**
+* Read the unsaved add/edit drafts; corrupt or unavailable reads as empty.
+* An unreadable payload is parked under `<key>.corrupt` first, so half-typed
+* text is never destroyed by the next write.
+*/
 function readDraftStore() {
 	const ls = storage();
 	if (!ls) return emptyDraftStore();
+	let raw;
 	try {
-		const raw = ls.getItem(DRAFT_STORAGE_KEY);
-		if (!raw) return emptyDraftStore();
-		const parsed = JSON.parse(raw);
-		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return emptyDraftStore();
-		const sessions = parsed.sessions;
-		if (!sessions || typeof sessions !== "object" || Array.isArray(sessions)) return emptyDraftStore();
-		return {
-			version: 1,
-			sessions
-		};
+		raw = ls.getItem(DRAFT_STORAGE_KEY);
 	} catch {
 		return emptyDraftStore();
 	}
+	if (!raw) return emptyDraftStore();
+	let parsed;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		setAsideUnreadable(DRAFT_STORAGE_KEY, raw);
+		return emptyDraftStore();
+	}
+	const sessions = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed.sessions : void 0;
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || sessions !== void 0 && (!sessions || typeof sessions !== "object" || Array.isArray(sessions))) {
+		setAsideUnreadable(DRAFT_STORAGE_KEY, raw);
+		return emptyDraftStore();
+	}
+	return {
+		version: 1,
+		sessions: bucketOf(sessions)
+	};
+}
+/** The stored map, or an empty one when the field is absent. */
+function bucketOf(value) {
+	return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 function writeDraftStore(store) {
 	const ls = storage();
@@ -6744,6 +6791,20 @@ function uid() {
 // src/client/domain/items.ts
 /** Note shape, ordering and relative time copy. */
 /**
+* Stable id for a legacy record that never had one.
+*
+* A random id here would change on every read, so a write could merge the same
+* note twice under two ids. Hashing the authored fields keeps the id identical
+* across reads; genuinely identical duplicates are resolved by the caller's
+* `seen` check.
+*/
+function legacyId(text, createdAt, updatedAt) {
+	let hash = 5381;
+	const source = `${text}\u0000${createdAt}\u0000${updatedAt}`;
+	for (let index = 0; index < source.length; index += 1) hash = (hash << 5) + hash + source.charCodeAt(index) | 0;
+	return `legacy-${(hash >>> 0).toString(36)}`;
+}
+/**
 * Sanitize one session's notes. The store is user-editable, so treat
 * every field defensively and preserve the authored order.
 */
@@ -6755,7 +6816,8 @@ function normalizeItems(items) {
 		if (!raw || typeof raw !== "object") continue;
 		const text = String(raw.text || "").trim().slice(0, 280);
 		if (!text) continue;
-		let id = typeof raw.id === "string" && raw.id ? raw.id : uid();
+		let id = typeof raw.id === "string" && raw.id ? raw.id : legacyId(text, raw.createdAt, raw.updatedAt);
+		if (seen.has(id)) id = legacyId(text, raw.createdAt, raw.updatedAt);
 		if (seen.has(id)) id = uid();
 		seen.add(id);
 		const done = raw.done === true;
@@ -6769,7 +6831,6 @@ function normalizeItems(items) {
 			updatedAt,
 			...done && Number.isFinite(raw.completedAt) ? { completedAt: raw.completedAt } : {}
 		});
-		if (normalized.length >= 300) break;
 	}
 	return normalized;
 }
@@ -6828,6 +6889,48 @@ function metaLabel(item, say, localeId) {
 	});
 }
 
+// src/client/storage/merge.ts
+/**
+* Merge the note list another tab may have written with the one this tab holds.
+*
+* A whole-record write would otherwise overwrite whatever the other tab added
+* while this one was typing: two tabs, two additions, one survivor. Writes now
+* read the latest record first and union it with the incoming list:
+*
+*   - both sides keep their additions;
+*   - for the same id, the newer `updatedAt` wins;
+*   - ids this tab removed since its last read (`base`) stay removed.
+*
+* A deletion made in another tab is not observable from here, so a concurrent
+* write can bring that note back. Losing a note is worse than reviving one.
+*
+* The result is ordered newest-created first, the order the list maintains when
+* a note is added.
+*/
+const stampOf = (item) => {
+	if (item && Number.isFinite(item.updatedAt)) return item.updatedAt;
+	if (item && Number.isFinite(item.createdAt)) return item.createdAt;
+	return 0;
+};
+const createdOf = (item) => item && Number.isFinite(item.createdAt) ? item.createdAt : 0;
+/** Union two lists by id, honouring this tab's removals. */
+function mergeItems(existing, incoming, base = null) {
+	const incomingIds = new Set(incoming.map((item) => item && item.id).filter(Boolean));
+	const removed = /* @__PURE__ */ new Set();
+	if (Array.isArray(base)) {
+		for (const item of base) if (item && item.id && !incomingIds.has(item.id)) removed.add(item.id);
+	}
+	const byId = /* @__PURE__ */ new Map();
+	for (const item of existing) if (item && item.id) byId.set(item.id, item);
+	for (const item of incoming) {
+		if (!item || !item.id) continue;
+		const other = byId.get(item.id);
+		if (!other || stampOf(item) >= stampOf(other)) byId.set(item.id, item);
+	}
+	for (const id of removed) byId.delete(id);
+	return [...byId.values()].sort((a, b) => createdOf(b) - createdOf(a));
+}
+
 // src/client/storage/session.ts
 /**
 * Session-scoped notes.
@@ -6846,22 +6949,37 @@ function emptySessionStore() {
 	};
 }
 const bucket$1 = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
-/** Read the browser store; corrupt or unavailable reads as empty. */
+/**
+* Read the browser store; corrupt or unavailable reads as empty.
+* An unreadable payload is parked under `<key>.corrupt` first, so the next
+* write cannot destroy the only copy of a user's notes.
+*/
 function readLocalStore$1() {
 	const ls = storage();
 	if (!ls) return emptySessionStore();
+	let raw;
 	try {
-		const raw = ls.getItem(SESSION_STORAGE_KEY);
-		if (!raw) return emptySessionStore();
-		const parsed = JSON.parse(raw);
-		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return emptySessionStore();
-		return {
-			version: 1,
-			sessions: bucket$1(parsed.sessions)
-		};
+		raw = ls.getItem(SESSION_STORAGE_KEY);
 	} catch {
 		return emptySessionStore();
 	}
+	if (!raw) return emptySessionStore();
+	let parsed;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		setAsideUnreadable(SESSION_STORAGE_KEY, raw);
+		return emptySessionStore();
+	}
+	const sessions = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed.sessions : void 0;
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || sessions !== void 0 && (!sessions || typeof sessions !== "object" || Array.isArray(sessions))) {
+		setAsideUnreadable(SESSION_STORAGE_KEY, raw);
+		return emptySessionStore();
+	}
+	return {
+		version: 1,
+		sessions: bucket$1(sessions)
+	};
 }
 /** Read the whole note store from whichever medium is authoritative now. */
 function readSessionStore() {
@@ -6908,18 +7026,25 @@ function readSessionRecord(sessionId) {
 }
 /**
 * Persist one session's memo record.
+*
+* Host mode sends only the changed notes; the host applies them atomically to
+* its latest record. Local mode reads the latest stored record first and merges
+* by id, so a note another tab added is not overwritten; `base` is the list this
+* tab rendered, and ids missing from `record.items` are this tab's deletions.
+*
 * @returns resolution with whether the write was accepted/durable
 */
-async function writeSessionRecord(sessionId, record) {
+async function writeSessionRecord(sessionId, record, base = null) {
 	const key = sessionId ? String(sessionId) : "";
 	if (!key) return false;
 	if (storageMode() === "error") return false;
 	if (storageMode() === "host") return commitList("session", key, normalizeItems(record && record.items));
 	const store = readLocalStore$1();
+	const previous = store.sessions[key];
 	store.sessions[key] = {
 		sessionId: key,
-		updatedAt: record.updatedAt || Date.now(),
-		items: normalizeItems(record.items)
+		updatedAt: Math.max(record.updatedAt || 0, previous && Number.isFinite(previous.updatedAt) ? previous.updatedAt : 0) || Date.now(),
+		items: mergeItems(normalizeItems(previous && previous.items), normalizeItems(record.items), base)
 	};
 	return writeSessionStore(store);
 }
@@ -6932,7 +7057,7 @@ async function writeSessionRecord(sessionId, record) {
 * workspace is seen, notes already written per session are folded in once;
 * `seededSessionIds` records that so a later delete is not undone. After the
 * switch to host storage the fold runs on the host (`list.ensure`), where it is
-* atomic; before the switch it stays in the browser exactly as it was.
+* atomic; before the switch it stays in the browser and merges before writing.
 */
 const text$1 = (value) => value ? String(value) : "";
 const bucket = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -6956,22 +7081,36 @@ function emptyWorkspaceStore() {
 		workspaces: {}
 	};
 }
-/** Read the browser workspace store; corrupt or unavailable reads as empty. */
+/**
+* Read the browser workspace store; corrupt or unavailable reads as empty.
+* An unreadable payload is parked under `<key>.corrupt` before any write.
+*/
 function readLocalStore() {
 	const ls = storage();
 	if (!ls) return emptyWorkspaceStore();
+	let raw;
 	try {
-		const raw = ls.getItem(WORKSPACE_STORAGE_KEY);
-		if (!raw) return emptyWorkspaceStore();
-		const parsed = JSON.parse(raw);
-		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return emptyWorkspaceStore();
-		return {
-			version: 1,
-			workspaces: bucket(parsed.workspaces)
-		};
+		raw = ls.getItem(WORKSPACE_STORAGE_KEY);
 	} catch {
 		return emptyWorkspaceStore();
 	}
+	if (!raw) return emptyWorkspaceStore();
+	let parsed;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		setAsideUnreadable(WORKSPACE_STORAGE_KEY, raw);
+		return emptyWorkspaceStore();
+	}
+	const workspaces = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed.workspaces : void 0;
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || workspaces !== void 0 && (!workspaces || typeof workspaces !== "object" || Array.isArray(workspaces))) {
+		setAsideUnreadable(WORKSPACE_STORAGE_KEY, raw);
+		return emptyWorkspaceStore();
+	}
+	return {
+		version: 1,
+		workspaces: bucket(workspaces)
+	};
 }
 /** Persist the whole browser workspace store. */
 function writeWorkspaceStore(store) {
@@ -7011,8 +7150,16 @@ function readWorkspaceRecord(workspaceId) {
 		seededSessionIds: seededOf(record)
 	};
 }
-/** Persist one workspace's memo record. */
-async function writeWorkspaceRecord(workspaceId, record) {
+/**
+* Persist one workspace's memo record.
+*
+* Host mode sends only the changed notes; the host merges them atomically.
+* Local mode reads the latest stored record and merges by id, keeping this
+* tab's deletions (`base`) from being resurrected by a concurrent writer.
+*
+* @returns resolution with whether the write was accepted/durable
+*/
+async function writeWorkspaceRecord(workspaceId, record, base = null) {
 	const key = text$1(workspaceId);
 	if (!key) return false;
 	if (storageMode() === "error") return false;
@@ -7022,8 +7169,8 @@ async function writeWorkspaceRecord(workspaceId, record) {
 	const seededSource = Array.isArray(record.seededSessionIds) ? record : previous;
 	store.workspaces[key] = {
 		workspaceId: key,
-		updatedAt: record.updatedAt || Date.now(),
-		items: normalizeItems(record.items),
+		updatedAt: Math.max(record.updatedAt || 0, previous && Number.isFinite(previous.updatedAt) ? previous.updatedAt : 0) || Date.now(),
+		items: mergeItems(normalizeItems(previous && previous.items), normalizeItems(record.items), base),
 		seededSessionIds: seededOf(seededSource)
 	};
 	return writeWorkspaceStore(store);
@@ -7345,9 +7492,9 @@ function createHeaderEntry({ getSessionId, getActiveAnchor, getLocaleId, tr, onO
 function readScope(scope) {
 	return scope.kind === "workspace" ? readWorkspaceRecord(scope.id) : readSessionRecord(scope.id);
 }
-/** Write the record the current scope renders. */
-function writeScope(scope, record) {
-	return scope.kind === "workspace" ? writeWorkspaceRecord(scope.id, record) : writeSessionRecord(scope.id, record);
+/** Write the record the current scope renders; `base` is what this tab saw. */
+function writeScope(scope, record, base) {
+	return scope.kind === "workspace" ? writeWorkspaceRecord(scope.id, record, base) : writeSessionRecord(scope.id, record, base);
 }
 /** Notes of one list (a workspace, or a single session) and their writer. */
 function useMemoStore(scope) {
@@ -7392,19 +7539,19 @@ function useMemoStore(scope) {
 					items: [],
 					updatedAt: 0
 				};
-				const nextItems = normalizeItems(updater(current.items || []));
+				const base = current.items || [];
+				const nextItems = normalizeItems(updater(base));
 				const next = {
 					...current,
 					items: nextItems,
 					updatedAt: Date.now()
 				};
-				if (!await writeScope(scopeRef.current, next)) {
-					setSyncError(true);
-					return false;
-				}
-				setSyncError(false);
-				recordRef.current = next;
-				setRecord(next);
+				const ok = await writeScope(scopeRef.current, next, base);
+				setSyncError(!ok);
+				if (!ok) return false;
+				const stored = readScope(scopeRef.current);
+				recordRef.current = stored;
+				setRecord(stored);
 				return true;
 			});
 			chainRef.current = run.then(() => void 0, () => void 0);

@@ -13,11 +13,11 @@ function readScope(scope) {
     : readSessionRecord(scope.id)
 }
 
-/** Write the record the current scope renders. */
-function writeScope(scope, record) {
+/** Write the record the current scope renders; `base` is what this tab saw. */
+function writeScope(scope, record, base) {
   return scope.kind === 'workspace'
-    ? writeWorkspaceRecord(scope.id, record)
-    : writeSessionRecord(scope.id, record)
+    ? writeWorkspaceRecord(scope.id, record, base)
+    : writeSessionRecord(scope.id, record, base)
 }
 
 /** Notes of one list (a workspace, or a single session) and their writer. */
@@ -60,18 +60,22 @@ export function useMemoStore(scope) {
   const commit = React.useCallback(updater => {
     const run = chainRef.current.then(async () => {
       const current = recordRef.current || { items: [], updatedAt: 0 }
-      const nextItems = normalizeItems(updater(current.items || []))
+      const base = current.items || []
+      const nextItems = normalizeItems(updater(base))
       // Spread the current record so workspace-only fields (seededSessionIds)
       // survive an ordinary note edit.
       const next = { ...current, items: nextItems, updatedAt: Date.now() }
-      const ok = await writeScope(scopeRef.current, next)
-      if (!ok) {
-        setSyncError(true)
-        return false
-      }
-      setSyncError(false)
-      recordRef.current = next
-      setRecord(next)
+      // The store merges with the latest record (host: atomically; local: by
+      // id), so a note another tab added while this one was typing survives.
+      // `base` lets the local merge tell this tab's deletions from additions.
+      const ok = await writeScope(scopeRef.current, next, base)
+      setSyncError(!ok)
+      if (!ok) return false
+      // Render what was actually stored: the merge may have pulled in notes
+      // this tab had not seen yet (and the host owns the final timestamps).
+      const stored = readScope(scopeRef.current)
+      recordRef.current = stored
+      setRecord(stored)
       return true
     })
     chainRef.current = run.then(() => undefined, () => undefined)

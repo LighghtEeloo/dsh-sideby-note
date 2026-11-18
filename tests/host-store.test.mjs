@@ -82,7 +82,7 @@ test('list.patch creates, orders and deletes notes', async () => {
   assert.equal(snapshot.empty, false)
 })
 
-test('list.patch keeps notes another tab added after the sender read the list', async () => {
+test('STORE-023 宿主合并另一标签页新增的条目', async () => {
   const store = await storeWith(fakeDomain())
   const a = { id: 'a', text: 'A', done: false, createdAt: 1, updatedAt: 1 }
   const b = { id: 'b', text: 'B', done: false, createdAt: 2, updatedAt: 2 }
@@ -112,7 +112,7 @@ test('list.ensure folds member sessions in exactly once', async () => {
   assert.equal(result.rev, 3)
 })
 
-test('forward.set toggles per-list markers and drops empty records', async () => {
+test('STORE-026 宿主模式转发标记持久化', async () => {
   const store = await storeWith(fakeDomain())
   await store.apply({ op: 'forward.set', listKey: 'ws:w1', itemId: 'n1', on: true })
   let snapshot = await store.snapshot()
@@ -123,7 +123,7 @@ test('forward.set toggles per-list markers and drops empty records', async () =>
   assert.equal(snapshot.data.forwarded['ws:w1'], undefined)
 })
 
-test('prefs.set merges fields and removes a cleared forward prefix', async () => {
+test('STORE-026 宿主模式偏好持久化', async () => {
   const store = await storeWith(fakeDomain())
   await store.apply({ op: 'prefs.set', patch: { scopeMode: 'session', forwardPrefix: '请处理' } })
   let snapshot = await store.snapshot()
@@ -157,7 +157,7 @@ test('migrate is two-phase and idempotent', async () => {
   assert.equal(second.migrated, 0)
 })
 
-test('an interrupted migration is completed on the next attempt', async () => {
+test('STORE-024 迁移中断后重启补完且不重复', async () => {
   const domain = fakeDomain()
   const store = await storeWith(domain)
   await store.apply({ op: 'migrate', snapshot: { sessions: {}, prefs: {} }, source: 'localStorage' })
@@ -175,7 +175,7 @@ test('an interrupted migration is completed on the next attempt', async () => {
   assert.ok(data.sessions.s9)
 })
 
-test('missing storage service is STORE_UNAVAILABLE, broken medium is STORE_OPEN_FAILED', async () => {
+test('STORE-025 宿主文件打不开时报告存储错误', async () => {
   const noStorage = createStore({ get: () => undefined })
   await assert.rejects(noStorage.snapshot(), error => error instanceof StoreError && error.code === 'STORE_UNAVAILABLE' && error.status === 503)
 
@@ -244,4 +244,35 @@ test('store routes honor the shared browser-session check when available', async
   const res = response()
   await server.route(STORE_PATH).handler(request('GET'), res)
   assert.equal(res.status, 403)
+})
+
+test('STORE-027 宿主模式 400 条仍可新增', async () => {
+  const store = await storeWith(fakeDomain())
+  const notes = Array.from({ length: 400 }, (_, index) => ({
+    id: `n${index}`,
+    text: `条目 ${index}`,
+    done: false,
+    createdAt: index,
+    updatedAt: index,
+  }))
+  const first = await store.apply({
+    op: 'list.patch',
+    kind: 'session',
+    listKey: 'big',
+    order: notes.map(note => note.id),
+    upserts: notes,
+  })
+  assert.equal(first.record.items.length, 400)
+
+  const extra = { id: 'n400', text: '第 401 条', done: false, createdAt: 400, updatedAt: 400 }
+  const second = await store.apply({
+    op: 'list.patch',
+    kind: 'session',
+    listKey: 'big',
+    order: [...notes.map(note => note.id), extra.id],
+    upserts: [extra],
+  })
+  assert.equal(second.record.items.length, 401)
+  const snapshot = await store.snapshot()
+  assert.equal(snapshot.data.sessions.big.items.length, 401)
 })

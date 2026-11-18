@@ -773,7 +773,7 @@ test('a failed write keeps the row and says so', () => {
   const client = read('src/client/index.ts') + read('src/client/ui/useSessionMemoStore.ts') + read('src/client/ui/MemoPopover.ts') + read('src/client/ui/useNoteActions.ts') + read('src/client/ui/useComposerDraft.ts')
   // The store writer returns a promise now; a rejection becomes `false`, and
   // only a successful durable write may replace the rendered record.
-  assert.match(client, /if \(!ok\) \{\n\s+setSyncError\(true\)\n\s+return false/)
+  assert.match(client, /setSyncError\(!ok\)\n\s+if \(!ok\) return false/)
   assert.match(client, /if \(!ok\) \{\n\s+report\('saveFailed'\)/)
   assert.match(client, /A failed delete keeps the row/)
 })

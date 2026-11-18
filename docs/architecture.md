@@ -23,9 +23,9 @@ src/client/
 ├─ dsh.d.ts              # 宿主 ctx / locale / slots 的最小 ambient 类型
 ├─ i18n/                 # zh.ts（键的唯一来源）、其余 7 种 DSH 官方语言、index.ts（fill / makeSay）
 ├─ domain/               # id、clipboard、forward（写回输入框）、items（归一化/排序/时间）
-├─ storage/              # 设备本地：codec、drafts、设备级 prefs；
+├─ storage/              # 设备本地：codec（含损坏备份）、merge（本地回落时的并发合并）、drafts、设备级 prefs；
 │                        # 宿主：host-client（HTTP）、state（缓存/模式）、boot（探测/迁移）、
-│                        # ops（diff 写）、legacy（迁移来源与标记）；session/workspace/forwarded/prefs 做双介质分发
+│                        # ops（diff 写）、legacy（迁移来源与标记）；session/workspace/forwarded/prefs 双介质分发
 ├─ ui/                   # 面板外壳与纯展示组件、hooks、primitives、定位
 │                        # 更新中心：useUpdateCenter（检查/说明/更新与命令兜底）、UpdateNotice
 ├─ update/               # latest（版本与 Release 探测）、releaseNotes（标记解析）、
@@ -39,7 +39,7 @@ host/                    # 宿主半边：
 client/client.js         # tsdown 产物，入库，CI 校验与源码一致
 index.js                 # 宿主半侧：注册更新端点与便笺存储端点
 cordis.patch.yml         # profile 组合里的一行
-tests/                   # contract.test.mjs（契约）+ bundle.test.mjs（jsdom 集成）
+tests/                   # catalog/（业务规则与用例）、*.test.mjs（契约 / 集成 / 韧性）、testkit/（jsdom 启动器）
 tools/screenshots/       # 截图流水线（见 screenshot-sop.md）
 docs/assets/             # README 截图（preview-* 与 features/）
 ```
@@ -53,8 +53,9 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | 文案 | `i18n/` | `zh.ts` 定义键集合与 `MessageKey`；其余 7 种 DSH 官方语言用 `Record<MessageKey, string>`，缺键编译失败；运行时未知语言或缺键一律回退英文 |
 | 领域 | `domain/items.ts` | `normalizeItems`（防御性清洗、去重、上限）、排序、相对时间文案 |
 | 领域 | `domain/forward.ts` | 把便笺写回**当前会话**的 Lexical contenteditable 或 textarea，保留光标与换行语义；按 `[data-conversation-session]` 限定输入框 |
-| 存储 | `storage/session.ts` | 会话便笺的读写；宿主模式走缓存+`list.patch` diff，本地模式保持原 `dsh.aside-note` v1 键与结构；失败返回 `false`，由调用方保留 UI 原状 |
+| 存储 | `storage/session.ts` | 会话便笺的读写；宿主模式走缓存 + `list.patch` diff（宿主原子合并），本地复用 v1 键并做损坏备份与并发合并；失败返回 `false`，由调用方保留 UI 原状 |
 | 存储 | `storage/workspace.ts` | 工作区清单读写；首次见到工作区时把成员会话的旧便笺并入一次（宿主侧 `list.ensure` 原子完成），`seededSessionIds` 防重复 |
+| 存储 | `storage/merge.ts` | 本地回落模式的按 id 合并：双方新增都保留，同一条目取较新的 `updatedAt`，本页相对上次读取删除的条目不再复活 |
 | 存储 | `storage/boot.ts` | 启动探测、一次性迁移、模式标记与提示；不可用不切换，成功后单向 host |
 | 存储 | `storage/state.ts` / `host-client.ts` / `ops.ts` | 内存快照、同标签广播、同源 HTTP、按 key 串行与乐观/回滚策略 |
 | 存储 | `storage/legacy.ts` | 旧 `localStorage` 快照（迁移来源）、`storage-mode`/`storage-notice` 标记与提示去重 |
@@ -92,7 +93,8 @@ docs/assets/             # README 截图（preview-* 与 features/）
 - `forwarded` 键是 `ws:<workspaceId>` 或会话 ID；`global` 存范围选择、发送快捷键、转发前缀、迁移标记。
 - 浏览器在宿主之外仍保留设备本地状态（`localStorage`）：面板宽高、分区展开、匿名统计开关、RUM 访客 ID、首次打开标记、未提交草稿（`dsh.aside-note.drafts`，按工作区/会话共享）。
 - 领域 `version` 是当前格式版本；读旧版本要配 `compatibleVersions`，删字段前必须重写所有记录（官方无值迁移 runner）。
-- 每次写入整文件替换，因此单份清单有上限（300 条 × 280 字）且数据量远小于文件系统压力。
+- `Note` 形如 `{ id, text, done, createdAt, updatedAt, completedAt? }`；`text` 上限 280，**清单条数不设上限**（400 条仍可展示与新增，见 `STORE-018`）。
+- 每次写入整文件替换；数据量远小于文件系统压力，写入排队由领域写链串行化。
 
 **切换状态机**（`docs/design/host-storage-migration.md` §7）：
 
@@ -104,19 +106,36 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | 已切换 | 宿主可用 | 正常读写 |
 | 已切换 | 宿主不可用 | 错误态，只读本次快照/空，禁止写，**不回退**本地 |
 
+**本地回落模式**（尚未切换或宿主不可用时的 `localStorage` 路径）：
+
+- `dsh.aside-note`、`.workspaces`、`.drafts` 读取前先校验；解析失败或字段类型不对，原始字符串先写到 `<键>.corrupt`（同一键只保留最后一份损坏内容），再把该键当作空清单继续，下一次写入不会静默覆盖证据。
+- 写入不是整份覆盖：`writeSessionRecord` / `writeWorkspaceRecord` 先读回最新记录，再按 id 合并（`storage/merge.ts`）。两个标签页同时记便笺时双方新增都保留；同一条目冲突取 `updatedAt` 较新的一方；本页相对上次读取删除的条目不被并发写入复活（反向可能复活，宁可复活不丢）。
+- 本地存储按浏览器 origin 隔离：桌面端与 `http://127.0.0.1:<port>` 是不同 origin 的两份数据；仅当整站存储被拒绝时 `storage()` 才返回 `null`，更常见的是写失败（配额/磁盘/profile 只读）返回 `false`。迁移到宿主后这一层只作为回退与恢复来源。
+
+- `sessions` 与 `workspaces` 是**平级两张表**：会话属于哪个工作区由 DSH 的工作区注册表提供，文件不存归属；工作区清单是独立副本，首次见到工作区时把成员会话已有的便笺并入一次（`seededSessionIds` 防复活）。
+- `forwarded` 键是 `ws:<workspaceId>` 或会话 ID；`global` 存范围选择、发送快捷键、转发前缀、迁移标记。
+- 浏览器在宿主之外仍保留设备本地状态（`localStorage`）：面板宽高、分区展开、匿名统计开关、RUM 访客 ID、首次打开标记、未提交草稿（`dsh.aside-note.drafts`，按工作区/会话共享）。
+- 领域 `version` 是当前格式版本；读旧版本要配 `compatibleVersions`，删字段前必须重写所有记录（官方无值迁移 runner）。
+- 每次写入整文件替换，因此单份清单有上限（300 条 × 280 字）且数据量远小于文件系统压力。
+
+
 ## 5. 构建与产物
 
 - 源码是 TypeScript，`tsdown.config.ts` 用 rolldown 打包成**单个** CJS closure factory，`target: es2022`，不压缩、无 sourcemap，产物入库便于 review 与逐行合并。
 - CSS 通过一个 `?inline` 虚拟模块进来（虚拟 id 用相对路径，避免把本机绝对路径写进产物注释）。
 - 版本号在 `constants.ts`，契约测试保证与 `package.json` 一致。
-- CI（Node 22 / 24）：`npm ci` → `npm run build` → `git diff --exit-code client/`（产物必须与源码一致）→ lint → typecheck → test。`typecheck` 同时覆盖 `tsdown.config.ts`。
+- CI（Node 22 / 24）：`npm ci` → `npm run build` → `git diff --exit-code client/`（产物必须与源码一致）→ lint → typecheck → `test:run`（逐用例记录）→ `catalog:check` → `design:review --strict`。`typecheck` 同时覆盖 `tsdown.config.ts`。
 - `npm run check` 本地串起 lint、typecheck、测试与构建；发布走 `npm publish`（`prepack` 会重建产物）。
 
 ## 6. 测试
 
 | 文件 | 覆盖 |
 | --- | --- |
+| `tests/catalog/design.yaml` | 业务规则与不变量（用例的唯一设计来源），字段见 [测试工程](./testing.md) |
+| `tests/catalog/*.yaml` | 测试用例目录：稳定 ID、优先级、规则引用、自动化指针 |
 | `tests/contract.test.mjs` | 清单与 patch 形状、工具链约定、样式令牌、无障碍与交互规则、字典完整性 |
+| `tests/resilience.test.mjs` | 排序与取消完成、无工作区/空白会话范围、存储读写失败、跨标签页刷新、宽度钳制、确认失效、未知语言回落、大清单 |
+| `tests/testkit/bundle.mjs` | 在 jsdom 里启动构建产物的测试装置：可注入存储故障、压缩定时器、locale 与 slot props |
 | `tests/bundle.test.mjs` | 在 jsdom 里执行**构建产物**：模块表、slot 注册、样式注入、入口注入，并驱动完整面板流程（添加、设置、完成、清除确认、编辑、缩放、删除、分区记忆）；另有工作区测试，验证两个会话共享清单、旧便笺只合入一次、工作区/会话切换与持久化、转发只写入当前会话输入框；还有空白新会话测试，验证入口落在 header corner、只有工作区清单，以及首轮对话后入口移到 utilities 并解锁会话清单 |
 | `tests/host-store.test.mjs` | 宿主 store 契约：快照、diff/顺序/删除、并发新增保留、工作区只合并一次、转发/偏好、迁移两阶段与中断恢复、不可用/损坏错误码、路由鉴权与体积上限 |
 | `tests/host-bundle.test.mjs` | 构建产物 + 假宿主端点：首次迁移后只写宿主、不可用时留在浏览器、已切换后不可用进入错误态且不写 `localStorage` |

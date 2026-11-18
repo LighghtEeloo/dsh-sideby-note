@@ -71,7 +71,7 @@ git push origin v0.10.0
 1. 校验工作区干净、当前在 `main`、版本号大于当前版本、tag 尚未存在；
 2. 同步 `package.json` 的 `version` 与 `src/client/constants.ts` 的 `PLUGIN_VERSION`；
 3. 把 `## next-released` 改名为 `## <version>`，并在顶部插入一个新的空 `## next-released`；`CHANGELOG-OPS.md` 存在且其 `## next-released` 下有内容时，对它做同样的改名；
-4. 运行 `npm run check`，确认 lint、类型、测试和构建产物都一致；
+4. 运行 `npm run check`，确认 lint、类型、测试和构建产物都一致；发布前再跑 `npm run test:strict`（全部用例通过且已复核，见 [测试工程](./testing.md)）；
 5. 提交 `release: <version>` 并打 `v<version>` tag，**不自动 push**。
 
 预发布同样适用：`npm run release -- 0.10.0-beta.1` 会得到 `v0.10.0-beta.1` tag，workflow 自动发到 npm 的 `next` dist-tag。

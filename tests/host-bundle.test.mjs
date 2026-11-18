@@ -52,12 +52,29 @@ async function setup(options = {}) {
   const domain = fakeDomain()
   const store = createStore(fakeCtx(domain))
   const calls = []
+  if (options.hostSeed) {
+    for (const [sessionId, items] of Object.entries(options.hostSeed.sessions || {})) {
+      await store.apply({
+        op: 'list.patch',
+        kind: 'session',
+        listKey: sessionId,
+        order: items.map(item => item.id),
+        upserts: items,
+      })
+    }
+  }
   window.fetch = async (input, init = {}) => {
     const url = String(input)
     const method = init.method || 'GET'
     calls.push({ url, method })
     if (url === STORE_PATH) {
-      if (options.storeDown) return json(503, { ok: false, code: 'STORE_UNAVAILABLE', message: 'storage is not mounted' })
+      if (options.storeDown) {
+        return json(503, {
+          ok: false,
+          code: options.storeCode || 'STORE_UNAVAILABLE',
+          message: options.storeCode === 'STORE_OPEN_FAILED' ? 'aside_note.json cannot be opened' : 'storage is not mounted',
+        })
+      }
       if (method === 'GET') {
         const snapshot = await store.snapshot()
         return json(200, { ok: true, ...snapshot })
@@ -145,7 +162,7 @@ async function setup(options = {}) {
   return { window, dom, domain, store, calls, openPanel, addNote, settle, act }
 }
 
-test('first boot migrates browser notes, then reads and writes only the host', async t => {
+test('STORE-019 首次启动把浏览器便笺迁移到宿主并写模式标记', async t => {
   const ctx = await setup({ legacyNote: true })
   t.after(() => ctx.window.close())
 
@@ -166,7 +183,7 @@ test('first boot migrates browser notes, then reads and writes only the host', a
   assert.match(popover.querySelector('.dsh-an-popFoot').textContent, /DSH 本地文件/)
 })
 
-test('an unavailable host means "do not switch": notes stay in the browser', async t => {
+test('STORE-020 宿主不可用时不切换并保留浏览器写入', async t => {
   const ctx = await setup({ legacyNote: true, storeDown: true })
   t.after(() => ctx.window.close())
   // The probe retries once with a 250 ms pause before refusing the switch.
@@ -184,7 +201,7 @@ test('an unavailable host means "do not switch": notes stay in the browser', asy
   assert.deepEqual(snapshot.data.sessions, {}, 'no host write happened before the switch')
 })
 
-test('after switching, an unavailable host is an error state, not a fallback', async t => {
+test('STORE-022 已切换后宿主不可用进入错误态且不改写浏览器', async t => {
   const ctx = await setup({ legacyNote: true, markedHost: true, storeDown: true })
   t.after(() => ctx.window.close())
   await ctx.settle(400)
@@ -206,4 +223,40 @@ test('after switching, an unavailable host is an error state, not a fallback', a
 
   const legacy = JSON.parse(ctx.window.localStorage.getItem(SESSION_KEY))
   assert.equal(legacy.sessions['session-1'].items.length, 1, 'a failed host mode does not spill into localStorage')
+})
+
+test('STORE-021 宿主已有数据时不迁移并保留本地旧副本', async t => {
+  const hostNote = { id: 'host-1', text: '宿主便笺', done: false, createdAt: 2, updatedAt: 2 }
+  const ctx = await setup({ legacyNote: true, hostSeed: { sessions: { 'session-1': [hostNote] } } })
+  t.after(() => ctx.window.close())
+
+  assert.equal(ctx.window.localStorage.getItem(MODE_KEY), 'host')
+  assert.equal(ctx.calls.filter(call => call.method === 'POST').length, 0, 'a non-empty host is never migrated into')
+  const snapshot = await ctx.store.snapshot()
+  assert.deepEqual(snapshot.data.sessions['session-1'].items.map(item => item.text), ['宿主便笺'])
+
+  const { button } = await ctx.openPanel()
+  assert.equal(button.querySelector('.dsh-an-headerCount').textContent, '1')
+  await ctx.act(async () => { button.click() })
+  const popover = ctx.window.document.querySelector('.dsh-an-popover')
+  assert.match(popover.textContent, /宿主便笺/)
+  const legacy = JSON.parse(ctx.window.localStorage.getItem(SESSION_KEY))
+  assert.equal(legacy.sessions['session-1'].items[0].text, '旧便笺', 'the browser copy stays as a recovery source')
+})
+
+test('STORE-025 宿主文件打不开时不切换并提示', async t => {
+  const ctx = await setup({ legacyNote: true, storeDown: true, storeCode: 'STORE_OPEN_FAILED' })
+  t.after(() => ctx.window.close())
+  await ctx.settle(400)
+
+  assert.equal(ctx.window.localStorage.getItem(MODE_KEY), null, 'an unreadable host file is not a switch')
+  const { button } = await ctx.openPanel()
+  assert.equal(button.querySelector('.dsh-an-headerCount').textContent, '1')
+  await ctx.act(async () => { button.click() })
+  await ctx.addNote('仍然本地')
+
+  const legacy = JSON.parse(ctx.window.localStorage.getItem(SESSION_KEY))
+  assert.deepEqual(legacy.sessions['session-1'].items.map(item => item.text), ['仍然本地', '旧便笺'])
+  const snapshot = await ctx.store.snapshot()
+  assert.deepEqual(snapshot.data.sessions, {}, 'no host write happened')
 })
