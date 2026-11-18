@@ -13,11 +13,11 @@ function readScope(scope) {
     : readSessionRecord(scope.id)
 }
 
-/** Write the record the current scope renders. */
-function writeScope(scope, record) {
+/** Write the record the current scope renders; `base` is what this tab saw. */
+function writeScope(scope, record, base) {
   return scope.kind === 'workspace'
-    ? writeWorkspaceRecord(scope.id, record)
-    : writeSessionRecord(scope.id, record)
+    ? writeWorkspaceRecord(scope.id, record, base)
+    : writeSessionRecord(scope.id, record, base)
 }
 
 /** Notes of one list (a workspace, or a single session) and their writer. */
@@ -56,15 +56,22 @@ export function useMemoStore(scope) {
   // reporting success for something the browser never stored.
   const commit = React.useCallback(updater => {
     const current = recordRef.current || { items: [], updatedAt: 0 }
-    const nextItems = normalizeItems(updater(current.items || []))
+    const base = current.items || []
+    const nextItems = normalizeItems(updater(base))
     // Spread the current record so workspace-only fields (seededSessionIds)
     // survive an ordinary note edit.
     const next = { ...current, items: nextItems, updatedAt: Date.now() }
-    const ok = writeScope(scopeRef.current, next)
+    // The store merges with the latest record, so a note another tab added while
+    // this one was typing is not overwritten; `base` lets it tell this tab's
+    // deletions apart from the other tab's additions.
+    const ok = writeScope(scopeRef.current, next, base)
     setSyncError(!ok)
     if (!ok) return false
-    recordRef.current = next
-    setRecord(next)
+    // Render what was actually stored: the merge may have pulled in notes this
+    // tab had not seen yet.
+    const stored = readScope(scopeRef.current)
+    recordRef.current = stored
+    setRecord(stored)
     return true
   }, [])
 

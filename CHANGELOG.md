@@ -6,6 +6,26 @@ This file records user-visible changes only. Screenshots, marketplace listing ma
 
 ## next-released
 
+<!-- app-update-notes:en:start -->
+### Fixed
+- **Legacy notes no longer duplicate:** a stored note without an id used to get a new random id on every read, so the next save could leave two copies; ids are now derived from the note's content and stay stable.
+- **A damaged store no longer loses notes:** when the browser payload cannot be parsed, the raw text is kept verbatim under a `.corrupt` copy before the plugin continues from an empty list, so the next write cannot overwrite the only copy.
+
+### Changed
+- **Two tabs no longer overwrite each other:** every write now reads the latest stored list and merges before saving, so a note added in another tab survives; when the same note changed in both, the newer edit wins.
+- **No note cap:** a list can now grow past 300 notes; the plugin no longer drops the 301st note silently.
+<!-- app-update-notes:en:end -->
+
+<!-- app-update-notes:zh:start -->
+### 修复
+- **旧便笺不再重复：** 存储里没有 id 的条目此前每次读取都会拿到新 id，下一次保存可能留下两份；现在按内容生成稳定 id。
+- **存储损坏时不再丢便笺：** 浏览器里的数据无法解析时，原始内容先原样保存到后缀为 `.corrupt` 的副本，再按空清单继续；后续写入不会覆盖这唯一一份原数据。
+
+### 变更
+- **两个标签页不再互相覆盖：** 每次写入都先读回最新清单再合并保存，另一标签页新增的便笺会保留；同一条目两端都改过时取较新的版本。
+- **不再限制条目数：** 单份清单可以超过 300 条，不再静默丢弃第 301 条。
+<!-- app-update-notes:zh:end -->
+
 ## 1.1.5
 
 <!-- app-update-notes:en:start -->

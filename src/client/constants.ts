@@ -65,5 +65,3 @@ export const PANEL_HEIGHT_KEY = 'dsh.aside-note.panel-height'
 export const PANEL_MIN_HEIGHT = 240
 /** A note is meant to stay brief; this is the hard cap. */
 export const MAX_TEXT = 280
-/** Defensive cap so a corrupted store cannot freeze the panel. */
-export const MAX_ITEMS = 300
