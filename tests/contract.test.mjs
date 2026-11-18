@@ -281,20 +281,18 @@ test('host and browser entries use the package identity', () => {
   assert.ok(!exists('src/client/ui/useForwardMarks.ts'), 'the forward-mark hook is removed')
   assert.doesNotMatch(client, /dsh-an-checkHalf|dsh-an-checkForwarded|HALF_DONE_|item\.pendingCountdown|settings\.halfCheck/)
   assert.match(client, /h\(IconRewind, null\)/)
-  assert.doesNotMatch(client, /settings\.forward(?:Check|Mark)/, 'the stale forward-mark description is gone')
-  assert.match(client, /settings\.forwardPrefixItem/)
+  assert.doesNotMatch(client, /settings\.forward(?:Check|Mark|Prefix)|forward\.prefix|FORWARD_PREFIX|readForwardPrefix/, 'the forward prefix prompt is gone')
   assert.match(client, /SECTION_STATE_KEY/)
   assert.match(client, /readSectionState/)
-  assert.match(client, /const bullet = `- \$\{note\}`/)
+  assert.doesNotMatch(client, /const bullet = |- \$\{note\}/, 'notes are no longer written as list items')
+  assert.match(client, /value\.endsWith\('\\n'\) \? note : `\\n\$\{note\}`/, 'successive notes join the draft on new lines')
   assert.match(client, /appendToConversation/)
-  assert.match(client, /'forward\.prefix'/)
   assert.match(client, /IconInsert/)
   assert.match(client, /item\.insert/)
   assert.doesNotMatch(client, /IconForward|item\.forward\b|'item\.mark(?:Done|Open)'/)
   assert.match(client, /PLUGIN_VERSION/)
   assert.match(client, /settings\.open/)
   assert.doesNotMatch(client, /SEND_SHORTCUT|sendShortcut|settings\.shortcut/, 'the send shortcut setting is gone')
-  assert.match(client, /readForwardPrefix/)
   assert.match(client, /conversation\.session\.header\.utilities|_headerUtilities/)
   assert.match(client, /placement === 'right'|placement === "right"/)
   assert.match(client, /BoundSessionCapture/)
@@ -377,8 +375,8 @@ test('locale files carry metadata and the dictionary stays in sync', () => {
     assert.ok([...dict.zh[key]].length <= 6, `${key} grew past a short label: ${dict.zh[key]}`)
   }
   for (const [key, value] of Object.entries(dict.zh)) {
-    // The prompt asks the agent to finish a task; update copy finishes an install.
-    if (key === 'forward.prefix' || key.startsWith('update.')) continue
+    // Update copy may talk about finishing an install.
+    if (key.startsWith('update.')) continue
     assert.doesNotMatch(value, /完成/, `${key} still says 完成`)
   }
   assert.equal(dict.zh['item.insert'], '递入对话')
@@ -829,35 +827,6 @@ test('the panel opens in place with an opacity fade', () => {
   assert.doesNotMatch(css, /\.dsh-an-headerBtn:active\{[^}]*transform/, 'the panel anchor must not scale while pressed')
 })
 
-test('the prefix input shares the child title text box', () => {
-  const css = readCss()
-  const input = css.match(/\.dsh-an-settingInput\{([^}]*)\}/)
-  assert.ok(input, 'missing settingInput rule')
-  assert.doesNotMatch(input[1], /font:inherit/, 'the shorthand must not reset the type')
-  assert.match(input[1], /font-size:var\(--an-fs-row\)/, 'input must use the child title size')
-  assert.match(input[1], /line-height:var\(--an-lh-row\)/, 'input must use the child title line box')
-  assert.match(input[1], /font-weight:500/, 'input text must match the 500-weight title')
-  assert.match(css, /\.dsh-an-settingItem>\.dsh-an-settingInput\{[^}]*font-size:var\(--an-fs-row\)/, 'host input CSS must not win')
-  assert.match(read('src/client/ui/SettingsPanel.ts'), /fontWeight: 500/, 'the inline guard must keep the title weight')
-})
-
-test('the prefix prompt uses a one-line-to-multiline textarea', () => {
-  const css = readCss()
-  const textarea = css.match(/\.dsh-an-settingTextarea\{([^}]*)\}/)
-  assert.ok(textarea, 'missing settingTextarea rule')
-  // The shared field keeps its border, radius, fill, type and focus skin; the
-  // textarea only changes the box, starting at one 20px line plus padding.
-  assert.ok(css.indexOf('.dsh-an-settingTextarea{') > css.indexOf('.dsh-an-settingInput{'), 'the textarea must override the shared input height')
-  assert.match(textarea[1], /display:block/)
-  assert.match(textarea[1], /height:auto/)
-  assert.match(textarea[1], /min-height:calc\(var\(--an-lh-row\) \+ var\(--an-space-4\) \+ 2px\)/, 'min-height must floor the field at one line plus padding and border')
-  assert.match(textarea[1], /padding:var\(--an-space-2\)/)
-  assert.match(textarea[1], /resize:none/)
-  assert.match(textarea[1], /overflow-y:auto/)
-  assert.match(textarea[1], /white-space:pre-wrap/)
-  assert.match(textarea[1], /overflow-wrap:anywhere/)
-})
-
 test('section toggles stay inside the scrolling list', () => {
   const css = readCss()
   // .dsh-an-listArea clips on the x axis, so any horizontal pull on a section
@@ -939,7 +908,7 @@ test('the composer sends on Enter and breaks on Shift+Enter, like the main compo
   assert.match(composer, /if \(composing\) return/)
   // The old configurable chord path is gone.
   assert.doesNotMatch(composer, /sendShortcut|insertDraftNewline|isSendModifier/)
-  // Settings no longer carry a shortcut choice; only the forward prefix and About remain.
+  // Settings only carries About now.
   assert.doesNotMatch(read('src/client/ui/SettingsPanel.ts'), /shortcut/i)
   assert.doesNotMatch(read('src/client/constants.ts'), /SEND_SHORTCUT|MOD_LABEL|isSendModifier/)
   const dict = readDict()
@@ -1018,10 +987,10 @@ test('putting a note into the chat archives it in the same step', () => {
   const start = popover.indexOf('const insertItem = item => {')
   assert.ok(start > 0, 'insert handler missing')
   const handler = popover.slice(start, popover.indexOf('\n  }\n', start))
-  // The localized default is resolved at click time when nothing is customized.
-  assert.match(handler, /const prefix = forwardPrefix === null \? say\('forward\.prefix'\) : forwardPrefix/)
+  // The note is written bare; no prompt and no list marker.
+  assert.doesNotMatch(handler, /prefix|forward\.prefix|`- /)
   // No composer on screen: nothing changes and the note stays open.
-  assert.match(handler, /if \(!appendToConversation\(item\.text, prefix\)\) \{\n\s+report\('insertFailed'\)\n\s+return\n\s+\}/)
+  assert.match(handler, /if \(!appendToConversation\(item\.text\)\) \{\n\s+report\('insertFailed'\)\n\s+return\n\s+\}/)
   assert.match(handler, /if \(archive\(item\)\) report\('inserted'\)/)
   assert.ok(handler.indexOf('appendToConversation') < handler.indexOf('archive(item)'), 'archive only after the text landed')
   const actions = read('src/client/ui/useNoteActions.ts')
@@ -1097,61 +1066,36 @@ test('the clear confirmation band reuses card tokens and a danger confirm', () =
   assert.match(hover.media, /hover:hover/)
 })
 
-test('the prefix prompt is explained under the field, without a visible title', () => {
-  const client = read('src/client/ui/SettingsPanel.ts')
-  assert.doesNotMatch(client, /htmlFor: 'dsh-an-forward-prefix'/, 'the prefix field no longer has a visible title')
-  assert.match(client, /'aria-label': say\('settings\.forwardPrefixItem'\)/, 'the field keeps an accessible name')
-  assert.match(client, /'aria-describedby': 'dsh-an-forward-prefix-hint'/, 'the field points at the hint')
-  assert.match(client, /say\(forwardPrefix === null \? 'settings\.forwardPrefixHint' : 'settings\.forwardPrefixHintCustom'\)/)
-  assert.match(client, /className: 'dsh-an-settingReset'[\s\S]*?say\('settings\.forwardPrefixReset'\)/)
-  assert.doesNotMatch(readCss(), /dsh-an-settingItemLabel/, 'the unused title style is gone')
+test('the forward prefix prompt and its storage are gone', () => {
   const dict = readDict()
-  assert.match(dict.zh['settings.forwardPrefixHint'], /当前语言的默认提示词/)
-  assert.match(dict.zh['settings.forwardPrefixHintCustom'], /留空则只递便笺$/)
-  assert.match(dict.en['settings.forwardPrefixHint'], /default prompt for the current language/)
-  assert.match(dict.en['settings.forwardPrefixHintCustom'], /leave it empty/)
-  assert.equal(dict.zh['settings.forwardPrefixReset'], '恢复默认提示词')
+  for (const id of LOCALE_IDS) {
+    for (const gone of [
+      'settings.forward',
+      'settings.forwardPrefixItem',
+      'settings.forwardPrefixHint',
+      'settings.forwardPrefixHintCustom',
+      'settings.forwardPrefixReset',
+      'forward.prefix',
+    ]) {
+      assert.equal(dict[id][gone], undefined, `${id} still carries ${gone}`)
+    }
+  }
+  assert.doesNotMatch(read('src/client/constants.ts'), /FORWARD_PREFIX|forward-prefix/)
+  assert.doesNotMatch(read('src/client/storage/prefs.ts'), /ForwardPrefix|FORWARD_PREFIX/)
+  const settings = read('src/client/ui/SettingsPanel.ts')
+  assert.doesNotMatch(settings, /forward-prefix|forwardPrefix|settingInput|settingTextarea|settingReset/)
+  assert.doesNotMatch(settings, /say\('settings\.forward'\)/, 'the hand-to-chat group is gone')
+  const popover = read('src/client/ui/MemoPopover.ts')
+  assert.doesNotMatch(popover, /forwardPrefix|appendToConversation\(item\.text,/)
+  assert.ok(!exists('src/client/ui/usePanelSettings.ts'), 'the prefix-only settings hook is gone')
+  assert.doesNotMatch(readCss(), /dsh-an-setting(?:Input|Textarea|Reset|Hint|Item)\b/, 'field-only settings styles are gone')
 })
 
-test('the forward prefix separates "not customized" from an empty custom value', () => {
-  const prefs = read('src/client/storage/prefs.ts')
-  // A missing key is not the same as a stored empty string: the former asks for
-  // the localized default, the latter is the user deliberately forwarding bare.
-  assert.match(prefs, /const raw = storage\(\) && storage\(\)\.getItem\(FORWARD_PREFIX_STORAGE_KEY\)\n\s+return typeof raw === 'string' \? raw\.slice\(0, 80\) : null/)
-  assert.match(prefs, /export function clearForwardPrefix\(\) \{[\s\S]*?ls\.removeItem\(FORWARD_PREFIX_STORAGE_KEY\)/)
-  const hook = read('src/client/ui/usePanelSettings.ts')
-  assert.match(hook, /resetForwardPrefix = \(\) => \{\n\s+setForwardPrefix\(null\)\n\s+clearForwardPrefix\(\)/)
+test('the open panel follows a live locale switch', () => {
   const popover = read('src/client/ui/MemoPopover.ts')
-  assert.match(popover, /const prefix = forwardPrefix === null \? say\('forward\.prefix'\) : forwardPrefix/)
-  // The open panel follows a language switch instead of keeping the old copy.
   assert.match(popover, /React\.useSyncExternalStore\(subscribeLocale, readLocaleRevision/)
   assert.match(popover, /const localeId = typeof props\.getLocaleId === 'function'/)
   assert.match(read('src/client/index.ts'), /root\.render\(h\(MemoPopover, \{\n\s+sessionId,\n\s+say: tr,\n\s+locale,/)
-})
-
-test('the prefix prompt is a multiline field that grows with its content', () => {
-  const client = read('src/client/index.ts') + read('src/client/ui/SettingsPanel.ts') + read('src/client/ui/MemoPopover.ts') + read('src/client/ui/usePanelSettings.ts')
-  const idAt = client.indexOf("id: 'dsh-an-forward-prefix'")
-  assert.ok(idAt >= 0, 'the prefix field must keep its id')
-  const fieldStart = client.lastIndexOf("h('textarea', {", idAt)
-  const fieldEnd = client.indexOf("id: 'dsh-an-forward-prefix-hint'", idAt)
-  assert.ok(fieldStart >= 0 && fieldStart < idAt, 'the prefix field must be a textarea')
-  assert.ok(fieldEnd > idAt, 'the prefix hint must follow the field')
-  const field = client.slice(fieldStart, fieldEnd)
-  assert.match(field, /ref: prefixRef/, 'the field exposes a ref for auto-grow')
-  assert.match(field, /rows: 1/, 'the field opens one line tall')
-  assert.match(field, /className: 'dsh-an-settingInput dsh-an-settingTextarea'/, 'the textarea keeps the shared field skin')
-  assert.match(field, /maxLength: 80/, 'the whole value stays capped at 80 characters')
-  assert.match(field, /value: forwardPrefix === null \? '' : forwardPrefix/, 'an unset prefix is not shown as user text')
-  assert.match(field, /placeholder: forwardPrefix === null \? say\('forward\.prefix'\) : ''/, 'the default placeholder belongs to the unset state only')
-  assert.match(field, /onChange: event => changeForwardPrefix\(event\.target\.value\)/, 'the field stays a controlled draft')
-  assert.doesNotMatch(field, /h\('input'/, 'the old single-line input is gone')
-
-  assert.match(client, /const prefixRef = React\.useRef\(null\)/, 'the prefix field needs its own ref')
-  const effect = client.match(/React\.useLayoutEffect\(\(\) => \{\s*const node = prefixRef\.current[\s\S]*?\}, \[forwardPrefix, showSettings\]\)/)
-  assert.ok(effect, 'the field re-measures when the value changes or settings reopen')
-  assert.match(effect[0], /node\.style\.height = 'auto'/, 'auto-grow resets the height before measuring')
-  assert.match(effect[0], /Math\.min\(138, node\.scrollHeight \+ 2\)/, 'auto-grow caps at six lines and then scrolls')
 })
 
 

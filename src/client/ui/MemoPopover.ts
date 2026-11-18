@@ -16,7 +16,6 @@ import { useMemoStore } from './useSessionMemoStore'
 import { usePanelGeometry } from './usePanelGeometry'
 
 import { useSections } from './useSections'
-import { usePanelSettings } from './usePanelSettings'
 import { useUpdateCenter } from './useUpdateCenter'
 import { useComposerDraft } from './useComposerDraft'
 import { useNoteActions } from './useNoteActions'
@@ -85,14 +84,7 @@ export function MemoPopover(props) {
   const report = typeof props.onToast === 'function' ? props.onToast : () => {}
   const { record, syncError, commit } = useMemoStore(scope)
   const { sectionsRef, showOpen, showDone, toggleOpen, toggleDone, applySections } = useSections()
-  const {
-    showSettings,
-    setShowSettings,
-    forwardPrefix,
-    changeForwardPrefix,
-    resetForwardPrefix,
-    prefixRef,
-  } = usePanelSettings()
+  const [showSettings, setShowSettings] = React.useState(false)
   // Version check, release notes and the in-app update share one hook; the
   // registry answer is cached for an hour across panel opens.
   const update = useUpdateCenter(localeId)
@@ -163,10 +155,8 @@ export function MemoPopover(props) {
    * When no composer is on screen nothing changes, so the note stays open.
    */
   const insertItem = item => {
-    // `null` = untouched: resolve the default in the active language at click
-    // time; any string, including "", is the user's own prefix choice.
-    const prefix = forwardPrefix === null ? say('forward.prefix') : forwardPrefix
-    if (!appendToConversation(item.text, prefix)) {
+    // The note lands as plain text; repeated hand-overs stack on new lines.
+    if (!appendToConversation(item.text)) {
       report('insertFailed')
       return
     }
@@ -258,10 +248,6 @@ export function MemoPopover(props) {
           { className: 'dsh-an-settingsViewport' },
           h(SettingsPanel, {
             say,
-            forwardPrefix,
-            changeForwardPrefix,
-            resetForwardPrefix,
-            prefixRef,
             update,
             onToast: report,
           }),

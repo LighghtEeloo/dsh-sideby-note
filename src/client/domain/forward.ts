@@ -17,12 +17,9 @@ function conversationRoot() {
   return null
 }
 
-export function appendToConversation(text, prefix = '') {
+export function appendToConversation(text) {
   const note = String(text || '').replace(/^\s+|\s+$/g, '')
   if (!note) return false
-  const bullet = `- ${note}`
-  const lead = prefix ? String(prefix).trim() : ''
-  const emptyBlock = lead ? `${lead}\n${bullet}` : bullet
   const visible = node => {
     const rect = node.getBoundingClientRect()
     return rect.width > 0 && rect.height > 0
@@ -43,8 +40,10 @@ export function appendToConversation(text, prefix = '') {
   /** Payload for a composer whose current plain text is `current`. */
   const payloadFor = current => {
     const value = typeof current === 'string' ? current : ''
-    if (!value.trim()) return emptyBlock
-    return value.endsWith('\n') ? bullet : `\n${bullet}`
+    if (!value.trim()) return note
+    // Notes join the draft on their own line, never as a list item and never
+    // behind a prompt.
+    return value.endsWith('\n') ? note : `\n${note}`
   }
 
   if (editor.tagName === 'TEXTAREA') {

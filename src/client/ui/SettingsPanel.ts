@@ -1,4 +1,4 @@
-/** Settings card: forward prefix and about. */
+/** Settings card: about and updates. */
 import React from 'react'
 import {
   PLUGIN_AUTHOR,
@@ -13,65 +13,12 @@ const h = React.createElement
 export function SettingsPanel(props) {
   const {
     say,
-    forwardPrefix,
-    changeForwardPrefix,
-    resetForwardPrefix,
-    prefixRef,
     update,
   } = props
   return h(
             'div',
             { className: 'dsh-an-settings' },
             h('div', { className: 'dsh-an-settingsHead' }, say('settings.title')),
-            h(
-              'div',
-              { className: 'dsh-an-settingGroup' },
-              h('div', { className: 'dsh-an-settingLabel' }, say('settings.forward')),
-              h(
-                'div',
-                { className: 'dsh-an-settingBody' },
-                h(
-                  'div',
-                  { className: 'dsh-an-settingItem' },
-                  h('textarea', {
-                    id: 'dsh-an-forward-prefix',
-                    ref: prefixRef,
-                    className: 'dsh-an-settingInput dsh-an-settingTextarea',
-                    value: forwardPrefix === null ? '' : forwardPrefix,
-                    rows: 1,
-                    maxLength: 80,
-                    // The default is only shown while nothing is customized; a
-                    // deliberate empty custom prefix must not look like the default.
-                    placeholder: forwardPrefix === null ? say('forward.prefix') : '',
-                    'aria-label': say('settings.forwardPrefixItem'),
-                    'aria-describedby': 'dsh-an-forward-prefix-hint',
-                    style: {
-                      fontFamily: 'inherit',
-                      fontSize: 'var(--an-fs-row)',
-                      lineHeight: 'var(--an-lh-row)',
-                      fontWeight: 500,
-                    },
-                    onChange: event => changeForwardPrefix(event.target.value),
-                  }),
-                  h(
-                    'p',
-                    { id: 'dsh-an-forward-prefix-hint', className: 'dsh-an-settingHint' },
-                    say(forwardPrefix === null ? 'settings.forwardPrefixHint' : 'settings.forwardPrefixHintCustom'),
-                    forwardPrefix === null
-                      ? null
-                      : h(
-                          'button',
-                          {
-                            type: 'button',
-                            className: 'dsh-an-settingReset',
-                            onClick: resetForwardPrefix,
-                          },
-                          say('settings.forwardPrefixReset'),
-                        ),
-                  ),
-                ),
-              ),
-            ),
             h(
               'div',
               { className: 'dsh-an-settingGroup' },

@@ -9,7 +9,7 @@
 - `package.json` 的 `dsh.bundle.patch` 指向 `cordis.patch.yml`，`dsh.client` 声明 `./client` 与需要预注入的宿主模块。
 - 壳把 `./client`（即 `client/client.js`）当 classic script 加载：`window.__ModuleLoader__.load({ id, factory })`。`factory(require)` 里的 `require` 绑定到冻结的模块表，只认 `react`、`react/jsx-runtime`、`react-dom`、`react-dom/client`、`@deepseek-ai/dsh-client-ui-primitives`；其余依赖全部内联。
 - 样式是 `import css from './styles/panel.css?inline'`，由入口在 `apply()` 里插入**一张** `<style data-dsh-plugin="dsh-sideby-note">`，dispose 时移除。面板与输入框 dock 不在同一棵 React 树里，所以不能做面板级 `<style>`。
-- 只依赖两个服务：`slots`（`conversation.composer.dock` 捕获当前会话、`conversation.hero.options` 捕获空白新会话、`shell.overlay` 承载全局 Toast）与 `locale`（注册字典、绑定 `t`，并订阅 `locale/change` 让已打开的面板就地换语言）。未自定义的递入前缀在点击时按当前语言解析，不写进存储。
+- 只依赖两个服务：`slots`（`conversation.composer.dock` 捕获当前会话、`conversation.hero.options` 捕获空白新会话、`shell.overlay` 承载全局 Toast）与 `locale`（注册字典、绑定 `t`，并订阅 `locale/change` 让已打开的面板就地换语言）。
 - 顶部入口是注入宿主 header 的原生 DOM 按钮，不是 React portal——宿主重渲染会回收 portal。
 
 ## 2. 目录
@@ -47,7 +47,7 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | 身份 | `constants.ts` | 包与插件的 id、`dsh-an-*` 相关的键与上限 |
 | 文案 | `i18n/` | `zh.ts` 定义键集合与 `MessageKey`；其余 7 种 DSH 官方语言用 `Record<MessageKey, string>`，缺键编译失败；运行时未知语言或缺键一律回退英文 |
 | 领域 | `domain/items.ts` | `normalizeItems`（防御性清洗、去重、上限）、归档排序、`moveOpenItem`（只重排待续，归档留在原槽位）、相对时间文案 |
-| 领域 | `domain/forward.ts` | 「递入对话」：把便笺写进**当前会话**的 Lexical contenteditable 或 textarea，保留光标与换行语义；按 `[data-conversation-session]` 限定输入框。写入成功后由面板把该便笺归档 |
+| 领域 | `domain/forward.ts` | 「递入对话」：把便笺作为纯文本写进**当前会话**的 Lexical contenteditable 或 textarea，按换行接在已有内容后面；按 `[data-conversation-session]` 限定输入框。写入成功后由面板把该便笺归档 |
 | 存储 | `storage/session.ts` | 会话便笺库（`sessions`）的读写；保持原 `dsh.aside-note` 的 v1 键与结构，写失败返回 `false`，由调用方保留 UI 原状并报 Toast |
 | 存储 | `storage/workspace.ts` | 工作区清单（`dsh.aside-note.workspaces`）读写；首次见到工作区时把成员会话的旧便笺一次性并入，`seededSessionIds` 防重复 |
 | 范围 | `scope.ts` | 记录 dock 当前会话的归属；按保存的「工作区 / 会话」选择解析清单，工作区外始终回落到会话 |
@@ -56,10 +56,10 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | 更新 | `update/releaseHistory.ts` | 从 releases feed 选出「本地 < 版本 ≤ 最新」的区间，剔除草稿/预发布，倒序与上限 |
 | 更新 | `ui/useUpdateCenter.ts` | 自动/手动检查、懒加载说明、更新状态机（starting/running/done/error）；只走宿主更新端点，没有市场分支 |
 | 更新 | `ui/UpdateNotice.ts` | 关于区里的更新卡片：说明展开、完整说明链接、立即更新/刷新，宿主没有路由或拒绝时改为带版本号的命令 + 拷贝更新提示词 |
-| 存储 | `storage/prefs.ts` | 面板宽高、工作区/会话范围、递入对话前缀、分区状态 |
+| 存储 | `storage/prefs.ts` | 面板宽高、工作区/会话范围、分区状态 |
 | UI 组件 | `ui/MemoPopover.ts` | 面板编排：组合 hook 与展示组件，portal 到 body |
 | UI 组件 | `PanelHead` / `ScopeSwitch` / `SettingsPanel` / `ComposerForm` / `NoteList` / `ClearConfirm` / `TodoRow` / `EmptyState` | 纯展示，数据与回调由面板传入 |
-| UI hooks | `useSessionMemoStore` / `usePanelGeometry` / `useSections` / `usePanelSettings` / `useComposerDraft` / `useNoteActions` / `useRowReorder` / `useClearConfirm` / `useListEdge` / `useOutsideDismiss` | 把状态与副作用从 JSX 里分离；每个 hook 只做一件事 |
+| UI hooks | `useSessionMemoStore` / `usePanelGeometry` / `useSections` / `useComposerDraft` / `useNoteActions` / `useRowReorder` / `useClearConfirm` / `useListEdge` / `useOutsideDismiss` | 把状态与副作用从 JSX 里分离；每个 hook 只做一件事 |
 | UI 基础设施 | `primitives` / `position` / `toastSeat` / `headerEntry` | 共享图标与 Tooltip、浮层定位与吸顶、跨面板 Toast、宿主 header 入口（空白新会话回落到 header corner） |
 
 约定：`domain/` 与 `storage/` 不 import React；需要 React 的状态放 `ui/use*.ts`。浏览器半侧不碰 Node 内置模块与 `process`（契约测试会拦）。
@@ -77,13 +77,13 @@ docs/assets/             # README 截图（preview-* 与 features/）
 | `dsh.aside-note.forwarded` | 已停用：旧版转发标识。不再读取、写入或清理，留在浏览器里也不影响面板 |
 | `dsh.aside-note.sections` | `{ open, done }` |
 | `dsh.aside-note.panel-width` / `panel-height` | 数字；高度 `0` 表示内容自适应 |
-| `dsh.aside-note.forward-prefix` | 最长 80 字符的递入前缀；键不存在时使用当前语言的默认提示词，空字符串表示不加前缀 |
+| `dsh.aside-note.forward-prefix` | 已停用：旧版递入前缀。不再读取、写入或清理，留在浏览器里也不影响面板 |
 
 草稿按 `draftKey` 存放：会话属于工作区时，整个工作区共用一份新增草稿，切换会话或在「工作区 / 会话」之间切换都不丢字；没有工作区的会话按会话保存。提交草稿时仍按当前选中的范围写入 `dsh.aside-note.workspaces` 或 `dsh.aside-note`，草稿本身不区分范围。升级后首次打开工作区，会把当前会话的旧草稿并入共享键并清理成员会话的旧副本。
 
 面板里只有顶部一个文字编辑区。点某行的「退回」会先把便笺从清单移除，再把正文放进顶部输入框（桌面端自动聚焦）；提交后作为一条新便笺重新加入。输入框已有未提交内容时不覆盖，改为提示先发送或清空。录入框的键位固定与主会话一致：Enter 发送，Shift+Enter 换行，输入法选词时的 Enter 交给浏览器。
 
-便笺没有手动勾选：「递入对话」写入会话输入框成功后，同一步把它归档（`done: true` 与 `completedAt`，字段名沿用旧结构以便原样读取）；找不到输入框时不改任何数据。待续便笺的顺序就是存储数组里的顺序，`useRowReorder` 负责指针拖动与 ↑ / ↓ 键：拖动期间只改行的内联 `transform`，松手才经 `moveOpenItem` 写入一次，再在 layout effect 里把被拖行从松手处滑入新位置。
+便笺没有手动勾选：「递入对话」把便笺作为纯文本写入会话输入框（已有内容时按换行接在后面），写入成功后同一步把它归档（`done: true` 与 `completedAt`，字段名沿用旧结构以便原样读取）；找不到输入框时不改任何数据。待续便笺的顺序就是存储数组里的顺序，`useRowReorder` 负责指针拖动与 ↑ / ↓ 键：拖动期间只改行的内联 `transform`，松手才经 `moveOpenItem` 写入一次，再在 layout effect 里把被拖行从松手处滑入新位置。
 
 `Note` 形如 `{ id, text, done, createdAt, updatedAt, completedAt? }`；`text` 上限 280，单份清单上限 300 条。会话数据继续使用 `dsh.aside-note` 的 v1 结构，工作区数据单独放在 `dsh.aside-note.workspaces`，因此新增范围不会改写旧键；首次进入工作区会把成员会话里已有的便笺合入一次，`seededSessionIds` 记住已合入的会话，之后删除不会因再次合并而复活。键名不带版本后缀；前缀沿用上游的 `dsh.aside-note`，因此包名与插件 id 改为 `dsh-sideby-note` 后，已有便笺和设置仍可直接读取。
 

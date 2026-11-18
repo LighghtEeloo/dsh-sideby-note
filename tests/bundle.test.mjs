@@ -264,7 +264,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 40)) })
   assert.equal(document.querySelector('.dsh-an-headerCount').textContent, '2')
 
-  // Settings: the forward prefix persists; the send-shortcut choice is gone.
+  // Settings: only About remains; the forward prefix and the shortcut are gone.
   await act(async () => { popover.querySelector('.dsh-an-settingsBtn').click() })
   assert.ok(popover.querySelector('.dsh-an-settings'), 'the gear must open the settings card')
   const settingsViewport = popover.querySelector('.dsh-an-settingsViewport')
@@ -351,12 +351,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
   const done = [...popover.querySelectorAll('.dsh-an-updatePrimary')].map(node => node.textContent)
   assert.ok(done.includes('刷新页面'), `the finished host update offers a refresh, saw ${JSON.stringify(done)}`)
 
-  const prefixField = popover.querySelector('#dsh-an-forward-prefix')
-  await act(async () => {
-    valueSetter.call(prefixField, '请处理：')
-    prefixField.dispatchEvent(new window.Event('input', { bubbles: true }))
-  })
-  assert.equal(window.localStorage.getItem('dsh.aside-note.forward-prefix'), '请处理：')
+  assert.equal(popover.querySelector('#dsh-an-forward-prefix'), null, 'the forward prefix field is gone')
 
   // There is no checkbox: open rows lead with a reorder grip instead.
   assert.equal(popover.querySelector('.dsh-an-check'), null, 'notes are no longer completed by hand')
@@ -399,7 +394,7 @@ test('the built bundle boots, applies, and seats its slots', async t => {
     width: 320, height: 24, top: 0, left: 0, right: 320, bottom: 24, x: 0, y: 0, toJSON: () => ({}),
   })
   await act(async () => { insertButton('新的一条').click() })
-  assert.equal(composer.value, '请处理：\n- 新的一条', 'the note goes into the chat composer with the prefix')
+  assert.equal(composer.value, '新的一条', 'the note goes into the chat composer as plain text')
   const inserted = JSON.parse(window.localStorage.getItem('dsh.aside-note')).sessions['session-1'].items
     .find(item => item.text === '新的一条')
   assert.equal(inserted.done, true, 'putting the note into the chat archives it')
@@ -769,7 +764,7 @@ test('one workspace shares its notes and forwards into the visible session', asy
   const valueOf = id => composers
     .find(node => node.getAttribute('data-conversation-session') === id)
     .querySelector('[data-composer-input]').value
-  assert.match(valueOf('session-2'), /- 新增的共享事项/, 'the note lands in the visible composer')
+  assert.equal(valueOf('session-2'), '新增的共享事项', 'the note lands in the visible composer as plain text')
   assert.equal(valueOf('session-1'), '', 'the hidden session composer is untouched')
   const workspaceItems = () => JSON.parse(window.localStorage.getItem('dsh.aside-note.workspaces')).workspaces['ws-1'].items
   assert.equal(workspaceItems().find(item => item.text === '新增的共享事项').done, true,
@@ -1021,7 +1016,7 @@ test('a blank new session opens the workspace list from the header corner', asyn
   dom.window.close()
 })
 
-test('an untouched forward prefix follows the active language, while a customized one stays verbatim', async t => {
+test('handing notes to chat joins them on new lines, without a prefix or list marker', async t => {
   const dom = new JSDOM(
     '<!doctype html><html><body>' +
       '<div class="_headerUtilities"></div>' +
@@ -1132,22 +1127,14 @@ test('an untouched forward prefix follows the active language, while a customize
   assert.ok(popover, 'the notes panel must open')
 
   const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
-  let prefixField = null
-  const typePrefix = async text => {
-    await act(async () => {
-      setter.call(prefixField, text)
-      prefixField.dispatchEvent(new window.Event('input', { bubbles: true }))
-    })
-  }
   const composer = document.querySelector('[data-composer-input]')
-  const clearComposer = async () => {
+  const setComposer = async text => {
     await act(async () => {
-      setter.call(composer, '')
+      setter.call(composer, text)
       composer.dispatchEvent(new window.Event('input', { bubbles: true }))
     })
   }
-  const forward = async text => {
-    await clearComposer()
+  const insert = async text => {
     const row = [...popover.querySelectorAll('.dsh-an-row')]
       .find(node => node.querySelector('.dsh-an-text')?.textContent === text)
     assert.ok(row, `missing note ${text}`)
@@ -1155,39 +1142,19 @@ test('an untouched forward prefix follows the active language, while a customize
     return composer.value
   }
 
-  // Settings opens with the Chinese default as the placeholder, not as a value.
-  await act(async () => { popover.querySelector('.dsh-an-settingsBtn').click() })
-  prefixField = popover.querySelector('#dsh-an-forward-prefix')
-  assert.ok(prefixField, 'the prefix field appears with the settings card')
-  assert.equal(prefixField.value, '', 'an untouched prefix has no user value')
-  assert.equal(prefixField.getAttribute('placeholder'), '完成以下任务：')
+  // Each hand-over lands as plain text: no prompt, no list marker.
+  assert.equal(await insert('Alpha'), 'Alpha')
 
-  // Switching the DSH language with the panel open must re-render the panel.
-  await act(async () => { locale.setLocale('en') })
-  assert.equal(prefixField.getAttribute('placeholder'), 'Complete this task:',
-    'the untouched default follows the active language immediately')
-  assert.equal(await forward('Alpha'), 'Complete this task:\n- Alpha',
-    'an untouched prefix resolves the default in the active language at click time')
+  // A second note joins the existing draft on its own line.
+  assert.equal(await insert('Beta'), 'Alpha\nBeta')
 
-  // Once customized, the user text is used verbatim in every language.
-  await typePrefix('Do this:')
-  assert.equal(window.localStorage.getItem('dsh.aside-note.forward-prefix'), 'Do this:')
-  assert.equal(await forward('Beta'), 'Do this:\n- Beta')
+  // An existing message keeps its content and receives the note on a new line.
+  await setComposer('已经写好的内容')
+  assert.equal(await insert('Gamma'), '已经写好的内容\nGamma')
 
-  // A deliberately cleared custom prefix means "no prefix", not "use default".
-  await typePrefix('')
-  assert.equal(window.localStorage.getItem('dsh.aside-note.forward-prefix'), '',
-    'clearing stores an empty custom value')
-  assert.equal(prefixField.getAttribute('placeholder'), '', 'an empty custom value hides the default placeholder')
-  assert.equal(await forward('Gamma'), '- Gamma')
-
-  // The reset control drops the custom key and returns to the localized default.
-  assert.ok(popover.querySelector('.dsh-an-settingReset'), 'a customized prefix offers a way back')
-  await act(async () => { popover.querySelector('.dsh-an-settingReset').click() })
-  assert.equal(window.localStorage.getItem('dsh.aside-note.forward-prefix'), null,
-    'reset removes the custom key instead of storing an empty one')
-  assert.equal(prefixField.getAttribute('placeholder'), 'Complete this task:')
-  assert.equal(await forward('Delta'), 'Complete this task:\n- Delta')
+  // A draft already ending in a newline does not gain a blank line.
+  await setComposer('上一行\n')
+  assert.equal(await insert('Delta'), '上一行\nDelta')
 
   await act(async () => { popover.querySelector('.dsh-an-popClose').click() })
   await act(async () => { root.unmount() })

@@ -19,8 +19,6 @@ export const PLUGIN_VERSION = '0.1.0'
 export const PLUGIN_AUTHOR = '阿三石'
 export const PLUGIN_REPO_URL = 'https://github.com/LighghtEeloo/dsh-sideby-note'
 export const PLUGIN_REPO_LABEL = 'github.com/LighghtEeloo/dsh-sideby-note'
-/** Lead-in written before a note put into the chat; absent means the localized default, empty means no prefix. */
-export const FORWARD_PREFIX_STORAGE_KEY = 'dsh.aside-note.forward-prefix'
 /** Last chosen list scope: the workspace list or the session list. */
 export const SCOPE_MODE_KEY = 'dsh.aside-note.scope-mode'
 export const SCOPE_MODE_DEFAULT = 'workspace'
