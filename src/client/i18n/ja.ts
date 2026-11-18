@@ -37,6 +37,7 @@ export const ja: Record<MessageKey, string> = {
   "settings.forwardPrefixHintCustom": "空の入力欄に転送するとき、このプロンプトがメモの前に書き込まれます。空欄のままにするとメモだけを転送します",
   "settings.forwardPrefixReset": "既定のプロンプトに戻す",
   "settings.privacy": "プライバシー",
+  "settings.storage": "データ保存",
   "settings.analytics": "匿名の機能統計",
   "settings.analyticsHint": "Tencent Cloud Observability Platform を使用して、どの機能が使われているか、どこでつまずいているかを確認します。送信内容には操作の種類、結果、プラグインのバージョン、匿名の訪問者 ID、ネットワーク・地域・デバイスの種類などの基本的な環境情報が含まれます。メモ、会話、アカウント情報は読み取りません。オフにすると送信は停止します",
   "add.placeholder": "ひとつメモする",

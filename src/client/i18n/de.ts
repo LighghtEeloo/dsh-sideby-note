@@ -37,6 +37,7 @@ export const de: Record<MessageKey, string> = {
   "settings.forwardPrefixHintCustom": "Beim Weiterleiten in ein leeres Eingabefeld wird dieser Prompt vor der Notiz eingefügt; leer lassen, um nur die Notiz weiterzuleiten",
   "settings.forwardPrefixReset": "Standard-Prompt verwenden",
   "settings.privacy": "Datenschutz",
+  "settings.storage": "Datenspeicher",
   "settings.analytics": "Anonyme Funktionsstatistik",
   "settings.analyticsHint": "Wir nutzen die Tencent Cloud Observability Platform, um zu sehen, welche Funktionen genutzt werden und wo Menschen hängen bleiben; Berichte enthalten die Aktionsart, ihr Ergebnis, die Plugin-Version, eine anonyme Besucher-ID und grundlegende Umgebungsdaten wie Netzwerk, Region und Gerätetyp — niemals Notizen, Gespräche oder Kontodaten. Ausschalten beendet alle weiteren Berichte",
   "add.placeholder": "Eine notieren",

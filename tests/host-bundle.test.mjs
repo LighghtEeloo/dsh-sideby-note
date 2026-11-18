@@ -294,6 +294,12 @@ test('STORE-028 设置中可拷贝存储路径', async t => {
 
   const pathElement = popover.querySelector('.dsh-an-storagePath')
   assert.equal(pathElement.textContent, file)
+  const groups = [...popover.querySelectorAll('.dsh-an-settingGroup')]
+  const storageGroup = groups.find(group => group.contains(pathElement))
+  assert.equal(storageGroup.querySelector('.dsh-an-settingLabel').textContent, '数据存储')
+  const aboutGroup = groups.find(group => group.querySelector('.dsh-an-settingLabel')?.textContent === '关于')
+  assert.ok(aboutGroup, 'the About group still exists')
+  assert.equal(aboutGroup.contains(pathElement), false, 'storage lives in its own group, not in About')
   const actions = [...popover.querySelectorAll('.dsh-an-storageAction')]
   assert.equal(actions.length, 2)
 

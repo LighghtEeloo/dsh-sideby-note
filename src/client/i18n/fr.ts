@@ -37,6 +37,7 @@ export const fr: Record<MessageKey, string> = {
   "settings.forwardPrefixHintCustom": "Lors d'un transfert vers une zone de saisie vide, cette invite est écrite avant la note ; laissez-la vide pour transférer uniquement la note",
   "settings.forwardPrefixReset": "Utiliser l'invite par défaut",
   "settings.privacy": "Confidentialité",
+  "settings.storage": "Stockage des données",
   "settings.analytics": "Statistiques anonymes d'utilisation",
   "settings.analyticsHint": "Nous utilisons Tencent Cloud Observability Platform pour savoir quelles fonctionnalités sont utilisées et où les gens bloquent ; les rapports incluent le type d'action, son résultat, la version du plugin, un identifiant de visiteur anonyme et des informations de base sur l'environnement telles que le réseau, la région et le type d'appareil — jamais les notes, les conversations ni les données du compte. La désactivation arrête tout envoi",
   "add.placeholder": "Notez-en une",

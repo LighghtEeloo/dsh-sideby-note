@@ -5202,6 +5202,7 @@ const de = {
 	"settings.forwardPrefixHintCustom": "Beim Weiterleiten in ein leeres Eingabefeld wird dieser Prompt vor der Notiz eingefügt; leer lassen, um nur die Notiz weiterzuleiten",
 	"settings.forwardPrefixReset": "Standard-Prompt verwenden",
 	"settings.privacy": "Datenschutz",
+	"settings.storage": "Datenspeicher",
 	"settings.analytics": "Anonyme Funktionsstatistik",
 	"settings.analyticsHint": "Wir nutzen die Tencent Cloud Observability Platform, um zu sehen, welche Funktionen genutzt werden und wo Menschen hängen bleiben; Berichte enthalten die Aktionsart, ihr Ergebnis, die Plugin-Version, eine anonyme Besucher-ID und grundlegende Umgebungsdaten wie Netzwerk, Region und Gerätetyp — niemals Notizen, Gespräche oder Kontodaten. Ausschalten beendet alle weiteren Berichte",
 	"add.placeholder": "Eine notieren",
@@ -5342,6 +5343,7 @@ const en = {
 	"settings.forwardPrefixHintCustom": "When forwarding into an empty composer, this prompt is written before the note; leave it empty to forward the note on its own",
 	"settings.forwardPrefixReset": "Use the default prompt",
 	"settings.privacy": "Privacy",
+	"settings.storage": "Data storage",
 	"settings.analytics": "Anonymous feature statistics",
 	"settings.analyticsHint": "We use the Tencent Cloud Observability Platform to see which features are used and where people get stuck; reports include the action type, its outcome, the plugin version, an anonymous visitor ID and basic environment details such as network, region and device type — never notes, conversations or account details. Turning it off stops all further reporting",
 	"add.placeholder": "Jot one down",
@@ -5482,6 +5484,7 @@ const es = {
 	"settings.forwardPrefixHintCustom": "Al reenviar a un cuadro de texto vacío, esta indicación se escribe antes de la nota; déjala vacía para reenviar solo la nota",
 	"settings.forwardPrefixReset": "Usar la indicación predeterminada",
 	"settings.privacy": "Privacidad",
+	"settings.storage": "Almacenamiento de datos",
 	"settings.analytics": "Estadísticas de funciones anónimas",
 	"settings.analyticsHint": "Usamos la plataforma Tencent Cloud Observability Platform para saber qué funciones se usan y dónde se atasca la gente; los informes incluyen el tipo de acción, su resultado, la versión del complemento, un ID de visitante anónimo y datos básicos del entorno, como red, región y tipo de dispositivo; nunca notas, conversaciones ni datos de la cuenta. Desactivarlo detiene todos los informes",
 	"add.placeholder": "Anota una",
@@ -5622,6 +5625,7 @@ const fr = {
 	"settings.forwardPrefixHintCustom": "Lors d'un transfert vers une zone de saisie vide, cette invite est écrite avant la note ; laissez-la vide pour transférer uniquement la note",
 	"settings.forwardPrefixReset": "Utiliser l'invite par défaut",
 	"settings.privacy": "Confidentialité",
+	"settings.storage": "Stockage des données",
 	"settings.analytics": "Statistiques anonymes d'utilisation",
 	"settings.analyticsHint": "Nous utilisons Tencent Cloud Observability Platform pour savoir quelles fonctionnalités sont utilisées et où les gens bloquent ; les rapports incluent le type d'action, son résultat, la version du plugin, un identifiant de visiteur anonyme et des informations de base sur l'environnement telles que le réseau, la région et le type d'appareil — jamais les notes, les conversations ni les données du compte. La désactivation arrête tout envoi",
 	"add.placeholder": "Notez-en une",
@@ -5762,6 +5766,7 @@ const ja = {
 	"settings.forwardPrefixHintCustom": "空の入力欄に転送するとき、このプロンプトがメモの前に書き込まれます。空欄のままにするとメモだけを転送します",
 	"settings.forwardPrefixReset": "既定のプロンプトに戻す",
 	"settings.privacy": "プライバシー",
+	"settings.storage": "データ保存",
 	"settings.analytics": "匿名の機能統計",
 	"settings.analyticsHint": "Tencent Cloud Observability Platform を使用して、どの機能が使われているか、どこでつまずいているかを確認します。送信内容には操作の種類、結果、プラグインのバージョン、匿名の訪問者 ID、ネットワーク・地域・デバイスの種類などの基本的な環境情報が含まれます。メモ、会話、アカウント情報は読み取りません。オフにすると送信は停止します",
 	"add.placeholder": "ひとつメモする",
@@ -5902,6 +5907,7 @@ const pt = {
 	"settings.forwardPrefixHintCustom": "Ao encaminhar para um campo de texto vazio, este prompt é escrito antes da nota; deixe vazio para encaminhar apenas a nota",
 	"settings.forwardPrefixReset": "Usar o prompt padrão",
 	"settings.privacy": "Privacidade",
+	"settings.storage": "Armazenamento de dados",
 	"settings.analytics": "Estatísticas anônimas de recursos",
 	"settings.analyticsHint": "Usamos a Tencent Cloud Observability Platform para ver quais recursos são usados e onde as pessoas travam; os relatórios incluem o tipo de ação, o resultado, a versão do plugin, um ID anônimo de visitante e detalhes básicos do ambiente, como rede, região e tipo de dispositivo — nunca notas, conversas ou dados da conta. Desativar interrompe todos os relatórios",
 	"add.placeholder": "Anote uma",
@@ -6042,6 +6048,7 @@ const ru = {
 	"settings.forwardPrefixHintCustom": "При пересылке в пустое поле ввода этот запрос записывается перед заметкой; оставьте пустым, чтобы переслать только заметку",
 	"settings.forwardPrefixReset": "Использовать запрос по умолчанию",
 	"settings.privacy": "Конфиденциальность",
+	"settings.storage": "Хранилище данных",
 	"settings.analytics": "Анонимная статистика функций",
 	"settings.analyticsHint": "Мы используем Tencent Cloud Observability Platform, чтобы понимать, какие функции используются и где пользователи застревают; отчёты включают тип действия, его результат, версию плагина, анонимный ID посетителя и базовые сведения об окружении — сеть, регион и тип устройства; заметки, разговоры и данные аккаунта не передаются. Отключение прекращает все отчёты",
 	"add.placeholder": "Записать",
@@ -6182,6 +6189,7 @@ const zh = {
 	"settings.forwardPrefixHintCustom": "转发到会话时，若输入框为空，会先写入这段提示词，再追加记录内容；留空则只转发记录内容",
 	"settings.forwardPrefixReset": "恢复默认提示词",
 	"settings.privacy": "隐私",
+	"settings.storage": "数据存储",
 	"settings.analytics": "匿名功能统计",
 	"settings.analyticsHint": "通过腾讯云可观测平台统计功能使用情况，帮我们找出常用功能，以及哪里容易卡住；会上报操作类型、结果、插件版本、匿名访客 ID，以及网络、地域、设备类型等基础环境信息；不读取便笺、对话或账号信息；关闭后不再上报",
 	"add.placeholder": "随手记一条",
@@ -7320,7 +7328,7 @@ async function ensureWorkspaceRecord(workspaceId, sessionIds) {
 * stroke weight, optical size and currentColor stay consistent with the shell.
 * Tooltip and Toast are the seeded primitives — the bundle keeps them external.
 */
-const h$12 = react.default.createElement;
+const h$13 = react.default.createElement;
 const PRIMITIVES = _deepseek_ai_dsh_client_ui_primitives;
 const Tooltip = typeof PRIMITIVES.Tooltip === "function" ? PRIMITIVES.Tooltip : null;
 const Toast = typeof PRIMITIVES.Toast === "function" ? PRIMITIVES.Toast : null;
@@ -7333,48 +7341,48 @@ const icon = (name) => typeof PRIMITIVES[name] === "function" ? PRIMITIVES[name]
 function Glyph(props) {
 	const Component = icon(props.name);
 	if (!Component) return null;
-	return h$12(Component, { size: props.size });
+	return h$13(Component, { size: props.size });
 }
-const IconCheck = (props) => h$12(Glyph, {
+const IconCheck = (props) => h$13(Glyph, {
 	name: "IconCheckOutlineMedium",
 	size: props && props.size ? props.size : 12
 });
-const IconCopy = () => h$12(Glyph, {
+const IconCopy = () => h$13(Glyph, {
 	name: "IconCopyOutlineRegular",
 	size: 14
 });
-const IconForward = () => h$12(Glyph, {
+const IconForward = () => h$13(Glyph, {
 	name: "IconShareOutlineRegular",
 	size: 14
 });
-const IconGear = () => h$12(Glyph, {
+const IconGear = () => h$13(Glyph, {
 	name: "IconSettingsOutlineRegular",
 	size: 14
 });
-const IconPencil = () => h$12(Glyph, {
+const IconPencil = () => h$13(Glyph, {
 	name: "IconEditOutlineRegular",
 	size: 14
 });
-const IconTrash = () => h$12(Glyph, {
+const IconTrash = () => h$13(Glyph, {
 	name: "IconTrashOutlineRegular",
 	size: 14
 });
-const IconChevron = () => h$12(Glyph, {
+const IconChevron = () => h$13(Glyph, {
 	name: "IconChevronRightOutlineRegular",
 	size: 12
 });
-const IconEmpty = () => h$12(Glyph, {
+const IconEmpty = () => h$13(Glyph, {
 	name: "IconChecklistOutlineRegular",
 	size: 18
 });
-const IconClose = () => h$12(Glyph, {
+const IconClose = () => h$13(Glyph, {
 	name: "IconCloseOutlineRegular",
 	size: 14
 });
 /** Wrap one icon-only control in the shared tooltip; a bare button when absent. */
 function withTooltip(label, node) {
 	if (!Tooltip) return node;
-	return h$12(Tooltip, {
+	return h$13(Tooltip, {
 		label,
 		side: "top",
 		portal: true,
@@ -7384,7 +7392,7 @@ function withTooltip(label, node) {
 
 // src/client/ui/toastSeat.ts
 /** Frame-wide toast seat: one notice at a time, dismissed when it fades. */
-const h$11 = react.default.createElement;
+const h$12 = react.default.createElement;
 const TOAST_COPY = {
 	copied: {
 		key: "toast.copied",
@@ -7467,11 +7475,11 @@ function createToastSeat(tr) {
 		const copy = notice.text ? { tone: notice.tone } : TOAST_COPY[notice.kind] || TOAST_COPY.saveFailed;
 		const bound = !notice.text && props && typeof props.t === "function" ? props.t(copy.key) : "";
 		const text = notice.text || (bound && bound !== copy.key ? bound : tr(copy.key));
-		return h$11(Toast, {
+		return h$12(Toast, {
 			key: notice.sequence,
 			text,
 			tone: copy.tone,
-			icon: copy.tone ? void 0 : WarningIcon ? h$11(WarningIcon, { size: 16 }) : void 0,
+			icon: copy.tone ? void 0 : WarningIcon ? h$12(WarningIcon, { size: 16 }) : void 0,
 			onDone: source.dismiss
 		});
 	}
@@ -9246,7 +9254,7 @@ function useOutsideDismiss(panelRef, anchorRef, onClose) {
 
 // src/client/ui/TodoRow.ts
 /** One note: checkbox, actions, inline edit and the forwarded mark. */
-const h$10 = react.default.createElement;
+const h$11 = react.default.createElement;
 function TodoRow(props) {
 	const { item, done, say, onToast, onToggle, onStartEdit, onDelete, editing, editDraft, setEditDraft, onEditDraftChange, onFinishEdit, onCancelEdit, editRef, forwardPrefix, forwardPrefixFallback, sendShortcut = SEND_SHORTCUT_DEFAULT, forwarded = false, onForwarded, onUnforwarded } = props;
 	const editHintKey = sendShortcut === "enter" ? "edit.hintEnter" : "edit.hintCtrlEnter";
@@ -9315,7 +9323,7 @@ function TodoRow(props) {
 			resizeEditor(node);
 		});
 	};
-	const body = editing ? h$10("div", { className: "dsh-an-edit" }, h$10("textarea", {
+	const body = editing ? h$11("div", { className: "dsh-an-edit" }, h$11("textarea", {
 		ref: setEditorRef,
 		className: "dsh-an-editInput",
 		value: editDraft,
@@ -9358,67 +9366,67 @@ function TodoRow(props) {
 			}
 		},
 		onBlur: () => onFinishEdit(item)
-	}), h$10("div", { className: "dsh-an-editActions" }, h$10("button", {
+	}), h$11("div", { className: "dsh-an-editActions" }, h$11("button", {
 		type: "button",
 		className: "dsh-an-mini dsh-an-miniPrimary",
 		onMouseDown: (event) => event.preventDefault(),
 		onClick: () => onFinishEdit(item)
-	}, say("edit.save")), h$10("button", {
+	}, say("edit.save")), h$11("button", {
 		type: "button",
 		className: "dsh-an-mini",
 		onMouseDown: (event) => event.preventDefault(),
 		onClick: onCancelEdit
-	}, say("edit.cancel")), h$10("span", {
+	}, say("edit.cancel")), h$11("span", {
 		className: "dsh-an-editHint",
 		title: say(editHintKey, { mod: MOD_LABEL })
-	}, say(editHintKey, { mod: MOD_LABEL })))) : h$10("div", {
+	}, say(editHintKey, { mod: MOD_LABEL })))) : h$11("div", {
 		className: "dsh-an-text",
 		title: say("item.editHint"),
 		onDoubleClick: () => onStartEdit(item)
 	}, item.text);
 	const checked = done === true;
-	return h$10("li", { className: done ? "dsh-an-row dsh-an-rowDone" : "dsh-an-row" }, h$10("button", {
+	return h$11("li", { className: done ? "dsh-an-row dsh-an-rowDone" : "dsh-an-row" }, h$11("button", {
 		type: "button",
 		className: "dsh-an-check",
 		role: "checkbox",
 		"aria-checked": checked ? "true" : "false",
 		"aria-label": say(done ? "item.markOpen" : "item.markDone"),
 		onClick: toggleCheck
-	}, h$10("span", { className: "dsh-an-checkCircle" }, checked ? h$10(IconCheck, { size: 9 }) : null)), h$10("div", { className: "dsh-an-itemBody" }, body, editing ? null : h$10("div", { className: "dsh-an-rowFoot" }, h$10("span", {
+	}, h$11("span", { className: "dsh-an-checkCircle" }, checked ? h$11(IconCheck, { size: 9 }) : null)), h$11("div", { className: "dsh-an-itemBody" }, body, editing ? null : h$11("div", { className: "dsh-an-rowFoot" }, h$11("span", {
 		className: "dsh-an-meta",
 		title: metaLabel(item, say, props.localeId)
-	}, metaLabel(item, say, props.localeId)), h$10("div", { className: "dsh-an-actions" }, withTooltip(say("item.copy"), h$10("button", {
+	}, metaLabel(item, say, props.localeId)), h$11("div", { className: "dsh-an-actions" }, withTooltip(say("item.copy"), h$11("button", {
 		type: "button",
 		className: "dsh-an-iconBtn",
 		"aria-label": say("item.copy"),
 		"aria-busy": pending === "copy" ? "true" : "false",
 		"data-loading": pending === "copy" ? "true" : void 0,
 		onClick: copy
-	}, h$10(IconCopy, null))), done ? null : withTooltip(say(forwarded ? "item.forwarded" : "item.forward"), h$10("button", {
+	}, h$11(IconCopy, null))), done ? null : withTooltip(say(forwarded ? "item.forwarded" : "item.forward"), h$11("button", {
 		type: "button",
 		className: "dsh-an-iconBtn",
 		"aria-label": say(forwarded ? "item.forwarded" : "item.forward"),
 		"data-forwarded": forwarded ? "true" : void 0,
 		onClick: forward
-	}, h$10(IconForward, null), forwarded ? h$10("span", {
+	}, h$11(IconForward, null), forwarded ? h$11("span", {
 		className: "dsh-an-forwardMark",
 		"aria-hidden": true
-	}, h$10(IconCheck, { size: 8 })) : null)), withTooltip(say("item.edit"), h$10("button", {
+	}, h$11(IconCheck, { size: 8 })) : null)), withTooltip(say("item.edit"), h$11("button", {
 		type: "button",
 		className: "dsh-an-iconBtn",
 		"aria-label": say("item.edit"),
 		onClick: () => onStartEdit(item)
-	}, h$10(IconPencil, null))), withTooltip(say("item.delete"), h$10("button", {
+	}, h$11(IconPencil, null))), withTooltip(say("item.delete"), h$11("button", {
 		type: "button",
 		className: "dsh-an-iconBtn dsh-an-iconBtnDanger",
 		"aria-label": say("item.delete"),
 		onClick: () => onDelete(item)
-	}, h$10(IconTrash, null)))))));
+	}, h$11(IconTrash, null)))))));
 }
 
 // src/client/ui/ScopeSwitch.tsx
 /** Segmented switch between the workspace list and the session list. */
-const h$9 = react.default.createElement;
+const h$10 = react.default.createElement;
 function ScopeSwitch(props) {
 	const { say, mode, canUseSession, onChange } = props;
 	const options = [{
@@ -9428,11 +9436,11 @@ function ScopeSwitch(props) {
 		value: "session",
 		label: say("scope.session")
 	}] : []];
-	return h$9("div", {
+	return h$10("div", {
 		className: "dsh-an-scope",
 		role: "group",
 		"aria-label": say("scope.label")
-	}, options.map((option) => h$9(react.default.Fragment, { key: option.value }, withTooltip(option.value === "session" ? say("scope.sessionHint") : canUseSession ? say("scope.workspaceHint") : say("scope.newSessionHint"), h$9("button", {
+	}, options.map((option) => h$10(react.default.Fragment, { key: option.value }, withTooltip(option.value === "session" ? say("scope.sessionHint") : canUseSession ? say("scope.workspaceHint") : say("scope.newSessionHint"), h$10("button", {
 		type: "button",
 		className: "dsh-an-scopeBtn",
 		"data-scope-mode": option.value,
@@ -9444,33 +9452,33 @@ function ScopeSwitch(props) {
 
 // src/client/ui/PanelHead.ts
 /** Panel title, counts, the list-scope switch and the settings/close actions. */
-const h$8 = react.default.createElement;
+const h$9 = react.default.createElement;
 function PanelHead(props) {
 	const { say, openCount, total, showSettings, onToggleSettings, onClose, newerVersion, scopeMode, canUseWorkspace, canUseSession, onScopeChange } = props;
-	return h$8("div", { className: "dsh-an-popHead" }, h$8("div", { className: "dsh-an-popTitleLine" }, h$8("div", { className: "dsh-an-popTitle" }, say("popover.title")), h$8("p", { className: "dsh-an-popMeta" }, say("popover.count", {
+	return h$9("div", { className: "dsh-an-popHead" }, h$9("div", { className: "dsh-an-popTitleLine" }, h$9("div", { className: "dsh-an-popTitle" }, say("popover.title")), h$9("p", { className: "dsh-an-popMeta" }, say("popover.count", {
 		open: openCount,
 		total
-	})), canUseWorkspace ? h$8(ScopeSwitch, {
+	})), canUseWorkspace ? h$9(ScopeSwitch, {
 		say,
 		mode: scopeMode,
 		canUseSession,
 		onChange: onScopeChange
-	}) : null), h$8("div", { className: "dsh-an-popActions" }, withTooltip(say("settings.open"), h$8("button", {
+	}) : null), h$9("div", { className: "dsh-an-popActions" }, withTooltip(say("settings.open"), h$9("button", {
 		type: "button",
 		className: "dsh-an-settingsBtn",
 		"data-active": showSettings ? "true" : void 0,
 		"aria-label": newerVersion ? `${say("settings.open")} · ${say("update.tip", { version: `v${newerVersion}` })}` : say("settings.open"),
 		"aria-expanded": showSettings,
 		onClick: onToggleSettings
-	}, h$8(IconGear, null), newerVersion ? h$8("span", {
+	}, h$9(IconGear, null), newerVersion ? h$9("span", {
 		className: "dsh-an-updateDot",
 		"aria-hidden": true
-	}) : null)), withTooltip(say("popover.close"), h$8("button", {
+	}) : null)), withTooltip(say("popover.close"), h$9("button", {
 		type: "button",
 		className: "dsh-an-popClose",
 		"aria-label": say("popover.close"),
 		onClick: onClose
-	}, h$8(IconClose, null)))));
+	}, h$9(IconClose, null)))));
 }
 
 // src/client/ui/UpdateNotice.ts
@@ -9493,7 +9501,7 @@ function PanelHead(props) {
 * upgrading to 2.3.0 can read 2.1.0, 2.2.0 and 2.3.0 in order. The full release
 * page opens from the link beside the update button.
 */
-const h$7 = react.default.createElement;
+const h$8 = react.default.createElement;
 const NOTES_ID = "dsh-an-update-notes";
 const UPDATE_PACKAGE = "dsh-aside-note";
 /** Failure codes the card can explain without echoing the host's message. */
@@ -9603,76 +9611,81 @@ function UpdateNotice(props) {
 			if (typeof props.onToast === "function") props.onToast(ok ? "copied" : "copyFailed");
 		});
 	};
-	const noteGroups = (list) => list.map((group, index) => h$7("div", {
+	const noteGroups = (list) => list.map((group, index) => h$8("div", {
 		key: `${group.title}-${index}`,
 		className: "dsh-an-updateGroup"
-	}, group.title ? h$7("div", { className: "dsh-an-updateGroupTitle" }, group.title) : null, h$7("ul", { className: "dsh-an-updateItems" }, group.items.map((item, itemIndex) => h$7("li", {
+	}, group.title ? h$8("div", { className: "dsh-an-updateGroupTitle" }, group.title) : null, h$8("ul", { className: "dsh-an-updateItems" }, group.items.map((item, itemIndex) => h$8("li", {
 		key: itemIndex,
 		className: "dsh-an-updateItem"
-	}, item.lead ? h$7("strong", null, item.lead) : null, item.lead ? " " : null, item.body)))));
-	const entryBody = (entry) => entry.groups.length > 0 ? noteGroups(entry.groups) : h$7("p", { className: "dsh-an-updateHint" }, say("update.notesMissing"));
-	const notesBody = notes.status === "loading" ? h$7("p", { className: "dsh-an-updateHint" }, say("update.notesLoading")) : notes.status === "error" ? h$7("p", { className: "dsh-an-updateHint" }, say("update.notesFailed")) : notes.status === "ready" && notes.entries.length === 1 ? entryBody(notes.entries[0]) : notes.status === "ready" ? h$7("div", { className: "dsh-an-updateVersions" }, h$7("p", { className: "dsh-an-updateHint" }, say("update.historyCount", { n: notes.entries.length })), notes.entries.map((entry, index) => {
+	}, item.lead ? h$8("strong", null, item.lead) : null, item.lead ? " " : null, item.body)))));
+	const entryBody = (entry) => entry.groups.length > 0 ? noteGroups(entry.groups) : h$8("p", { className: "dsh-an-updateHint" }, say("update.notesMissing"));
+	const notesBody = notes.status === "loading" ? h$8("p", { className: "dsh-an-updateHint" }, say("update.notesLoading")) : notes.status === "error" ? h$8("p", { className: "dsh-an-updateHint" }, say("update.notesFailed")) : notes.status === "ready" && notes.entries.length === 1 ? entryBody(notes.entries[0]) : notes.status === "ready" ? h$8("div", { className: "dsh-an-updateVersions" }, h$8("p", { className: "dsh-an-updateHint" }, say("update.historyCount", { n: notes.entries.length })), notes.entries.map((entry, index) => {
 		const open = expandedVersions[entry.version] === true;
-		return h$7("div", {
+		return h$8("div", {
 			key: entry.version,
 			className: "dsh-an-updateVersion"
-		}, h$7("button", {
+		}, h$8("button", {
 			type: "button",
 			className: "dsh-an-updateVersionHead",
 			"aria-expanded": open,
 			"aria-controls": `${NOTES_ID}-${entry.version}`,
 			onClick: () => props.onToggleVersion(entry.version)
-		}, h$7("span", {
+		}, h$8("span", {
 			className: "dsh-an-updateChevron",
 			"data-open": open ? "true" : "false",
 			"aria-hidden": true
-		}, "▸"), h$7("span", { className: "dsh-an-updateVersionLabel" }, `v${entry.version}`), index === 0 ? h$7("span", { className: "dsh-an-updateLatest" }, say("update.latest")) : null), open ? h$7("div", {
+		}, "▸"), h$8("span", { className: "dsh-an-updateVersionLabel" }, `v${entry.version}`), index === 0 ? h$8("span", { className: "dsh-an-updateLatest" }, say("update.latest")) : null), open ? h$8("div", {
 			id: `${NOTES_ID}-${entry.version}`,
 			className: "dsh-an-updateVersionBody"
 		}, entryBody(entry)) : null);
-	}), notes.truncated ? h$7("a", {
+	}), notes.truncated ? h$8("a", {
 		className: "dsh-an-updateFull",
 		href: props.releasesUrl,
 		target: "_blank",
 		rel: "noreferrer"
 	}, say("update.olderNotes")) : null) : null;
-	return h$7("div", { className: "dsh-an-updateCard" }, h$7("div", { className: "dsh-an-updateTitle" }, say("update.available", { version: `v${latestVersion}` })), h$7("div", {
+	return h$8("div", { className: "dsh-an-updateCard" }, h$8("div", { className: "dsh-an-updateTitle" }, say("update.available", { version: `v${latestVersion}` })), h$8("div", {
 		id: NOTES_ID,
 		ref: notesRef,
 		className: "dsh-an-updateNotes",
 		role: "region",
 		"aria-label": say("update.notesTitle"),
 		"data-fade": fade ? "true" : void 0
-	}, notesBody), h$7("div", { className: "dsh-an-updateActions" }, phase === "done" ? h$7("div", { className: "dsh-an-updateDone" }, h$7("span", { className: "dsh-an-updateHint" }, say("update.updated", { version: run.installedVersion ? `v${run.installedVersion}` : `v${latestVersion}` })), h$7("button", {
+	}, notesBody), h$8("div", { className: "dsh-an-updateActions" }, phase === "done" ? h$8("div", { className: "dsh-an-updateDone" }, h$8("span", { className: "dsh-an-updateHint" }, say("update.updated", { version: run.installedVersion ? `v${run.installedVersion}` : `v${latestVersion}` })), h$8("button", {
 		type: "button",
 		className: "dsh-an-updatePrimary",
 		onClick: props.onRefresh
-	}, say("update.refresh"))) : h$7("button", {
+	}, say("update.refresh"))) : h$8("button", {
 		type: "button",
 		className: "dsh-an-updatePrimary",
 		disabled: busy,
 		"aria-busy": busy,
 		onClick: () => props.onStartUpdate()
-	}, busy ? phase === "running" ? say("update.updating") : say("update.starting") : say("update.now")), fullReleaseUrl ? h$7("a", {
+	}, busy ? phase === "running" ? say("update.updating") : say("update.starting") : say("update.now")), fullReleaseUrl ? h$8("a", {
 		className: "dsh-an-updateFull",
 		href: fullReleaseUrl,
 		target: "_blank",
 		rel: "noreferrer"
-	}, say("update.full")) : null), phase === "error" ? h$7("div", { className: "dsh-an-updateErrorRow" }, h$7("p", {
+	}, say("update.full")) : null), phase === "error" ? h$8("div", { className: "dsh-an-updateErrorRow" }, h$8("p", {
 		className: "dsh-an-updateError",
 		role: "status"
-	}, failureKey ? say(failureKey) : say("update.failed", { reason: run.message || run.failureCode || "" }))) : null, manual ? h$7("div", { className: "dsh-an-updateFallback" }, h$7("p", { className: "dsh-an-updateHint" }, say("update.manualHint", { command: manualCommand })), h$7("button", {
+	}, failureKey ? say(failureKey) : say("update.failed", { reason: run.message || run.failureCode || "" }))) : null, manual ? h$8("div", { className: "dsh-an-updateFallback" }, h$8("p", { className: "dsh-an-updateHint" }, say("update.manualHint", { command: manualCommand })), h$8("button", {
 		type: "button",
 		className: "dsh-an-updateCopy",
 		onClick: copyPrompt
-	}, say("update.copyPrompt"))) : null, run.phase === "done" && run.restartRequired ? h$7("p", { className: "dsh-an-updateHint" }, say("update.restartHint")) : null);
+	}, say("update.copyPrompt"))) : null, run.phase === "done" && run.restartRequired ? h$8("p", { className: "dsh-an-updateHint" }, say("update.restartHint")) : null);
 }
 
-// src/client/ui/SettingsPanel.ts
-/** Settings card: send shortcut, forward prefix and about. */
-const h$6 = react.default.createElement;
-function SettingsPanel(props) {
-	const { say, sendShortcut, chooseShortcut, forwardPrefix, changeForwardPrefix, resetForwardPrefix, prefixRef, analyticsEnabled, onToggleAnalytics, update } = props;
+// src/client/ui/StorageSettings.ts
+/** Settings › Data storage: the medium, the host file path and its actions. */
+const h$7 = react.default.createElement;
+/**
+* The storage decision can change after this block mounts (retry, or a probe
+* finishing late); refresh on the same ready channel the entry uses. The path
+* is host-owned state and is fetched only while host storage is in use.
+*/
+function StorageSettings(props) {
+	const { say } = props;
 	const [storage, setStorage] = react.default.useState(() => ({
 		mode: currentStorageMode(),
 		failure: storageFailure()
@@ -9714,6 +9727,36 @@ function SettingsPanel(props) {
 	const showStoreFile = async () => {
 		if (!await revealStoreFile()) notify("revealFailed");
 	};
+	const modeLabel = storage.mode === "host" ? say("storage.modeHost") : storage.mode === "local" ? say("storage.modeLocal") : storage.mode === "probing" ? say("storage.loading") : say("storage.hostError");
+	return h$7("div", { className: "dsh-an-storageBlock" }, h$7("div", { className: "dsh-an-settingMetaRow" }, h$7("span", null, modeLabel), storage.mode === "error" ? h$7("button", {
+		type: "button",
+		className: "dsh-an-updateCheck",
+		onClick: () => {
+			retryStorage();
+		}
+	}, say("storage.retry")) : null), storage.mode === "host" ? locating ? h$7("p", { className: "dsh-an-settingHint" }, say("storage.pathLoading")) : location && location.path ? h$7("div", { className: "dsh-an-storagePathRow" }, h$7("code", {
+		className: "dsh-an-storagePath",
+		title: location.path
+	}, location.path), h$7("div", { className: "dsh-an-storageActions" }, h$7("button", {
+		type: "button",
+		className: "dsh-an-storageAction",
+		onClick: () => {
+			copyStorePath();
+		}
+	}, say("storage.copyPath")), h$7("button", {
+		type: "button",
+		className: "dsh-an-storageAction",
+		onClick: () => {
+			showStoreFile();
+		}
+	}, say("storage.reveal"))), location.exists ? null : h$7("p", { className: "dsh-an-settingHint" }, say("storage.pathMissing"))) : h$7("p", { className: "dsh-an-settingHint" }, say("storage.pathUnavailable")) : storage.mode === "local" ? h$7("p", { className: "dsh-an-settingHint" }, say("storage.notSwitched")) : null, storage.failure ? h$7("p", { className: "dsh-an-settingHint" }, say("storage.failure").replace("{code}", storage.failure.code)) : null);
+}
+
+// src/client/ui/SettingsPanel.ts
+/** Settings card: send shortcut, forward prefix and about. */
+const h$6 = react.default.createElement;
+function SettingsPanel(props) {
+	const { say, sendShortcut, chooseShortcut, forwardPrefix, changeForwardPrefix, resetForwardPrefix, prefixRef, analyticsEnabled, onToggleAnalytics, update } = props;
 	return h$6("div", { className: "dsh-an-settings" }, h$6("div", { className: "dsh-an-settingsHead" }, say("settings.title")), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.shortcut")), h$6("div", { className: "dsh-an-settingBody" }, h$6("div", { className: "dsh-an-settingChoices" }, h$6("label", { className: "dsh-an-settingChoice" }, h$6("input", {
 		type: "radio",
 		name: "dsh-an-send-shortcut",
@@ -9758,7 +9801,10 @@ function SettingsPanel(props) {
 	})), h$6("p", {
 		id: "dsh-an-analytics-hint",
 		className: "dsh-an-settingHint"
-	}, say("settings.analyticsHint")))), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.about")), h$6("div", { className: "dsh-an-settingBody" }, h$6("div", { className: "dsh-an-settingBrand" }, h$6("span", { className: "dsh-an-settingBrandName" }, say("title")), h$6("span", { className: "dsh-an-settingBrandTagline" }, say("settings.tagline"))), h$6("div", { className: "dsh-an-settingAbout" }, h$6("span", { className: "dsh-an-settingAboutVersion" }, `${say("settings.version")} ${PLUGIN_VERSION}`), h$6("button", {
+	}, say("settings.analyticsHint")))), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.storage")), h$6("div", { className: "dsh-an-settingBody" }, h$6(StorageSettings, {
+		say,
+		onToast: props.onToast
+	}))), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.about")), h$6("div", { className: "dsh-an-settingBody" }, h$6("div", { className: "dsh-an-settingBrand" }, h$6("span", { className: "dsh-an-settingBrandName" }, say("title")), h$6("span", { className: "dsh-an-settingBrandTagline" }, say("settings.tagline"))), h$6("div", { className: "dsh-an-settingAbout" }, h$6("span", { className: "dsh-an-settingAboutVersion" }, `${say("settings.version")} ${PLUGIN_VERSION}`), h$6("button", {
 		type: "button",
 		className: "dsh-an-updateCheck",
 		disabled: update.check.status === "checking",
@@ -9782,31 +9828,7 @@ function SettingsPanel(props) {
 		onRefresh: update.refreshPage,
 		onCopyPrompt: update.copyPrompt,
 		onToast: props.onToast
-	}) : null, h$6("div", { className: "dsh-an-storageBlock" }, h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("storage.settingsLabel")), h$6("span", {
-		className: "dsh-an-settingDot",
-		"aria-hidden": true
-	}, "·"), h$6("span", null, storage.mode === "host" ? say("storage.modeHost") : storage.mode === "local" ? say("storage.modeLocal") : storage.mode === "probing" ? say("storage.loading") : say("storage.hostError")), storage.mode === "error" ? h$6("button", {
-		type: "button",
-		className: "dsh-an-updateCheck",
-		onClick: () => {
-			retryStorage();
-		}
-	}, say("storage.retry")) : null), storage.mode === "host" ? locating ? h$6("p", { className: "dsh-an-settingHint" }, say("storage.pathLoading")) : location && location.path ? h$6("div", { className: "dsh-an-storagePathRow" }, h$6("code", {
-		className: "dsh-an-storagePath",
-		title: location.path
-	}, location.path), h$6("div", { className: "dsh-an-storageActions" }, h$6("button", {
-		type: "button",
-		className: "dsh-an-storageAction",
-		onClick: () => {
-			copyStorePath();
-		}
-	}, say("storage.copyPath")), h$6("button", {
-		type: "button",
-		className: "dsh-an-storageAction",
-		onClick: () => {
-			showStoreFile();
-		}
-	}, say("storage.reveal"))), location.exists ? null : h$6("p", { className: "dsh-an-settingHint" }, say("storage.pathMissing"))) : h$6("p", { className: "dsh-an-settingHint" }, say("storage.pathUnavailable")) : null, storage.failure ? h$6("div", { className: "dsh-an-settingHint" }, say("storage.failure").replace("{code}", storage.failure.code)) : null), h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("settings.author")), h$6("span", {
+	}) : null, h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("settings.author")), h$6("span", {
 		className: "dsh-an-settingDot",
 		"aria-hidden": true
 	}, "·"), h$6("span", null, PLUGIN_AUTHOR)), h$6("div", { className: "dsh-an-settingMetaRow" }, h$6("span", null, say("settings.project")), h$6("span", {

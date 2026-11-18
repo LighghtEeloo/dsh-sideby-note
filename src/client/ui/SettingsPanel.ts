@@ -7,12 +7,8 @@ import {
   PLUGIN_REPO_URL,
   PLUGIN_VERSION,
 } from '../constants'
-import { copyText } from '../domain/clipboard'
-import { currentStorageMode, retryStorage } from '../storage/boot'
-import { STORE_READY_LISTENERS } from '../storage/events'
-import { fetchStoreLocation, revealStoreFile } from '../storage/host-client'
-import { storageFailure } from '../storage/state'
 import { UpdateNotice } from './UpdateNotice'
+import { StorageSettings } from './StorageSettings'
 
 const h = React.createElement
 
@@ -29,44 +25,6 @@ export function SettingsPanel(props) {
     onToggleAnalytics,
     update,
   } = props
-  // The switch decision can change after this card mounts (retry, or a probe
-  // finishing late); refresh on the same ready channel the entry uses.
-  const [storage, setStorage] = React.useState(() => ({
-    mode: currentStorageMode(),
-    failure: storageFailure(),
-  }))
-  React.useEffect(() => {
-    const onReady = () => setStorage({ mode: currentStorageMode(), failure: storageFailure() })
-    STORE_READY_LISTENERS.add(onReady)
-    return () => { STORE_READY_LISTENERS.delete(onReady) }
-  }, [])
-  // The path is host-owned state: ask for it only while this card shows host
-  // storage, and again after a retry moved the panel from local to host.
-  const [location, setLocation] = React.useState<{ path: string | null, exists: boolean } | null>(null)
-  const [locating, setLocating] = React.useState(false)
-  React.useEffect(() => {
-    if (storage.mode !== 'host') {
-      setLocation(null)
-      setLocating(false)
-      return
-    }
-    let alive = true
-    setLocating(true)
-    void fetchStoreLocation().then(next => {
-      if (!alive) return
-      setLocation(next)
-      setLocating(false)
-    })
-    return () => { alive = false }
-  }, [storage.mode])
-  const notify = typeof props.onToast === 'function' ? props.onToast : () => {}
-  const copyStorePath = async () => {
-    if (!location || !location.path) return
-    notify((await copyText(location.path)) ? 'pathCopied' : 'copyFailed')
-  }
-  const showStoreFile = async () => {
-    if (!(await revealStoreFile())) notify('revealFailed')
-  }
   return h(
             'div',
             { className: 'dsh-an-settings' },
@@ -181,6 +139,16 @@ export function SettingsPanel(props) {
             h(
               'div',
               { className: 'dsh-an-settingGroup' },
+              h('div', { className: 'dsh-an-settingLabel' }, say('settings.storage')),
+              h(
+                'div',
+                { className: 'dsh-an-settingBody' },
+                h(StorageSettings, { say, onToast: props.onToast }),
+              ),
+            ),
+            h(
+              'div',
+              { className: 'dsh-an-settingGroup' },
               h('div', { className: 'dsh-an-settingLabel' }, say('settings.about')),
               h(
                 'div',
@@ -236,68 +204,6 @@ export function SettingsPanel(props) {
                       onToast: props.onToast,
                     })
                   : null,
-                h(
-                  'div',
-                  { className: 'dsh-an-storageBlock' },
-                  h(
-                    'div',
-                    { className: 'dsh-an-settingMetaRow' },
-                    h('span', null, say('storage.settingsLabel')),
-                    h('span', { className: 'dsh-an-settingDot', 'aria-hidden': true }, '·'),
-                    h('span', null, storage.mode === 'host'
-                      ? say('storage.modeHost')
-                      : storage.mode === 'local'
-                        ? say('storage.modeLocal')
-                        : storage.mode === 'probing'
-                          ? say('storage.loading')
-                          : say('storage.hostError')),
-                    storage.mode === 'error'
-                      ? h('button', {
-                          type: 'button',
-                          className: 'dsh-an-updateCheck',
-                          onClick: () => { void retryStorage() },
-                        }, say('storage.retry'))
-                      : null,
-                  ),
-                  storage.mode === 'host'
-                    ? locating
-                      ? h('p', { className: 'dsh-an-settingHint' }, say('storage.pathLoading'))
-                      : location && location.path
-                        ? h(
-                            'div',
-                            { className: 'dsh-an-storagePathRow' },
-                            h('code', {
-                              className: 'dsh-an-storagePath',
-                              title: location.path,
-                            }, location.path),
-                            h(
-                              'div',
-                              { className: 'dsh-an-storageActions' },
-                              h('button', {
-                                type: 'button',
-                                className: 'dsh-an-storageAction',
-                                onClick: () => { void copyStorePath() },
-                              }, say('storage.copyPath')),
-                              h('button', {
-                                type: 'button',
-                                className: 'dsh-an-storageAction',
-                                onClick: () => { void showStoreFile() },
-                              }, say('storage.reveal')),
-                            ),
-                            location.exists
-                              ? null
-                              : h('p', { className: 'dsh-an-settingHint' }, say('storage.pathMissing')),
-                          )
-                        : h('p', { className: 'dsh-an-settingHint' }, say('storage.pathUnavailable'))
-                    : null,
-                  storage.failure
-                    ? h(
-                        'div',
-                        { className: 'dsh-an-settingHint' },
-                        say('storage.failure').replace('{code}', storage.failure.code),
-                      )
-                    : null,
-                ),
                 h(
                   'div',
                   { className: 'dsh-an-settingMetaRow' },

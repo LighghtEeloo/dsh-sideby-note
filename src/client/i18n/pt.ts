@@ -37,6 +37,7 @@ export const pt: Record<MessageKey, string> = {
   "settings.forwardPrefixHintCustom": "Ao encaminhar para um campo de texto vazio, este prompt é escrito antes da nota; deixe vazio para encaminhar apenas a nota",
   "settings.forwardPrefixReset": "Usar o prompt padrão",
   "settings.privacy": "Privacidade",
+  "settings.storage": "Armazenamento de dados",
   "settings.analytics": "Estatísticas anônimas de recursos",
   "settings.analyticsHint": "Usamos a Tencent Cloud Observability Platform para ver quais recursos são usados e onde as pessoas travam; os relatórios incluem o tipo de ação, o resultado, a versão do plugin, um ID anônimo de visitante e detalhes básicos do ambiente, como rede, região e tipo de dispositivo — nunca notas, conversas ou dados da conta. Desativar interrompe todos os relatórios",
   "add.placeholder": "Anote uma",

@@ -37,6 +37,7 @@ export const en: Record<MessageKey, string> = {
   "settings.forwardPrefixHintCustom": "When forwarding into an empty composer, this prompt is written before the note; leave it empty to forward the note on its own",
   "settings.forwardPrefixReset": "Use the default prompt",
   "settings.privacy": "Privacy",
+  "settings.storage": "Data storage",
   "settings.analytics": "Anonymous feature statistics",
   "settings.analyticsHint": "We use the Tencent Cloud Observability Platform to see which features are used and where people get stuck; reports include the action type, its outcome, the plugin version, an anonymous visitor ID and basic environment details such as network, region and device type — never notes, conversations or account details. Turning it off stops all further reporting",
   "add.placeholder": "Jot one down",

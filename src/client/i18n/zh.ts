@@ -35,6 +35,7 @@ export const zh = {
   "settings.forwardPrefixHintCustom": "转发到会话时，若输入框为空，会先写入这段提示词，再追加记录内容；留空则只转发记录内容",
   "settings.forwardPrefixReset": "恢复默认提示词",
   "settings.privacy": "隐私",
+  "settings.storage": "数据存储",
   "settings.analytics": "匿名功能统计",
   "settings.analyticsHint": "通过腾讯云可观测平台统计功能使用情况，帮我们找出常用功能，以及哪里容易卡住；会上报操作类型、结果、插件版本、匿名访客 ID，以及网络、地域、设备类型等基础环境信息；不读取便笺、对话或账号信息；关闭后不再上报",
   "add.placeholder": "随手记一条",

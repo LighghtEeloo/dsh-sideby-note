@@ -93,6 +93,7 @@ docs/assets/             # README 截图（preview-* 与 features/）
 - `forwarded` 键是 `ws:<workspaceId>` 或会话 ID；`global` 存范围选择、发送快捷键、转发前缀、迁移标记。
 - 浏览器在宿主之外仍保留设备本地状态（`localStorage`）：面板宽高、分区展开、匿名统计开关、RUM 访客 ID、首次打开标记、未提交草稿（`dsh.aside-note.drafts`，按工作区/会话共享）。
 - 领域 `version` 是当前格式版本；读旧版本要配 `compatibleVersions`，删字段前必须重写所有记录（官方无值迁移 runner）。
+- 设置 › **数据存储**通过 `GET /store/location` 读取该文件的完整路径，可拷贝；`POST /store/reveal` 让宿主在文件管理器中定位它。后端不是 JSON 文件时明确显示「无法定位」，不猜路径。
 - `Note` 形如 `{ id, text, done, createdAt, updatedAt, completedAt? }`；`text` 上限 280，**清单条数不设上限**（400 条仍可展示与新增，见 `STORE-018`）。
 - 每次写入整文件替换；数据量远小于文件系统压力，写入排队由领域写链串行化。
 
