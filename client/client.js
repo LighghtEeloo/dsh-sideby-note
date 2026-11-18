@@ -4245,7 +4245,7 @@ const ANALYTICS_ENABLED_KEY = "dsh.aside-note.analytics";
 /** Whether this browser has opened the panel before; reported once as `first`. */
 const PANEL_OPENED_KEY = "dsh.aside-note.panel-opened";
 /** Shown in the in-panel settings; keep in sync with package.json. */
-const PLUGIN_VERSION = "1.1.4";
+const PLUGIN_VERSION = "1.1.5";
 const PLUGIN_AUTHOR = "阿三石";
 const PLUGIN_REPO_URL = "https://github.com/Rayle8/dsh-aside-note";
 const PLUGIN_REPO_LABEL = "github.com/Rayle8/dsh-aside-note";
@@ -5037,7 +5037,7 @@ function createRum() {
 		id: APP_ID,
 		uin: anonymousUin(),
 		hostUrl: "https://rumt-zh.com",
-		version: "1.1.4",
+		version: "1.1.5",
 		pagePerformance: false,
 		webVitals: false,
 		onError: false,
@@ -6185,11 +6185,31 @@ function fill(template, vars) {
 * literal objects, so a stricter key type waits until those call sites settle.
 */
 function makeSay(ctx, getLocaleId) {
-	const locale = ctx.get("locale");
-	const bound = locale && typeof locale.bind === "function" ? locale.bind(NS) : null;
+	let boundService;
+	let bound = null;
+	let hasSynced = false;
+	/**
+	* Bind lazily and re-bind when the service identity changes: a client-plugin
+	* reload can replace the locale service after this closure was created, and a
+	* binding captured from the old one would silently stop translating.
+	*/
+	const translate = () => {
+		let locale;
+		try {
+			locale = ctx.get("locale");
+		} catch {
+			return null;
+		}
+		if (hasSynced && locale === boundService) return bound;
+		hasSynced = true;
+		boundService = locale;
+		bound = locale && typeof locale.bind === "function" ? locale.bind(NS) : null;
+		return bound;
+	};
 	return (key) => {
-		if (bound) try {
-			const value = bound(key);
+		const boundTranslate = translate();
+		if (boundTranslate) try {
+			const value = boundTranslate(key);
 			if (typeof value === "string" && value && value !== key) return value;
 		} catch {}
 		const language = String(getLocaleId()).split("-")[0].toLowerCase();
@@ -8458,7 +8478,7 @@ function useUpdateCenter(localeId) {
 	}, []);
 	const latestVersion = check.latestVersion;
 	react.default.useEffect(() => {
-		if ("1.1.4".includes("-") && !isPublishedChannel("1.1.4")) return void 0;
+		if ("1.1.5".includes("-") && !isPublishedChannel("1.1.5")) return void 0;
 		let active = true;
 		fetchLatestVersion().then((version) => {
 			if (!active) return;
@@ -8517,9 +8537,9 @@ function useUpdateCenter(localeId) {
 		}
 		reportEvent("update_checked", {
 			ext1: "manual",
-			ext2: isNewerVersion(version, "1.1.4") ? "available" : "current"
+			ext2: isNewerVersion(version, "1.1.5") ? "available" : "current"
 		});
-		if (isNewerVersion(version, "1.1.4")) {
+		if (isNewerVersion(version, "1.1.5")) {
 			const sameRelease = previousOffer !== null && version === previousOffer;
 			setCheck({
 				status: "available",
@@ -9886,8 +9906,9 @@ function apply(ctx) {
 	if (locale && typeof locale.register === "function") ctx.effect(() => locale.register(NS, DICT), "dsh-aside-note: dictionaries");
 	const localeId = () => {
 		try {
-			const current = locale && typeof locale.getLocale === "function" ? locale.getLocale() : null;
-			const id = current && (current.id || current.locale);
+			const service = ctx.get("locale") || locale;
+			const current = service && typeof service.getSnapshot === "function" ? service.getSnapshot() : service && typeof service.getLocale === "function" ? service.getLocale() : null;
+			const id = typeof current === "string" ? current : current && (current.active || current.id || current.locale);
 			return typeof id === "string" && id ? id : "en";
 		} catch {
 			return "en";
