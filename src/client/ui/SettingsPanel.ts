@@ -116,6 +116,16 @@ export function SettingsPanel(props) {
             h(
               'div',
               { className: 'dsh-an-settingGroup' },
+              h('div', { className: 'dsh-an-settingLabel' }, say('settings.storage')),
+              h(
+                'div',
+                { className: 'dsh-an-settingBody' },
+                h(StorageSettings, { say, onToast: props.onToast }),
+              ),
+            ),
+            h(
+              'div',
+              { className: 'dsh-an-settingGroup' },
               h('div', { className: 'dsh-an-settingLabel' }, say('settings.privacy')),
               h(
                 'div',
@@ -134,16 +144,6 @@ export function SettingsPanel(props) {
                   }),
                 ),
                 h('p', { id: 'dsh-an-analytics-hint', className: 'dsh-an-settingHint' }, say('settings.analyticsHint')),
-              ),
-            ),
-            h(
-              'div',
-              { className: 'dsh-an-settingGroup' },
-              h('div', { className: 'dsh-an-settingLabel' }, say('settings.storage')),
-              h(
-                'div',
-                { className: 'dsh-an-settingBody' },
-                h(StorageSettings, { say, onToast: props.onToast }),
               ),
             ),
             h(

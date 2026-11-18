@@ -9791,7 +9791,10 @@ function SettingsPanel(props) {
 		type: "button",
 		className: "dsh-an-settingReset",
 		onClick: resetForwardPrefix
-	}, say("settings.forwardPrefixReset")))))), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.privacy")), h$6("div", { className: "dsh-an-settingBody" }, h$6("label", { className: "dsh-an-settingToggle" }, h$6("span", null, say("settings.analytics")), h$6("input", {
+	}, say("settings.forwardPrefixReset")))))), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.storage")), h$6("div", { className: "dsh-an-settingBody" }, h$6(StorageSettings, {
+		say,
+		onToast: props.onToast
+	}))), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.privacy")), h$6("div", { className: "dsh-an-settingBody" }, h$6("label", { className: "dsh-an-settingToggle" }, h$6("span", null, say("settings.analytics")), h$6("input", {
 		type: "checkbox",
 		role: "switch",
 		className: "dsh-an-switch",
@@ -9801,10 +9804,7 @@ function SettingsPanel(props) {
 	})), h$6("p", {
 		id: "dsh-an-analytics-hint",
 		className: "dsh-an-settingHint"
-	}, say("settings.analyticsHint")))), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.storage")), h$6("div", { className: "dsh-an-settingBody" }, h$6(StorageSettings, {
-		say,
-		onToast: props.onToast
-	}))), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.about")), h$6("div", { className: "dsh-an-settingBody" }, h$6("div", { className: "dsh-an-settingBrand" }, h$6("span", { className: "dsh-an-settingBrandName" }, say("title")), h$6("span", { className: "dsh-an-settingBrandTagline" }, say("settings.tagline"))), h$6("div", { className: "dsh-an-settingAbout" }, h$6("span", { className: "dsh-an-settingAboutVersion" }, `${say("settings.version")} ${PLUGIN_VERSION}`), h$6("button", {
+	}, say("settings.analyticsHint")))), h$6("div", { className: "dsh-an-settingGroup" }, h$6("div", { className: "dsh-an-settingLabel" }, say("settings.about")), h$6("div", { className: "dsh-an-settingBody" }, h$6("div", { className: "dsh-an-settingBrand" }, h$6("span", { className: "dsh-an-settingBrandName" }, say("title")), h$6("span", { className: "dsh-an-settingBrandTagline" }, say("settings.tagline"))), h$6("div", { className: "dsh-an-settingAbout" }, h$6("span", { className: "dsh-an-settingAboutVersion" }, `${say("settings.version")} ${PLUGIN_VERSION}`), h$6("button", {
 		type: "button",
 		className: "dsh-an-updateCheck",
 		disabled: update.check.status === "checking",

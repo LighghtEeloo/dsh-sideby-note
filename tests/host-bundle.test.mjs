@@ -300,6 +300,9 @@ test('STORE-028 设置中可拷贝存储路径', async t => {
   const aboutGroup = groups.find(group => group.querySelector('.dsh-an-settingLabel')?.textContent === '关于')
   assert.ok(aboutGroup, 'the About group still exists')
   assert.equal(aboutGroup.contains(pathElement), false, 'storage lives in its own group, not in About')
+  const privacyGroup = groups.find(group => group.querySelector('.dsh-an-settingLabel')?.textContent === '隐私')
+  assert.ok(privacyGroup, 'the Privacy group still exists')
+  assert.ok(groups.indexOf(storageGroup) < groups.indexOf(privacyGroup), 'storage sits above Privacy')
   const actions = [...popover.querySelectorAll('.dsh-an-storageAction')]
   assert.equal(actions.length, 2)
 
