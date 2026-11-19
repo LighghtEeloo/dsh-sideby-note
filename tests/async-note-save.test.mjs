@@ -74,3 +74,38 @@ test('SCOPE-014 切换范围后排队清空仍只影响原清单', async t => {
   assert.equal(app.button.querySelector('.dsh-an-headerCount'), null, '当前会话没有未完成便笺')
   await app.dispose()
 })
+
+test('NOTE-010 保存回包保留下一份草稿且不重复提交', async t => {
+  const firstWrite = Promise.withResolvers()
+  const release = Promise.withResolvers()
+  t.after(() => release.resolve())
+  const store = createStore(fakeCtx(fakeDomain()))
+  const app = await openHostPanel(t, store, {
+    beforeResponse: op => {
+      if (op.op !== 'list.patch' || !op.upserts?.some(item => item.text === '第一条草稿')) return
+      firstWrite.resolve()
+      return release.promise
+    },
+  })
+  const field = await typeDraft(app, '第一条草稿')
+  const submit = app.popover.querySelector('.dsh-an-addBtn')
+  await app.act(async () => { submit.click() })
+  await firstWrite.promise
+  await app.act(async () => {
+    submit.click()
+    field.dispatchEvent(new app.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+  })
+  await typeDraft(app, '下一份草稿')
+  await app.act(async () => { release.resolve() })
+
+  const draftKey = 'dsh.aside-note.drafts'
+  assert.equal(field.value, '下一份草稿')
+  assert.equal(JSON.parse(app.window.localStorage.getItem(draftKey)).sessions['session-1'].add, '下一份草稿')
+  const savedTexts = async () => (await store.snapshot()).data.sessions['session-1'].items.map(item => item.text)
+  assert.deepEqual(await savedTexts(), ['第一条草稿'])
+  await app.act(async () => { submit.click() })
+  assert.deepEqual(await savedTexts(), ['下一份草稿', '第一条草稿'])
+  assert.equal(field.value, '')
+  assert.equal(JSON.parse(app.window.localStorage.getItem(draftKey)).sessions['session-1'], undefined)
+  await app.dispose()
+})
