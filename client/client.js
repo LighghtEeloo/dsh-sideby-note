@@ -7617,8 +7617,6 @@ function useMemoStore(scope) {
 	};
 	const [record, setRecord] = react.default.useState(() => readScope(scopeRef.current));
 	const [syncError, setSyncError] = react.default.useState(false);
-	const recordRef = react.default.useRef(record);
-	recordRef.current = record;
 	const chainRef = react.default.useRef(Promise.resolve());
 	react.default.useEffect(() => {
 		setRecord(readScope(scopeRef.current));
@@ -7641,11 +7639,12 @@ function useMemoStore(scope) {
 		record,
 		syncError,
 		commit: react.default.useCallback((updater) => {
+			const target = {
+				kind,
+				id
+			};
 			const run = chainRef.current.then(async () => {
-				const current = recordRef.current || {
-					items: [],
-					updatedAt: 0
-				};
+				const current = readScope(target);
 				const base = current.items || [];
 				const nextItems = normalizeItems(updater(base));
 				const next = {
@@ -7653,17 +7652,17 @@ function useMemoStore(scope) {
 					items: nextItems,
 					updatedAt: Date.now()
 				};
-				const ok = await writeScope(scopeRef.current, next, base);
+				const ok = await writeScope(target, next, base);
+				const active = scopeRef.current;
+				if (active.kind !== target.kind || active.id !== target.id) return ok;
 				setSyncError(!ok);
 				if (!ok) return false;
-				const stored = readScope(scopeRef.current);
-				recordRef.current = stored;
-				setRecord(stored);
+				setRecord(readScope(target));
 				return true;
 			});
 			chainRef.current = run.then(() => void 0, () => void 0);
 			return run;
-		}, [])
+		}, [kind, id])
 	};
 }
 

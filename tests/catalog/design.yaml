@@ -161,6 +161,17 @@ features:
         technique: [决策表]
         reviewed: { by: "reviewed-in-chat", at: '2026-11-18', hash: '0509b1d051780454' }
 
+      - id: R-SCOPE-QUEUED-WRITE
+        statement: 异步便笺操作入队时绑定发起时的清单，执行时读取该清单的最新记录。
+        failure: 等待上一笔写入时切换范围，排队操作修改了另一个清单。
+        kind: consistency
+        branches:
+          - kind: valid
+            text: 排队清空只影响确认时的清单，另一清单及其视图保持正确
+          - kind: invalid
+            text: 排队期间切换范围，清空误删当前清单的记录
+        technique: [时序, 状态迁移]
+
   - id: store
     title: 存储、草稿与并发
     owner: store
